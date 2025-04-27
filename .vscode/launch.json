@@ -1,0 +1,28 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug TJC_TJamSimulator",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/build/bin/TJC_TJamSimulator",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for lldb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": false
+                }
+            ],
+            //"miDebuggerPath": "/usr/bin/lldb",
+            //"preLaunchTask": "build",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "macos-clang-x64"
+        }
+    ]
+}
