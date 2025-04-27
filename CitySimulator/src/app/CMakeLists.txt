@@ -16,7 +16,7 @@ target_link_libraries(TJC_TJamSimulator PRIVATE TJC_Core)
 # Specify the include directories for app
 target_include_directories(TJC_TJamSimulator PRIVATE 
     "${CMAKE_SOURCE_DIR}/src/app"
-    "${CMAKE_SOURCE_DIR}/src/core"
+    "${CMAKE_SOURCE_DIR}/src/core/include"
 )
 
 # Set platform-specific flags for app if necessary
