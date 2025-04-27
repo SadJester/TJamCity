@@ -1,7 +1,8 @@
 # /CitySimulator/CMakeLists.txt
 
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 4.0)
 project(TJamSimulator)
+set(CMAKE_CXX_STANDARD 20)
 
 # Set build output directory for all platforms
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/build/lib)
