@@ -2,12 +2,12 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build",
+            "label": "cs_build",
             "type": "shell",
             "command": "cmake",
             "args": [
                 "--build",
-                "${workspaceFolder}/build"
+                "${workspaceFolder}/.cmake/cs"
             ],
             "group": {
                 "kind": "build",
@@ -15,6 +15,29 @@
             },
             "problemMatcher": ["$gcc"],
             "detail": "Build your project using CMake"
-        }
+        },
+		{
+			"label": "cs_cmake_configure",
+			"type": "shell",
+			"command": "cmake",
+			"args": [
+				"-S", "./CitySimulator",
+				"-B", ".cmake/cs"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "cs_configure_n_build",
+			"dependsOn": [
+				"cs_cmake_configure",
+				"cs_build"
+			],
+			"dependsOrder": "sequence",
+			"problemMatcher": []
+		}
     ]
 }

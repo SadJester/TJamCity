@@ -5,7 +5,7 @@
             "name": "Debug TJC_TJamSimulator",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/build/bin/TJC_TJamSimulator",
+            "program": "${workspaceFolder}/build/cs/bin/TJC_TJamSimulator",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
@@ -20,8 +20,8 @@
                 }
             ],
             //"miDebuggerPath": "/usr/bin/lldb",
-            "preLaunchTask": "build",
-            "cppStandard": "c++17",
+            "preLaunchTask": "cs_configure_n_build",
+            "cppStandard": "c++20",
             "intelliSenseMode": "macos-clang-x64"
         }
     ]
