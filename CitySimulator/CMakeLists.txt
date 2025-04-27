@@ -5,12 +5,21 @@ project(TJamSimulator)
 set(CMAKE_CXX_STANDARD 20)
 
 # Set build output directory for all platforms
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../../build/cs/lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../../build/cs/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../../build/cs/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../build/cs/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../build/cs/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../build/cs/bin)
 
-# Enable testing if needed (optional)
-# enable_testing()
+option(WITH_TESTS "Build tests" ON)
+
+# add third-parties
+if (WITH_TESTS)
+    add_subdirectory(
+    ${CMAKE_SOURCE_DIR}/../sdks
+    ${CMAKE_BINARY_DIR}/sdks_cmake
+    )
+
+    enable_testing()
+endif()
 
 # Add subdirectories for app and core
 add_subdirectory(src/app)
