@@ -1,13 +1,26 @@
 # /CitySimulator/CMakeLists.txt
 
-cmake_minimum_required(VERSION 4.0)
+cmake_minimum_required(VERSION 3.27)
 project(TJamSimulator)
 set(CMAKE_CXX_STANDARD 20)
 
+set(BUILD_DIRECTORY ${CMAKE_BINARY_DIR}/../../build/cs/${CMAKE_BUILD_TYPE})
+
+
+# print information about core variables
+message(STATUS "[INFO] CMAKE SOURCE is set to: ${CMAKE_SOURCE_DIR}")
+message(STATUS "[INFO] CMAKE BINARY is set to: ${CMAKE_BINARY_DIR}")
+message(STATUS "[INFO] BUILD DIRECTORY is set to: ${BUILD_DIRECTORY}")
+message(STATUS "[INFO] CMake Version: ${CMAKE_VERSION}")
+message(STATUS "[INFO] Compiler: ${CMAKE_CXX_COMPILER}")
+message(STATUS "[INFO] Compiler Version: ${CMAKE_CXX_COMPILER_VERSION}")
+message(STATUS "[INFO] CMake Generator: ${CMAKE_GENERATOR}")
+message(STATUS "[INFO} Build type: ${CMAKE_BUILD_TYPE}")
+
 # Set build output directory for all platforms
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../build/cs/lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../build/cs/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../build/cs/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${BUILD_DIRECTORY}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${BUILD_DIRECTORY}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BUILD_DIRECTORY}/bin)
 
 option(WITH_TESTS "Build tests" ON)
 
