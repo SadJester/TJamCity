@@ -29,11 +29,10 @@
             "name": "(Mac) [Debug] TJC_TJamSimulator",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/.cmake/build/cs/bin/TJC_TJamSimulator",
+            "program": "${workspaceFolder}/build/cs/bin/TJC_TJamSimulator",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [],
             "externalConsole": false,
             "MIMode": "lldb",
             "setupCommands": [
