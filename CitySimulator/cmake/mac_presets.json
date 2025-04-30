@@ -7,12 +7,21 @@
     },
     "configurePresets": [
       {
-        "name": "mac",
-        "displayName": "Maker settings for Mac",
-        "description": "Maker common settings for Mac platform",
-        "generator": "Ninja",
-        "binaryDir": "${sourceDir}/.cmake/cs",
+        "name": "mac-debug",
+        "displayName": "[Debug] Maker settings for Mac",
+        "description": "[Debug] Maker common settings for Mac platform",
+        "binaryDir": "${sourceDir}/.cmake/cs/Debug",
         "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Debug"
+        }
+      },
+      {
+        "name": "mac-release",
+        "displayName": "[Release] Maker settings for Mac",
+        "description": "[Release] Maker common settings for Mac platform",
+        "binaryDir": "${sourceDir}/.cmake/cs/Release",
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Release"
         }
       }
     ],
@@ -22,8 +31,8 @@
         "displayName": "[Debug] Maker Ninja build",
         "description": "[Debug] Build mac with Ninja",
         "configuration": "Debug",
-        "configurePreset": "mac",
-        "nativeToolOptions": ["/maxCpuCount"],
+        "configurePreset": "mac-debug",
+        "nativeToolOptions": [],
         "condition": {
           "type": "equals",
           "lhs": "${hostSystemName}",
@@ -35,8 +44,8 @@
         "displayName": "[Release] Maker Ninja build",
         "description": "[Release] Build mac with Ninja",
         "configuration": "Release",
-        "configurePreset": "mac",
-        "nativeToolOptions": ["/maxCpuCount"],
+        "configurePreset": "mac-release",
+        "nativeToolOptions": [],
         "condition": {
           "type": "equals",
           "lhs": "${hostSystemName}",

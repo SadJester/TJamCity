@@ -40,8 +40,8 @@
             "type": "shell",
             "command": "cmake",
             "args": [
-                "--preset",
-                "${workspaceFolder}/.cmake/cs",
+                "--build",
+                "${workspaceFolder}/.cmake/cs/Debug",
 				"--preset",
 				"mac-build-debug"
             ],
@@ -57,7 +57,7 @@
             "type": "shell",
             "command": "cmake",
             "args": [
-                "--preset",
+                "--build",
                 "${workspaceFolder}/.cmake/cs",
 				"--preset",
 				"mac-build-release"

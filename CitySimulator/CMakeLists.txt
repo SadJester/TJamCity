@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.27)
 project(TJamSimulator)
 set(CMAKE_CXX_STANDARD 20)
 
-set(BUILD_DIRECTORY ${CMAKE_BINARY_DIR}/../../build/cs/${CMAKE_BUILD_TYPE})
+set(BUILD_DIRECTORY ${CMAKE_SOURCE_DIR}/build/cs/${CMAKE_BUILD_TYPE})
 
 
 # print information about core variables

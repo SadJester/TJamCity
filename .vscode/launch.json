@@ -28,7 +28,7 @@
             "name": "(Mac) [Debug] TJC_TJamSimulator",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/cs/bin/TJC_TJamSimulator",
+            "program": "${workspaceFolder}/build/cs/Debug/bin/TJC_TJamSimulator",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
@@ -42,6 +42,25 @@
                 }
             ],
             "preLaunchTask": "cs_mac_build_debug",
+        },
+        {
+            "name": "(Mac) [Release] TJC_TJamSimulator",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/cs/Release/bin/TJC_TJamSimulator",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for lldb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": false
+                }
+            ],
+            "preLaunchTask": "cs_mac_build_release",
         }
     ]
 }
