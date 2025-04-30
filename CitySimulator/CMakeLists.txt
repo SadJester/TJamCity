@@ -27,7 +27,7 @@ option(WITH_TESTS "Build tests" ON)
 # add third-parties
 if (WITH_TESTS)
     add_subdirectory(
-    ${CMAKE_SOURCE_DIR}/../sdks
+    ${CMAKE_CURRENT_SOURCE_DIR}/../sdks
     ${CMAKE_BINARY_DIR}/sdks_cmake
     )
 

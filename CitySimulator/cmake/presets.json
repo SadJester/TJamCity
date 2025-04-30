@@ -1,0 +1,16 @@
+{
+	"version": 4,
+	"cmakeMinimumRequired": {
+		"major": 3,
+		"minor": 23,
+		"patch": 0
+	},
+	"include": [
+		"mac_presets.json",
+        "win_presets.json"
+	],
+	"configurePresets": [
+	],
+	"buildPresets": [
+	]
+}

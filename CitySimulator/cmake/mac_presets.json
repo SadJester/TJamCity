@@ -1,0 +1,47 @@
+{
+    "version": 4,
+    "cmakeMinimumRequired": {
+      "major": 3,
+      "minor": 23,
+      "patch": 0
+    },
+    "configurePresets": [
+      {
+        "name": "mac",
+        "displayName": "Maker settings for Mac",
+        "description": "Maker common settings for Mac platform",
+        "generator": "Ninja",
+        "binaryDir": "${sourceDir}/.cmake/cs",
+        "cacheVariables": {
+        }
+      }
+    ],
+    "buildPresets": [
+      {
+        "name": "mac-build-debug",
+        "displayName": "[Debug] Maker Ninja build",
+        "description": "[Debug] Build mac with Ninja",
+        "configuration": "Debug",
+        "configurePreset": "mac",
+        "nativeToolOptions": ["/maxCpuCount"],
+        "condition": {
+          "type": "equals",
+          "lhs": "${hostSystemName}",
+          "rhs": "Darwin"
+        }
+      },
+      {
+        "name": "mac-build-release",
+        "displayName": "[Release] Maker Ninja build",
+        "description": "[Release] Build mac with Ninja",
+        "configuration": "Release",
+        "configurePreset": "mac",
+        "nativeToolOptions": ["/maxCpuCount"],
+        "condition": {
+          "type": "equals",
+          "lhs": "${hostSystemName}",
+          "rhs": "Darwin"
+        }
+      }
+    ]
+}

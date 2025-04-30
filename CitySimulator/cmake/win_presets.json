@@ -1,0 +1,49 @@
+{
+    "version": 4,
+    "cmakeMinimumRequired": {
+      "major": 3,
+      "minor": 23,
+      "patch": 0
+    },
+    "configurePresets": [
+      {
+        "name": "win",
+        "displayName": "Maker settings for Win",
+			  "description": "Maker common settings for Windows platform",
+        "generator": "Visual Studio 17 2022",
+        "toolset": "v143,host=x64,version=14.38.33130",
+        "architecture": "x64",
+        "binaryDir": "${sourceDir}/.cmake/cs",
+        "cacheVariables": {
+        }
+      }
+    ],
+    "buildPresets": [
+      {
+        "name": "win-build-debug",
+        "displayName": "[Debug] Maker MsBuild(VS2022) build",
+        "description": "Maker common settings for MsBuild(VS2022) build in debug mode",
+        "configuration": "Debug",
+        "configurePreset": "win",
+        "nativeToolOptions": ["/maxCpuCount"],
+        "condition": {
+          "type": "equals",
+          "lhs": "${hostSystemName}",
+          "rhs": "Windows"
+        }
+      },
+      {
+        "name": "win-build-release",
+        "displayName": "[Release] Maker MsBuild(VS2022) build",
+        "description": "Maker common settings for MsBuild(VS2022) build in release mode",
+        "configuration": "Release",
+        "configurePreset": "win",
+        "nativeToolOptions": ["/maxCpuCount"],
+        "condition": {
+          "type": "equals",
+          "lhs": "${hostSystemName}",
+          "rhs": "Windows"
+        }
+      }
+    ]
+}

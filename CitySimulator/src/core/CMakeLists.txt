@@ -10,8 +10,8 @@ add_library(TJC_Core STATIC ${CORE_SOURCES})
 
 # Specify the include directories for core
 target_include_directories(TJC_Core PRIVATE 
-    "${CMAKE_SOURCE_DIR}/src/core/include/core"
-    "${CMAKE_SOURCE_DIR}/src/core/src"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/core"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 
 # Set platform-specific flags for core if necessary

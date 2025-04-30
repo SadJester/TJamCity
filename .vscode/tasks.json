@@ -1,13 +1,32 @@
 {
     "version": "2.0.0",
     "tasks": [
-		{
-            "label": "cs_build",
+        {
+            "label": "cs_win_build_debug",
             "type": "shell",
             "command": "cmake",
             "args": [
                 "--build",
-                "${workspaceFolder}/.cmake/cs"
+                "${workspaceFolder}/.cmake/cs",
+				"--preset",
+				"win-build-debug"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$gcc"],
+            "detail": "Build your project using CMake"
+        },
+		{
+            "label": "cs_win_build_release",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "${workspaceFolder}/.cmake/cs",
+				"--preset",
+				"win-build-release"
             ],
             "group": {
                 "kind": "build",
@@ -17,14 +36,14 @@
             "detail": "Build your project using CMake"
         },
         {
-            "label": "cs_build_debug",
+            "label": "cs_mac_build_debug",
             "type": "shell",
             "command": "cmake",
             "args": [
-                "--build",
+                "--preset",
                 "${workspaceFolder}/.cmake/cs",
-				"--config",
-				"Debug"
+				"--preset",
+				"mac-build-debug"
             ],
             "group": {
                 "kind": "build",
@@ -33,15 +52,15 @@
             "problemMatcher": ["$gcc"],
             "detail": "Build your project using CMake"
         },
-		{
-            "label": "cs_build_release",
+        {
+            "label": "cs_mac_build_release",
             "type": "shell",
             "command": "cmake",
             "args": [
-                "--build",
+                "--preset",
                 "${workspaceFolder}/.cmake/cs",
-				"--config",
-				"Release"
+				"--preset",
+				"mac-build-release"
             ],
             "group": {
                 "kind": "build",

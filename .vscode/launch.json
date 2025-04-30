@@ -9,21 +9,20 @@
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [{ "name": "config", "value": "Debug" }],
             "console": "integratedTerminal",
-            "preLaunchTask": "cs_build_debug"
+            "preLaunchTask": "cs_win_build_debug"
         },
         {
             "name": "(Win) [Release] TJC_TJamSimulator",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/cs/bin/Debug/TJC_TJamSimulator",
+            "program": "${workspaceFolder}/build/cs/bin/Release/TJC_TJamSimulator",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
-            "externalConsole": false,
-            "preLaunchTask": "cs_build_release"
+            "console": "integratedTerminal",
+            "preLaunchTask": "cs_win_build_release"
         },
         {
             "name": "(Mac) [Debug] TJC_TJamSimulator",
@@ -42,11 +41,7 @@
                     "ignoreFailures": false
                 }
             ],
-            //"miDebuggerPath": "/usr/bin/lldb",
-            "preLaunchTask": "cs_build_debug",
-            "cppStandard": "c++20",
-            "intelliSenseMode": "macos-clang-x64",
-            "os": "Darwin"
+            "preLaunchTask": "cs_mac_build_debug",
         }
     ]
 }
