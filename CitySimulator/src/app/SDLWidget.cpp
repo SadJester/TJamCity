@@ -74,6 +74,8 @@ void SDLWidget::updateSDL() {
     renderSDL();
 }
 
+static SDL_FPoint points[500];
+
 void SDLWidget::initializeSDL() {
     // Initialize SDL subsystems
     if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -81,22 +83,21 @@ void SDLWidget::initializeSDL() {
         return;
     }
     
+    /* set up some random points */
+    for (int i = 0; i < SDL_arraysize(points); i++) {
+        points[i].x = (SDL_randf() * 440.0f) + 100.0f;
+        points[i].y = (SDL_randf() * 280.0f) + 100.0f;
+    }
+
     // Create properties for window creation
     SDL_PropertiesID props = SDL_CreateProperties();
-    
-    // Set parent window handle
     SDL_SetPointerProperty(props, SDL_PROP_WINDOW_CREATE_PARENT_POINTER, (void*)this->winId());
-    
-    // Set window flags
-    //SDL_SetNumberProperty(props, SDL_WINDOW_OPENGL, 0);  // Disable OpenGL for this example
-    //SDL_SetNumberProperty(props, SDL_WINDOW_VULKAN, 0);  // Disable Vulkan for this example
-    //SDL_SetNumberProperty(props, SDL_WINDOW_METAL, 0);   // Disable Metal for this example
-    //SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_FLAG_CHILD, 1);   // Make this a child window
     
     // Create the SDL window using properties
     sdlWindow = SDL_CreateWindowWithProperties(props);
     SDL_DestroyProperties(props);
     
+
     if (!sdlWindow) {
         qWarning("Window could not be created! SDL Error: %s", SDL_GetError());
         SDL_Quit();
@@ -144,45 +145,37 @@ void SDLWidget::renderSDL() {
         return;
     }
     
-    // Clear the renderer
-    SDL_SetRenderDrawColor(sdlRenderer, 64, 64, 64, 255);
-    SDL_RenderClear(sdlRenderer);
-    
-    // Draw a rotating rectangle
-    SDL_FRect rect;
-    rect.w = 100;
-    rect.h = 100;
-    rect.x = width() / 2.0f - rect.w / 2.0f;
-    rect.y = height() / 2.0f - rect.h / 2.0f;
-    
-    // Set rotation center
-    SDL_FPoint center;
-    center.x = rect.x + rect.w / 2.0f;
-    center.y = rect.y + rect.h / 2.0f;
-    
-    // Draw the rotating rectangle
-    SDL_SetRenderDrawColor(sdlRenderer, 255, 128, 0, 255);
-    
-    // Create a transformed renderer
-    /*
-    SDL_RenderTransformData transform;
-    SDL_memset(&transform, 0, sizeof(transform));
-    transform.rotation_pivot = &center;
-    transform.rotation_degrees = angle;
-    
-    SDL_RenderWithTransform(sdlRenderer, &transform, [](SDL_Renderer* renderer, void* userdata) {
-        SDL_FRect* rect = static_cast<SDL_FRect*>(userdata);
-        SDL_RenderFillRect(renderer, rect);
-        return 0;
-    }, &rect);*/
-    
-    // Draw a border around the widget
-    SDL_SetRenderDrawColor(sdlRenderer, 255, 255, 255, 255);
-    SDL_FRect border = {0, 0, static_cast<float>(width()), static_cast<float>(height())};
-    SDL_RenderRect(sdlRenderer, &border);
-    
-    // Present the renderer
-    SDL_RenderPresent(sdlRenderer);
+   SDL_FRect rect;
+
+    /* as you can see from this, rendering draws over whatever was drawn before it. */
+    SDL_SetRenderDrawColor(sdlRenderer, 33, 33, 33, SDL_ALPHA_OPAQUE);  /* dark gray, full alpha */
+    SDL_RenderClear(sdlRenderer);  /* start with a blank canvas. */
+
+    /* draw a filled rectangle in the middle of the canvas. */
+    SDL_SetRenderDrawColor(sdlRenderer, 0, 0, 255, SDL_ALPHA_OPAQUE);  /* blue, full alpha */
+    rect.x = rect.y = 100;
+    rect.w = 440;
+    rect.h = 280;
+    SDL_RenderFillRect(sdlRenderer, &rect);
+
+    /* draw some points across the canvas. */
+    SDL_SetRenderDrawColor(sdlRenderer, 255, 0, 0, SDL_ALPHA_OPAQUE);  /* red, full alpha */
+    SDL_RenderPoints(sdlRenderer, points, SDL_arraysize(points));
+
+    /* draw a unfilled rectangle in-set a little bit. */
+    SDL_SetRenderDrawColor(sdlRenderer, 0, 255, 0, SDL_ALPHA_OPAQUE);  /* green, full alpha */
+    rect.x += 30;
+    rect.y += 30;
+    rect.w -= 60;
+    rect.h -= 60;
+    SDL_RenderRect(sdlRenderer, &rect);
+
+    /* draw two lines in an X across the whole canvas. */
+    SDL_SetRenderDrawColor(sdlRenderer, 255, 255, 0, SDL_ALPHA_OPAQUE);  /* yellow, full alpha */
+    SDL_RenderLine(sdlRenderer, 0, 0, 640, 480);
+    SDL_RenderLine(sdlRenderer, 0, 480, 640, 0);
+
+    SDL_RenderPresent(sdlRenderer);  /* put it all on the screen! */
     
     // Update the angle for next frame
     angle += 1.0;
