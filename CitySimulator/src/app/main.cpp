@@ -4,6 +4,8 @@
 #include <QVBoxLayout>
 #include <QPushButton>
 
+#include <SDL3/SDL.h>
+
 #include <core/test.h>
 
 int main(int argc, char *argv[])

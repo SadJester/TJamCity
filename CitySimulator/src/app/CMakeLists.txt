@@ -20,6 +20,13 @@ target_link_libraries(TJC_TJamSimulator PRIVATE
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets
+    SDL3::SDL3
+)
+
+add_subdirectory(
+    "${CMAKE_SOURCE_DIR}/sdks/SDL"
+    "${CMAKE_SOURCE_DIR}/.cmake/cs/sdks/installed/SDL"
+    EXCLUDE_FROM_ALL
 )
 
 set_target_properties(TJC_TJamSimulator PROPERTIES
