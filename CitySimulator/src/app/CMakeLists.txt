@@ -29,6 +29,9 @@ add_subdirectory(
     EXCLUDE_FROM_ALL
 )
 
+SET(CMAKE_AUTOMOC   ON)
+SET(CMAKE_AUTOMOC_MOC_OPTIONS "-nw")
+
 set_target_properties(TJC_TJamSimulator PROPERTIES
     WIN32_EXECUTABLE ON
     MACOSX_BUNDLE ON
