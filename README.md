@@ -1,7 +1,7 @@
 # Installing
 Expected usage of Visual Code and Cmake for running builds.
 
-Install plugins for VS Code [C/C++]((https://marketplace.visualstudio.com/items/?itemName=ms-vscode.cpptools) and [CMakeTools](https://marketplace.visualstudio.com/items/?itemName=ms-vscode.cmake-tools)
+Install plugins for VS Code [C/C++](https://marketplace.visualstudio.com/items/?itemName=ms-vscode.cpptools) and [CMakeTools](https://marketplace.visualstudio.com/items/?itemName=ms-vscode.cmake-tools)
 
 Cntrl+Shift+P - running commands.
 
