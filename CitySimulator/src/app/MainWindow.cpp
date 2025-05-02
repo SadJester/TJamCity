@@ -4,9 +4,11 @@
 #include <QPushButton>
 #include <QLabel>
 
+#include "SDLWidget.h"
+
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     setWindowTitle("Qt SDL Integration");
-    resize(800, 600);
+    resize(400, 800);
     
     // Create central widget and layout
     QWidget *centralWidget = new QWidget(this);
@@ -18,8 +20,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     layout->addWidget(label);
     
     // Create and add the SDL widget
-    sdlWidget = new SDLWidget(this);
-    layout->addWidget(sdlWidget, 1);
+    //sdlWidget = new SDLWidget(this);
+    //layout->addWidget(sdlWidget, 1);
     
     // Add a button
     QPushButton *button = new QPushButton("Quit", this);

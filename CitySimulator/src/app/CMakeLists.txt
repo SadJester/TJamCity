@@ -1,7 +1,7 @@
 # /CitySimulator/src/app/CMakeLists.txt
 
 # Define the source files for the app
-file(GLOB APP_SOURCES
+file(GLOB_RECURSE APP_SOURCES
     "main.cpp"
     "*.cpp"
     "*.h"
