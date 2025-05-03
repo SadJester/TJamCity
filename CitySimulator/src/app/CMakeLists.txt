@@ -1,7 +1,7 @@
 # /CitySimulator/src/app/CMakeLists.txt
 
 # Define the source files for the app
-file(GLOB APP_SOURCES
+file(GLOB_RECURSE APP_SOURCES
     "main.cpp"
     "*.cpp"
     "*.h"
@@ -10,8 +10,34 @@ file(GLOB APP_SOURCES
 # Add executable target with the TJC_ prefix
 add_executable(TJC_TJamSimulator ${APP_SOURCES})
 
+find_package(Qt6 6.8.3 REQUIRED COMPONENTS Core Gui Widgets)
+
+message(STATUS "[SDKS]Found Qt6 version: ${Qt6_VERSION}")
+
+target_precompile_headers(TJC_TJamSimulator PRIVATE "stdafx.h")
+
 # Link the core static library to the app executable
-target_link_libraries(TJC_TJamSimulator PRIVATE TJC_Core)
+target_link_libraries(TJC_TJamSimulator PRIVATE
+    TJC_Core
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Widgets
+    SDL3::SDL3
+)
+
+add_subdirectory(
+    "${CMAKE_SOURCE_DIR}/sdks/SDL"
+    "${CMAKE_SOURCE_DIR}/.cmake/cs/sdks/installed/SDL"
+    EXCLUDE_FROM_ALL
+)
+
+SET(CMAKE_AUTOMOC   ON)
+SET(CMAKE_AUTOMOC_MOC_OPTIONS "-nw")
+
+set_target_properties(TJC_TJamSimulator PROPERTIES
+    WIN32_EXECUTABLE ON
+    MACOSX_BUNDLE ON
+)
 
 # Specify the include directories for app
 target_include_directories(TJC_TJamSimulator PRIVATE 

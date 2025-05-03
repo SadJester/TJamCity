@@ -1,13 +1,23 @@
-// /CitySimulator/src/app/main.cpp
+#include "stdafx.h"
 
-#include <iostream>
-#include <core/test.h>
+#include "Application.h"
+#include "uiSystem/UISystem.h"
+#include "render/sdl/SDLRenderer.h"
 
-int main() {
-    std::cout << "Welcome to TJamSimulator!" << std::endl;
 
-    // Calling a function from the core library (as an example)
-    testFunction();
+int main(int argc, char* argv[]) {
+    tjs::Application application(
+        argc,
+        argv,
+        tjs::ApplicationConfig { 60 });
+
+    application.setup(
+        std::make_unique<tjs::render::SDLRenderer>(),
+        std::make_unique<tjs::UISystem>(application)
+    );
+
+    application.initialize();
+    application.run();
 
     return 0;
 }

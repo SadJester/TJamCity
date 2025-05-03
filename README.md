@@ -1,8 +1,18 @@
 # Installing
 Expected usage of Visual Code and Cmake for running builds.
 
-Install plugins for VS Code [C/C++](https://marketplace.visualstudio.com/items/?itemName=ms-vscode.cpptools) and [CMakeTools](https://marketplace.visualstudio.com/items/?itemName=ms-vscode.cmake-tools)
+## Install qt6
+1.  Darwin: brew install qt (need to fix its version)
+2. Windows: <TODO>
 
+
+## IDE. Visual code
+Install plugins for VS Code 
+1. [C/C++](https://marketplace.visualstudio.com/items/?itemName=ms-vscode.cpptools)
+2. [CMakeTools](https://marketplace.visualstudio.com/items/?itemName=ms-vscode.cmake-tools)
+
+
+# Work in Visual Code
 Cntrl+Shift+P - running commands.
 
 1. Select configure preset `CMake: Select Configure preset`
