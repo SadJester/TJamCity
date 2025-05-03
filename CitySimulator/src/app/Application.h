@@ -39,7 +39,7 @@ namespace tjs {
         }
 
         void setFPS(float fps, duration frameTime);
-        
+
         float smoothedFPS() const {
             return _smoothedFPS;
         }
@@ -69,11 +69,15 @@ namespace tjs {
             return _isFinished;
         }
 
+        const ApplicationConfig& config() const {
+            return _config;
+        }
+
         const FrameStats& frameStats() const {
             return _frameStats;
         }
 
-        CommandLine& getCommandLine() {
+        CommandLine& commandLine() {
             return _commandLine;
         }
 
