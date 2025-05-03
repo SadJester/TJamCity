@@ -35,7 +35,7 @@ namespace tjs {
             }
             
             // Set the window size to match the widget
-            SDL_SetWindowSize(_sdlWindow, 600, 400);
+            SDL_SetWindowSize(_sdlWindow, 800, 800);
             
             // Create the renderer
             _sdlRenderer = SDL_CreateRenderer(_sdlWindow, nullptr);

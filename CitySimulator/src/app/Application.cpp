@@ -9,9 +9,21 @@
 
 namespace tjs {
 
-    Application::Application(int& argc, char** argv)
+    void FrameStats::setFPS(float fps, FrameStats::duration frameTime) {
+        static constexpr float smoothingFactor = 0.005f;
+        _fps = fps;
+        _frameTime = frameTime;
+        
+        _smoothedFPS = _smoothedFPS * (1.0 - smoothingFactor) + _fps * smoothingFactor;
+    }
+
+
+    Application::Application(int& argc, char** argv, ApplicationConfig&& config)
         : _commandLine(argc, argv)
-    {}
+        , _config(config)
+        , _frameStats(_config.targetFPS)
+    {
+    }
 
     void Application::setup(
             std::unique_ptr<IRenderer>&& renderer,
@@ -27,11 +39,41 @@ namespace tjs {
     }
 
     void Application::run() {
+        using duration = FrameStats::duration;
+
+        const duration targetFrameTime(1.0 / _config.targetFPS);
+
+        auto lastFrameTime = std::chrono::high_resolution_clock::now();
+        int currentFPS = 0.0;
+
         while (!isFinished()) {
+            // Record the start time of this frame
+            auto frameStart = std::chrono::high_resolution_clock::now();
+            
+            // Run the update and draw operations
             _uiSystem->update();
             _renderer->update();
             _renderer->draw();
-            std::this_thread::sleep_for(std::chrono::milliseconds(16));
+            
+            // Calculate actual frame time
+            auto frameEnd = std::chrono::high_resolution_clock::now();
+            duration frameDuration = frameEnd - frameStart;
+            duration totalFrameTime = frameEnd - lastFrameTime;
+            lastFrameTime = frameEnd;
+            
+            // Calculate current FPS
+            float fps = 0.0f;
+            if (totalFrameTime.count() > 0) {
+                fps = 1.0f / totalFrameTime.count();
+            }
+            _frameStats.setFPS(fps, frameDuration);
+            
+            // Calculate how long to sleep to maintain target FPS
+            duration sleepTime = targetFrameTime - frameDuration;
+            // If we're running faster than the target FPS, sleep for the remaining time
+            if (sleepTime.count() > 0) {
+                std::this_thread::sleep_for(std::chrono::duration_cast<std::chrono::milliseconds>(sleepTime));
+            }
         }
     }
 

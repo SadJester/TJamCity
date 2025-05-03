@@ -6,7 +6,10 @@
 
 
 int main(int argc, char* argv[]) {
-    tjs::Application application(argc, argv);
+    tjs::Application application(
+        argc,
+        argv,
+        tjs::ApplicationConfig { 60 });
 
     application.setup(
         std::make_unique<tjs::render::SDLRenderer>(),

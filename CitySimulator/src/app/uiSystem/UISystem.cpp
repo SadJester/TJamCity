@@ -21,6 +21,75 @@
 namespace tjs {
     namespace details
     {
+        class RenderMetricsWidget : public QWidget {
+            //Q_OBJECT
+
+        private:
+            QLabel* fpsLabel;
+            QTimer* timer;
+            Application& _app;
+
+        public:
+            RenderMetricsWidget(Application& app, QWidget* parent = nullptr) 
+                : QWidget(parent)
+                , _app(app) {
+                // Create a central widget and layout
+                QWidget* centralWidget = new QWidget(this);
+                QVBoxLayout* layout = new QVBoxLayout(centralWidget);
+                
+                // Create FPS label
+                fpsLabel = new QLabel("FPS: 00 | Frame time: 00 ms", this);
+                fpsLabel->setAlignment(Qt::AlignCenter);
+                fpsLabel->setSizePolicy( QSizePolicy::Expanding, QSizePolicy::Preferred );
+                fpsLabel->setStyleSheet("font-size: 24px; font-weight: bold;");
+                
+                layout->addWidget(fpsLabel);
+                
+                // Set up timer for frame updates
+                timer = new QTimer(this);
+                connect(timer, &QTimer::timeout, this, &RenderMetricsWidget::updateFrame);
+                timer->start(16); // ~60 FPS target (16ms)
+            }
+
+        private slots:
+            void updateFrame() {
+                // Update FPS label
+                auto& stats = _app.frameStats();
+                fpsLabel->setText(
+                    QString("FPS: %1 (%2 ms)")
+                        .arg(stats.smoothedFPS(), 2, 'f', 2)
+                        .arg(std::chrono::duration_cast<std::chrono::milliseconds>(stats.frameTime()).count())
+                );
+
+                if (stats.currentFPS() < 30.f) {
+                    fpsLabel->setStyleSheet("font-size: 24px; font-weight: bold; color: red;");
+                } else if (stats.currentFPS() < 50.0f) {
+                    fpsLabel->setStyleSheet("font-size: 24px; font-weight: bold; color: orange;");
+                } else {
+                    fpsLabel->setStyleSheet("font-size: 24px; font-weight: bold; color: green;");
+                }
+
+                update();
+            }
+        };
+
+
+        class MainWindow final : public QMainWindow {
+            public:
+                MainWindow(Application& app, QWidget *parent = nullptr, Qt::WindowFlags flags = Qt::WindowFlags())
+                    : QMainWindow(parent, flags)
+                    ,  _app(app) {
+
+                }
+
+                virtual void closeEvent (QCloseEvent *event) override {
+                    _app.setFinished();
+                }
+            private:
+                Application& _app;
+        };
+
+
         class QTUIController final
             : public IUIController
         {
@@ -53,27 +122,20 @@ namespace tjs {
             private:
                 void createAndShowMainWindow() {
                     // Create main window
-                    QMainWindow* window = new QMainWindow();
+                    MainWindow* window = new MainWindow(_application);
                     window->setWindowTitle("TJS");
-                    window->resize(400, 300);
+                    window->resize(400, 800);
                     
                     // Create central widget and layout
                     QWidget* centralWidget = new QWidget(window);
                     QVBoxLayout* layout = new QVBoxLayout(centralWidget);
                     
+                    RenderMetricsWidget* fpsLabel = new RenderMetricsWidget(_application);
+                    layout->addWidget(fpsLabel);
+
                     // Add widgets
-                    QLabel* label = new QLabel("Application running in separate thread");
-                    layout->addWidget(label);
-                    
-                    QPushButton* button = new QPushButton("Click Me");
-                    QObject::connect(button, &QPushButton::clicked, [label]() {
-                        label->setText("Button clicked in separate thread!");
-                    });
-                    layout->addWidget(button);
-
-
-                    button = new QPushButton("Quit");
-                    QObject::connect(button, &QPushButton::clicked, [label, this]() {
+                    QPushButton* button = new QPushButton("Quit");
+                    QObject::connect(button, &QPushButton::clicked, [this]() {
                         _application.setFinished();
                     });
                     layout->addWidget(button);
