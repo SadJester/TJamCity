@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "render/sdl/SDLRenderer.h"
 
 #include <SDL3/SDL_properties.h>

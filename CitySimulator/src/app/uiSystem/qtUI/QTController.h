@@ -2,6 +2,7 @@
 
 #include "uiSystem/UISystem.h"
 
+class QApplication;
 
 namespace tjs {
     class Application;
@@ -21,7 +22,7 @@ namespace tjs {
                 void createAndShowMainWindow();
 
             private:
-                std::unique_ptr<QApplication> m_app = nullptr;
+                std::unique_ptr<QApplication> m_app;
                 Application& _application;
                 bool m_appInitialized = false;
         };

@@ -1,4 +1,5 @@
-#include <memory>
+#include "stdafx.h"
+
 #include "Application.h"
 
 #include "render/RenderBase.h"

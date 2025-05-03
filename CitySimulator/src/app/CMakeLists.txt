@@ -14,6 +14,8 @@ find_package(Qt6 6.8.3 REQUIRED COMPONENTS Core Gui Widgets)
 
 message(STATUS "[SDKS]Found Qt6 version: ${Qt6_VERSION}")
 
+target_precompile_headers(TJC_TJamSimulator PRIVATE "stdafx.h")
+
 # Link the core static library to the app executable
 target_link_libraries(TJC_TJamSimulator PRIVATE
     TJC_Core

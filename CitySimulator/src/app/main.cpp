@@ -1,4 +1,4 @@
-#include <memory>
+#include "stdafx.h"
 
 #include "Application.h"
 #include "uiSystem/UISystem.h"

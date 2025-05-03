@@ -1,21 +1,5 @@
 #pragma once
 
-#include <QApplication>
-#include <QMainWindow>
-#include <QLabel>
-#include <QPushButton>
-#include <QVBoxLayout>
-#include <QMetaObject>
-#include <QThread>
-#include <QMutex>
-#include <QWaitCondition>
-#include <QTimer>
-#include <QDebug>
-#include <thread>
-#include <iostream>
-#include <atomic>
-
-#include <memory>
 
 namespace tjs {
     class Application;

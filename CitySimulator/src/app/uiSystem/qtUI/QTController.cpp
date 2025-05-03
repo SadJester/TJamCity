@@ -1,3 +1,5 @@
+#include "stdafx.h"
+
 #include "uiSystem/qtUI/QTController.h"
 
 #include "uiSystem/qtUI/MainWindow.h"

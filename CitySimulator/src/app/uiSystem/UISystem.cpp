@@ -1,7 +1,8 @@
+#include "stdafx.h"
+
 #include "uiSystem/UISystem.h"
 #include "uiSystem/qtUI/QTController.h"
 #include "Application.h"
-#include <memory>
 
 
 namespace tjs {
