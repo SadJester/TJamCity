@@ -26,10 +26,8 @@ namespace tjs {
         {
             public:
                 // Constructor takes argc and argv for QApplication
-                QTUIController(Application& application, int& argc, char** argv) 
+                QTUIController(Application& application) 
                     : _application(application)
-                    ,  m_argc(argc)
-                    , m_argv(argv)
                 {
                 }
                 
@@ -41,10 +39,10 @@ namespace tjs {
                 }
 
                 virtual void run() override {
-                    int argc = m_argc;
-                    std::cout << "Create app in thread " << std::this_thread::get_id() << std::endl;
-
-                    m_app = std::make_unique<QApplication>(argc, m_argv);
+                    m_app = std::make_unique<QApplication>(
+                        _application.getCommandLine().argc(),
+                        _application.getCommandLine().argv()
+                    );
                     createAndShowMainWindow();
                 }
 
@@ -56,7 +54,7 @@ namespace tjs {
                 void createAndShowMainWindow() {
                     // Create main window
                     QMainWindow* window = new QMainWindow();
-                    window->setWindowTitle("Qt App in Separate Thread");
+                    window->setWindowTitle("TJS");
                     window->resize(400, 300);
                     
                     // Create central widget and layout
@@ -85,16 +83,16 @@ namespace tjs {
                 }
 
             private:
-                int m_argc;
-                char** m_argv;
                 std::unique_ptr<QApplication> m_app = nullptr;
                 Application& _application;
                 bool m_appInitialized = false;
         };
     }
     
-    void UISystem::initialize(int& argc, char** argv) {
-        _controller = std::make_unique<details::QTUIController>(_application, argc, argv);
+    void UISystem::initialize() {
+        auto cmdLine = _application.getCommandLine();
+
+        _controller = std::make_unique<details::QTUIController>(_application);
         _controller->run();
     }
 
