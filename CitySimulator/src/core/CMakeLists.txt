@@ -14,6 +14,8 @@ target_include_directories(TJC_Core PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 
+target_precompile_headers(TJC_Core PRIVATE "include/core/stdafx.h")
+
 # Set platform-specific flags for core if necessary
 if(WIN32)
     target_compile_definitions(TJC_Core PRIVATE "PLATFORM_WINDOWS")
