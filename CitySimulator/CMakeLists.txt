@@ -3,6 +3,7 @@
 cmake_minimum_required(VERSION 3.27)
 project(TJamSimulator)
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(BUILD_DIRECTORY ${CMAKE_SOURCE_DIR}/build/cs/${CMAKE_BUILD_TYPE})
 
@@ -34,6 +35,13 @@ if (WITH_TESTS)
     enable_testing()
 endif()
 
+if(WIN32)
+    set(CMAKE_PREFIX_PATH "C:/Qt/6.9.0/msvc2022_64")
+    if(MSVC)
+        add_compile_options(/Zc:__cplusplus)
+    endif()
+endif()
+
 # Add subdirectories for app and core
 add_subdirectory(src/app)
 add_subdirectory(src/core)
@@ -41,6 +49,9 @@ add_subdirectory(src/core)
 # Set platform-specific flags (Windows and Mac)
 if(WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")  # Example of Windows-specific flags
+    if(MSVC)
+        add_compile_options(/Zc:__cplusplus)
+    endif()
 elseif(APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")  # Example for Mac
 endif()

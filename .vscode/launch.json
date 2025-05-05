@@ -7,6 +7,12 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/cs/bin/Debug/TJC_TJamSimulator",
             "args": [],
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "${env:PATH};C:\\Qt\\6.9.0\\msvc2022_64\\bin"
+                }
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
@@ -18,9 +24,14 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/cs/bin/Release/TJC_TJamSimulator",
             "args": [],
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "${env:PATH};C:\\Qt\\6.9.0\\msvc2022_64\\bin"
+                }
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [],
             "console": "integratedTerminal",
             "preLaunchTask": "cs_win_build_release"
         },
