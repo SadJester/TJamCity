@@ -7,6 +7,8 @@
 #include "uiSystem/UISystem.h"
 #include "render/RenderBase.h"
 
+#include <core/dataLayer/WorldData.h>
+
 
 namespace tjs {
 
@@ -28,10 +30,12 @@ namespace tjs {
 
     void Application::setup(
             std::unique_ptr<IRenderer>&& renderer,
-            std::unique_ptr<UISystem>&& uiSystem
+            std::unique_ptr<UISystem>&& uiSystem,
+            std::unique_ptr<core::WorldData>&& worldData
     ) {
         _renderer = std::move(renderer);
         _uiSystem = std::move(uiSystem);
+        _worldData = std::move(worldData);
     }
 
     void Application::initialize() {

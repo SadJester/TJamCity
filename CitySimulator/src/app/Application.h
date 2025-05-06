@@ -5,6 +5,10 @@ namespace tjs {
     class UISystem;
     class IRenderer;
 
+    namespace core {
+        class WorldData;
+    }
+
     class CommandLine {
     public:
         CommandLine(int& argc, char** argv)
@@ -83,10 +87,26 @@ namespace tjs {
 
         void setup(
             std::unique_ptr<IRenderer>&& renderer,
-            std::unique_ptr<UISystem>&& uiSystem
+            std::unique_ptr<UISystem>&& uiSystem,
+            std::unique_ptr<core::WorldData>&& worldData
         );
         void initialize();
         void run();
+
+
+        // System getters
+        core::WorldData& worldData() {
+            return *_worldData;
+        }
+
+        UISystem& uiSystem() {
+            return *_uiSystem;
+        }
+
+        IRenderer& renderer() {
+            return *_renderer;
+        }
+
     private:
         ApplicationConfig _config;
         CommandLine _commandLine;
@@ -97,5 +117,6 @@ namespace tjs {
         // Systems
         std::unique_ptr<IRenderer> _renderer;
         std::unique_ptr<UISystem> _uiSystem;
+        std::unique_ptr<core::WorldData> _worldData;
     };
 }

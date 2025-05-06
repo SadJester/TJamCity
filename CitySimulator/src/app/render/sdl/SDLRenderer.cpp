@@ -6,6 +6,10 @@
 #include <SDL3/SDL_video.h>
 #include <SDL3/SDL_render.h>
 
+#include <core/dataLayer/WorldData.h>
+#include <core/dataLayer/DataTypes.h>
+
+
 namespace tjs {
     namespace render {
         void SDLRenderer::initialize() {
@@ -79,6 +83,13 @@ namespace tjs {
             SDL_Event event;
             while (SDL_PollEvent(&event)) {
                 // Process SDL events as needed
+            }
+        }
+
+
+        namespace details {
+            void DrawWorld(core::WorldData& worldData) {
+
             }
         }
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dataLayer/DataTypes.h"
+#include "core/dataLayer/DataTypes.h"
 
 namespace tjs {
     namespace core {
@@ -9,7 +9,8 @@ namespace tjs {
         requires std::is_pod<EntryType>::value
         using WorldEntries = std::vector<EntryType>;
 
-        using Roads = int; // here will be graph
+        using WorldSegments = std::vector<std::unique_ptr<WorldSegment>>;
+
 
         class WorldData final {
             public:
@@ -22,8 +23,13 @@ namespace tjs {
                     return _vehicles;
                 }
 
+                WorldSegments& segments() {
+                    return _segments;
+                }
+
             private:
                 WorldEntries<Vehicle> _vehicles;
+                WorldSegments _segments;
         };
     }
 }

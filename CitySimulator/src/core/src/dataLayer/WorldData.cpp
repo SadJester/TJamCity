@@ -1,6 +1,6 @@
-#include "stdafx.h"
+#include "core/stdafx.h"
 
-#include "dataLayer/WorldData.h"
+#include "core/dataLayer/WorldData.h"
 
 namespace tjs::core
 {
