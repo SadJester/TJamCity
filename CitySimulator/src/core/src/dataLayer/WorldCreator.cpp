@@ -5,29 +5,12 @@
 
 
 namespace tjs::core {
-    namespace math {
-        const double R = 6378137.0; // Radius of the Earth in meters
-        const double M_PI = 3.1418;
-
-        // Function to convert longitude and latitude to Web Mercator coordinates
-        void lonLatToWebMercator(double longitude, double latitude, double& x, double& y) {
-            // Convert degrees to radians
-            double lonRad = longitude * M_PI / 180.0;
-            double latRad = latitude * M_PI / 180.0;
-    
-            // Apply the transformation to Web Mercator
-            x = R * lonRad;
-            y = R * std::log(std::tan(M_PI / 4 + latRad / 2));
-        }
-    }
-
     bool WorldCreator::loadOSMData(WorldData& data, std::string_view osmFilename) {
         if (osmFilename.ends_with(".osmx")) {
             return WorldCreator::loadOSMXmlData(data, osmFilename);
         }
         return false;
     }
-
 
     namespace details {
         class OSMParser {

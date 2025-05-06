@@ -118,7 +118,7 @@ namespace tjs::render {
                     
                     // Adjust for latitude
                     double latRad = projectionCenter.latitude * DEG_TO_RAD;
-                    metersPerPixel /= std::cos(latRad);
+                    metersPerPixel *= std::cos(latRad);
                 }
 
                 void calculateMapBounds(const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {

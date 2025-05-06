@@ -94,8 +94,8 @@ namespace tjs::core {
     }
 
     struct Coordinates {
-        double longitude;
         double latitude;
+        double longitude;
     };
 
 
