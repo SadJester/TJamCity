@@ -21,10 +21,11 @@ namespace tjs::core {
         }
     }
 
-    void WorldCreator::loadOSMData(WorldData& data, std::string_view osmFilename) {
+    bool WorldCreator::loadOSMData(WorldData& data, std::string_view osmFilename) {
         if (osmFilename.ends_with(".osmx")) {
-            WorldCreator::loadOSMXmlData(data, osmFilename);
+            return WorldCreator::loadOSMXmlData(data, osmFilename);
         }
+        return false;
     }
 
 
@@ -35,7 +36,9 @@ namespace tjs::core {
                     auto world = WorldSegment::create();
                     pugi::xml_document doc;
                     
-                    if (!doc.load_file(filename.data())) {
+                    auto result = doc.load_file(filename.data());
+                    if (!result) {
+                        std::cerr << "Failed to load OSM file: " << filename << ": " << result.description() << std::endl;
                         return nullptr;
                     }
             
@@ -77,6 +80,7 @@ namespace tjs::core {
                     
                     // Collect node references
                     std::vector<uint64_t> nodeRefs;
+                    nodeRefs.resize(10);
                     for (pugi::xml_node nd : xml_way.children("nd")) {
                         nodeRefs.push_back(nd.attribute("ref").as_ullong());
                     }
@@ -112,10 +116,21 @@ namespace tjs::core {
                         }
                     }
                     
+                    std::vector<Node*> nodes;
+                    nodes.reserve(nodeRefs.size());
+                    for (uint64_t nodeRef : nodeRefs) {
+                        auto node = world.nodes.find(nodeRef);
+                        if (node == world.nodes.end()) {
+                            continue;
+                        }
+                        nodes.push_back(node->second.get());
+                    }
+
                     // Only add ways that have been classified as roads
                     if (tags != WayTags::None) {
                         auto way = WayInfo::create(id, lanes, maxSpeed, tags);
                         way->nodeRefs = std::move(nodeRefs);
+                        way->nodes = std::move(nodes);
                         world.ways[id] = std::move(way);
                     }
                 }
@@ -140,9 +155,13 @@ namespace tjs::core {
     }
 
 
-    void WorldCreator::loadOSMXmlData(WorldData& data, std::string_view osmFilename) {
+    bool WorldCreator::loadOSMXmlData(WorldData& data, std::string_view osmFilename) {
         auto segment = details::OSMParser::parse(osmFilename);
+        if (!segment) {
+            return false;
+        }
         data.segments().push_back(std::move(segment));
+        return true;
     }
 
 }

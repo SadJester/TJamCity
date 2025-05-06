@@ -15,13 +15,15 @@ int main(int argc, char* argv[]) {
         tjs::ApplicationConfig { 60 });
 
     application.setup(
-        std::make_unique<tjs::render::SDLRenderer>(),
+        std::make_unique<tjs::render::SDLRenderer>(application),
         std::make_unique<tjs::UISystem>(application),
         std::make_unique<tjs::core::WorldData>()
     );
 
     const char* fileName = "F:/PetProjects/near_me_map.osmx";
-    tjs::core::WorldCreator::loadOSMData(application.worldData(), fileName);
+    if (!tjs::core::WorldCreator::loadOSMData(application.worldData(), fileName)) {
+        return 1;
+    }
 
     application.initialize();
     application.run();

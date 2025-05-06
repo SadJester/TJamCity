@@ -6,11 +6,11 @@ namespace tjs::core
 
         class WorldCreator final {
         public:
-            static void loadOSMData(WorldData& data, std::string_view osmFilename);
+            static bool loadOSMData(WorldData& data, std::string_view osmFilename);
 
         private:
             WorldCreator() = delete;
 
-            static void loadOSMXmlData(WorldData& data, std::string_view osmFileName);
+            static bool loadOSMXmlData(WorldData& data, std::string_view osmFileName);
         };
 } // namespace tjs

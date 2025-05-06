@@ -6,9 +6,12 @@
 
 
 namespace tjs {
+    class Application;
+
     namespace render {
         class SDLRenderer final : public IRenderer {
             public:
+                explicit SDLRenderer(Application& application);
                 virtual ~SDLRenderer(){}
 
                 virtual void initialize() override;
@@ -18,6 +21,7 @@ namespace tjs {
                 virtual void draw() override;
 
             private:
+                Application& _application;
                 SDL_Window* _sdlWindow = nullptr;
                 SDL_Renderer* _sdlRenderer = nullptr;
                 

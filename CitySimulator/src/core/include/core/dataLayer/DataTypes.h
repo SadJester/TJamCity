@@ -127,6 +127,7 @@ namespace tjs::core {
         int maxSpeed;
         WayTags tags;
         std::vector<uint64_t> nodeRefs;
+        std::vector<Node*> nodes;
 
         static std::unique_ptr<WayInfo> create(uint64_t uid, int lanes, int maxSpeed, WayTags tags) {
             auto way = std::make_unique<WayInfo>();
