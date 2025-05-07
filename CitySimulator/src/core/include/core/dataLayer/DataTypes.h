@@ -99,7 +99,7 @@ namespace tjs::core {
     };
 
 
-    ENUM_FLAG(NodeTags, None, TrafficLight, StopSign, Crosswalk);
+    ENUM_FLAG(NodeTags, None, TrafficLight, StopSign, Crosswalk, Way);
     ENUM_FLAG(WayTags, None, Motorway, Trunk, Primary, Secondary, Tertiary, Residential, Service);
 
     struct Node {

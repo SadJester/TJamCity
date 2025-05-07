@@ -81,54 +81,69 @@ namespace tjs::render {
                     if (nodes.empty()) {
                         return;
                     }
-
+                
                     calculateMapBounds(nodes);
-                    
+
+                    //projectionCenter.latitude = 45.117755;
+                    //projectionCenter.longitude = 38.981595;
+                
                     // Calculate bounds in meters
                     double minX = std::numeric_limits<double>::max();
                     double maxX = std::numeric_limits<double>::lowest();
                     double minY = std::numeric_limits<double>::max();
                     double maxY = std::numeric_limits<double>::lowest();
-                    
-                    Coordinates firstNode = nodes.begin()->second->coordinates;
-                    projectionCenter = firstNode;
-                    double yCenter = -std::log(std::tan((90.0 + firstNode.latitude) * DEG_TO_RAD / 2.0)) * EARTH_RADIUS;
-                    
+
+                    double yCenter = -std::log(std::tan((90.0 + projectionCenter.latitude) * DEG_TO_RAD / 2.0)) * EARTH_RADIUS;
+                
                     for (const auto& pair : nodes) {
                         const auto& node = pair.second;
-                        double x = (node->coordinates.longitude - firstNode.longitude) * DEG_TO_RAD * EARTH_RADIUS;
+                        double x = (node->coordinates.longitude - projectionCenter.longitude) * DEG_TO_RAD * EARTH_RADIUS;
                         double y = -std::log(std::tan((90.0 + node->coordinates.latitude) * DEG_TO_RAD / 2.0)) * EARTH_RADIUS - yCenter;
-                        
+                
                         minX = std::min(minX, x);
                         maxX = std::max(maxX, x);
                         minY = std::min(minY, y);
                         maxY = std::max(maxY, y);
                     }
-                    
+                
                     // Calculate required zoom level
                     double widthMeters = maxX - minX;
                     double heightMeters = maxY - minY;
-                    
+                
                     double zoomX = widthMeters / (SCREEN_WIDTH * 0.9);
                     double zoomY = heightMeters / (SCREEN_HEIGHT * 0.9);
-                    
-                    metersPerPixel = std::max(zoomX, zoomY);
-                    screenCenterX = SCREEN_WIDTH / 2.0 - (minX + maxX) / (2.0 * metersPerPixel);
-                    screenCenterY = SCREEN_HEIGHT / 2.0 - (minY + maxY) / (2.0 * metersPerPixel);
-                    
+                
+                    metersPerPixel = std::min(zoomX, zoomY); // Use min to ensure the entire map fits
+                
+                    // Recalculate screen center based on the new zoom level
+                    screenCenterX = SCREEN_WIDTH / 2.0;
+                    screenCenterY = SCREEN_HEIGHT / 2.0;
+                
                     // Adjust for latitude
                     double latRad = projectionCenter.latitude * DEG_TO_RAD;
                     metersPerPixel *= std::cos(latRad);
                 }
 
                 void calculateMapBounds(const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {
+                    // Initialize bounding box with extreme values
+                    minLat = std::numeric_limits<float>::max();
+                    maxLat = std::numeric_limits<float>::lowest();
+                    minLon = std::numeric_limits<float>::max();
+                    maxLon = std::numeric_limits<float>::lowest();
+
+                    // Iterate through all nodes to find min/max coordinates
                     for (const auto& pair : nodes) {
                         const auto& node = pair.second;
+
                         minLat = std::min(minLat, static_cast<float>(node->coordinates.latitude));
                         maxLat = std::max(maxLat, static_cast<float>(node->coordinates.latitude));
                         minLon = std::min(minLon, static_cast<float>(node->coordinates.longitude));
                         maxLon = std::max(maxLon, static_cast<float>(node->coordinates.longitude));
                     }
+
+                    // Calculate the center of the bounding box
+                    projectionCenter.latitude = (minLat + maxLat) / 2.0f;
+                    projectionCenter.longitude = (minLon + maxLon) / 2.0f;
                 }
 
                 SDL_FColor getWayColor(WayTags tags) const {
@@ -151,7 +166,16 @@ namespace tjs::render {
                     }
                     
                     std::vector<SDL_Point> screenPoints;
+                    bool hasOut = false;
                     for (Node* node : way.nodes) {
+                        if (38.97230 > node->coordinates.longitude || 38.99089 < node->coordinates.longitude) {
+                            hasOut = true;
+                        }
+
+                        if (node->coordinates.latitude > 45.12687 || node->coordinates.latitude < 45.10864) {
+                            hasOut = true;
+                        }
+
                         screenPoints.push_back(convertToScreen(node->coordinates));
                     }
                     
@@ -159,7 +183,9 @@ namespace tjs::render {
                     if (screenPoints.size() < 2)  {
                         return 0;
                     }
+
                     SDL_FColor color = getWayColor(way.tags);
+                    color = hasOut ? SDL_FColor{1.0f, 0.0f, 0.0f, 1.0f} : SDL_FColor{0.f, 1.f, 0.f, 1.f};
                     int segmentsRendered = drawThickLine(screenPoints, way.lanes * LANE_WIDTH, color);
                     
                     if (way.lanes > 1) {
@@ -169,6 +195,23 @@ namespace tjs::render {
                     return segmentsRendered;
                 }
                 
+                void renderBoundingBox() const {
+                    // Convert all corners of the bounding box to screen coordinates
+                    SDL_Point topLeft = convertToScreen({minLat, minLon});
+                    SDL_Point topRight = convertToScreen({minLat, maxLon});
+                    SDL_Point bottomLeft = convertToScreen({maxLat, minLon});
+                    SDL_Point bottomRight = convertToScreen({maxLat, maxLon});
+                    
+                    // Set the color for the bounding box (red)
+                    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+                    
+                    // Draw the bounding box lines
+                    SDL_RenderLine(renderer, topLeft.x, topLeft.y, topRight.x, topRight.y);
+                    SDL_RenderLine(renderer, topRight.x, topRight.y, bottomRight.x, bottomRight.y);
+                    SDL_RenderLine(renderer, bottomRight.x, bottomRight.y, bottomLeft.x, bottomLeft.y);
+                    SDL_RenderLine(renderer, bottomLeft.x, bottomLeft.y, topLeft.x, topLeft.y);
+                }
+
             private:
                 int drawThickLine(const std::vector<SDL_Point>& nodes, float thickness, SDL_FColor color) {
                     if (nodes.size() < 2) { 
@@ -278,12 +321,6 @@ namespace tjs::render {
             // qWarning("SDL could not initialize! SDL Error: %s", SDL_GetError());
             return;
         }
-        
-        /* set up some random points */
-        for (int i = 0; i < SDL_arraysize(_points); i++) {
-            _points[i].x = (SDL_randf() * 440.0f) + 100.0f;
-            _points[i].y = (SDL_randf() * 280.0f) + 100.0f;
-        }
 
         // Create properties for window creation
         SDL_PropertiesID props = SDL_CreateProperties();
@@ -367,7 +404,9 @@ namespace tjs::render {
          // Clear screen
          SDL_SetRenderDrawColor(_sdlRenderer, 240, 240, 240, 255);
          SDL_RenderClear(_sdlRenderer);
-        
+
+         renderer.renderBoundingBox();
+
 
          // Render all ways
          int waysRendered = 0;

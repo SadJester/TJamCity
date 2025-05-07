@@ -106,6 +106,7 @@ namespace tjs::core {
                         if (node == world.nodes.end()) {
                             continue;
                         }
+                        node->second->tags = node->second->tags | NodeTags::Way;
                         nodes.push_back(node->second.get());
                     }
 
