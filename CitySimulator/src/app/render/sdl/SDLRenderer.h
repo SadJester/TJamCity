@@ -9,10 +9,14 @@ namespace tjs {
     class Application;
 
     namespace render {
+        namespace visualization {
+            class MapRenderer;
+        }
+
         class SDLRenderer final : public IRenderer {
             public:
                 explicit SDLRenderer(Application& application);
-                virtual ~SDLRenderer(){}
+                virtual ~SDLRenderer();
 
                 virtual void initialize() override;
                 virtual void release() override;
@@ -28,7 +32,7 @@ namespace tjs {
                 // Track if SDL is initialized
                 bool _isInited = false;
 
-                SDL_FPoint _points[500];
+                std::unique_ptr<visualization::MapRenderer> _mapRenderer;
         };
     }
 }
