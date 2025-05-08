@@ -28,16 +28,22 @@ namespace tjs {
             // Update button
             _updateButton = new QPushButton("Update");
             mainLayout->addWidget(_updateButton);
+            connect(_updateButton, &QPushButton::clicked, this, &MapControlWidget::onUpdate);
 
-            // Zoom buttons
+            // Create zoom buttons layout
             QHBoxLayout* zoomLayout = new QHBoxLayout();
-            _zoomInButton = new QPushButton("Zoom In");
-            _zoomOutButton = new QPushButton("Zoom Out");
+            _zoomInButton = new QPushButton("Zoom In", this);
+            _zoomOutButton = new QPushButton("Zoom Out", this);
             zoomLayout->addWidget(_zoomInButton);
             zoomLayout->addWidget(_zoomOutButton);
             
-            // Arrows layout
-            QGridLayout* arrowsLayout = new QGridLayout();
+            // Create arrows layout
+            QFrame* arrowsFrame = new QFrame();
+            arrowsFrame->setFrameStyle(QFrame::Box | QFrame::Sunken);
+            arrowsFrame->setLineWidth(2);
+            arrowsFrame->setMidLineWidth(1);
+            
+            QGridLayout* arrowsLayout = new QGridLayout(arrowsFrame);
             
             _northButton = new QPushButton("▲");
             _westButton = new QPushButton("◀");
@@ -49,19 +55,17 @@ namespace tjs {
             arrowsLayout->addWidget(_eastButton, 1, 2);
             arrowsLayout->addWidget(_southButton, 2, 1);
             
-            // Coordinates layout
+            // Create coordinates layout
             QHBoxLayout* coordsLayout = new QHBoxLayout();
             QLabel* latLabel = new QLabel("Latitude:");
             QLabel* lonLabel = new QLabel("Longitude:");
             
             _latitude = new QDoubleSpinBox();
             _latitude->setRange(-90.0, 90.0);
-            _latitude->setDecimals(6);
             _latitude->setSuffix("°");
             
             _longitude = new QDoubleSpinBox();
             _longitude->setRange(-180.0, 180.0);
-            _longitude->setDecimals(6);
             _longitude->setSuffix("°");
             
             coordsLayout->addWidget(latLabel);
@@ -69,25 +73,38 @@ namespace tjs {
             coordsLayout->addWidget(lonLabel);
             coordsLayout->addWidget(_longitude);
             
-            // Add all layouts to main layout
+            // Add all elements to main layout
             mainLayout->addLayout(zoomLayout);
-            mainLayout->addLayout(arrowsLayout);
+            mainLayout->addWidget(arrowsFrame);
             mainLayout->addLayout(coordsLayout);
             
             // Connections
             connect(_zoomInButton, &QPushButton::clicked, this, &MapControlWidget::onZoomIn);
             connect(_zoomOutButton, &QPushButton::clicked, this, &MapControlWidget::onZoomOut);
-            connect(_latitude, SIGNAL(valueChanged(double)), this, SLOT(onLatitudeChanged(double)));
-            connect(_longitude, SIGNAL(valueChanged(double)), this, SLOT(onLongitudeChanged(double)));
             connect(_northButton, &QPushButton::clicked, this, &MapControlWidget::moveNorth);
             connect(_southButton, &QPushButton::clicked, this, &MapControlWidget::moveSouth);
             connect(_westButton, &QPushButton::clicked, this, &MapControlWidget::moveWest);
             connect(_eastButton, &QPushButton::clicked, this, &MapControlWidget::moveEast);
-            connect(_updateButton, &QPushButton::clicked, this, &MapControlWidget::onUpdate);
+            connect(_latitude, SIGNAL(valueChanged(double)), this, SLOT(onLatitudeChanged(double)));
+            connect(_longitude, SIGNAL(valueChanged(double)), this, SLOT(onLongitudeChanged(double)));
+
+            UpdateButtonsState();
         }
 
         MapControlWidget::~MapControlWidget() {
             // Cleanup
+        }
+
+        void MapControlWidget::UpdateButtonsState() {
+            const bool value = _mapElement != nullptr;
+            _zoomInButton->setEnabled(value);
+            _zoomOutButton->setEnabled(value);
+            _northButton->setEnabled(value);
+            _southButton->setEnabled(value);
+            _westButton->setEnabled(value);
+            _eastButton->setEnabled(value);
+            _latitude->setEnabled(value);
+            _longitude->setEnabled(value);
         }
 
         void MapControlWidget::onZoomIn() {
@@ -156,8 +173,10 @@ namespace tjs {
 
             _mapElement = dynamic_cast<visualization::MapElement*>(scene->getNode("MapElement"));
             if (_mapElement == nullptr) {
+                UpdateButtonsState();
                 return;
             }
+            UpdateButtonsState();
 
             // Initialize spin boxes with current values
             const auto& center = _mapElement->getProjectionCenter();

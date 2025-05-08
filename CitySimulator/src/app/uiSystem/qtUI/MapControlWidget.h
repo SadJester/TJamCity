@@ -22,6 +22,9 @@ namespace tjs {
             explicit MapControlWidget(Application& application, QWidget* parent = nullptr);
             ~MapControlWidget() override;
         
+        private:
+            void UpdateButtonsState();
+
         private slots:
             void onZoomIn();
             void onZoomOut();
