@@ -31,9 +31,9 @@ int main(int argc, char* argv[]) {
     application.initialize();
 
     // TODO: Will move to some QT functional
-    application.renderer().setClearColor({0.9f, 0.9f, 0.9f, 1.0f});
+    application.renderer().setClearColor({0.95f, 0.95f, 0.95f, 1.0f});
     tjs::visualization::prepareScene(application);
-    
+
     application.run();
 
     return 0;

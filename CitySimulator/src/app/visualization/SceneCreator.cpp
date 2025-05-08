@@ -4,7 +4,7 @@
 
 #include "visualization/SceneSystem.h"
 #include "visualization/Scene.h"
-#include "visualization/elements/MapRenderer.h"
+#include "visualization/elements/MapElement.h"
 
 #include "Application.h"
 
@@ -18,7 +18,7 @@ namespace tjs::visualization {
             return;
         }
 
-        scene->addNode(std::make_unique<MapRenderer>(app));
+        scene->addNode(std::make_unique<MapElement>(app));
         
         scene->initialize();
     }

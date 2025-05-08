@@ -13,7 +13,7 @@ namespace tjs {
     class IRenderer;
 
     namespace visualization {
-        class MapRenderer : public SceneNode {
+        class MapElement : public SceneNode {
         private:
             Application& _application;
             
@@ -27,8 +27,8 @@ namespace tjs {
             double screenCenterX = 512.0f;
             double screenCenterY = 512.0f;
         public:
-            MapRenderer(Application& application);
-            ~MapRenderer() = default;
+            MapElement(Application& application);
+            ~MapElement() = default;
             
             void autoZoom(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
             void setView(const core::Coordinates& center, double zoomMetersPerPixel);

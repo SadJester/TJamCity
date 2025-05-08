@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-#include "visualization/elements/MapRenderer.h"
+#include "visualization/elements/MapElement.h"
 
 #include "render/RenderBase.h"
 #include "visualization/RenderConstants.h"
@@ -13,12 +13,12 @@
 namespace tjs::visualization {
     using namespace tjs::core;
     
-    MapRenderer::MapRenderer(Application& application)
-        : SceneNode("MapRenderer")
+    MapElement::MapElement(Application& application)
+        : SceneNode("MapElement")
         , _application(application) {
     }
 
-    void MapRenderer::init() {
+    void MapElement::init() {
         auto& world = _application.worldData();
         auto& segments = world.segments();
 
@@ -27,11 +27,11 @@ namespace tjs::visualization {
         }
     }
 
-    void MapRenderer::update() {
+    void MapElement::update() {
 
     }
 
-    void MapRenderer::render(IRenderer& renderer) {
+    void MapElement::render(IRenderer& renderer) {
         auto& world = _application.worldData();
         auto& segments = world.segments();
 
@@ -56,7 +56,7 @@ namespace tjs::visualization {
          }
     }
     
-    void MapRenderer::setView(const Coordinates& center, double zoomMetersPerPixel) {
+    void MapElement::setView(const Coordinates& center, double zoomMetersPerPixel) {
         projectionCenter = center;
         metersPerPixel = zoomMetersPerPixel;
         
@@ -65,7 +65,7 @@ namespace tjs::visualization {
         metersPerPixel *= std::cos(latRad);
     }
     
-    Position MapRenderer::convertToScreen(const Coordinates& coord) const {
+    Position MapElement::convertToScreen(const Coordinates& coord) const {
         // Convert geographic coordinates to meters using Mercator projection
         double x = (coord.longitude - projectionCenter.longitude) * Constants::DEG_TO_RAD * Constants::EARTH_RADIUS;
         double y = -std::log(std::tan((90.0 + coord.latitude) * Constants::DEG_TO_RAD / 2.0)) * Constants::EARTH_RADIUS;
@@ -79,7 +79,7 @@ namespace tjs::visualization {
         return {screenX, screenY};
     }
     
-    void MapRenderer::autoZoom(const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {
+    void MapElement::autoZoom(const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {
         if (nodes.empty()) {
             return;
         }
@@ -128,7 +128,7 @@ namespace tjs::visualization {
         metersPerPixel *= std::cos(latRad);
     }
 
-    void MapRenderer::calculateMapBounds(const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {
+    void MapElement::calculateMapBounds(const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {
         // Initialize bounding box with extreme values
         minLat = std::numeric_limits<float>::max();
         maxLat = std::numeric_limits<float>::lowest();
@@ -150,7 +150,7 @@ namespace tjs::visualization {
         projectionCenter.longitude = (minLon + maxLon) / 2.0f;
     }
 
-    FColor MapRenderer::getWayColor(WayTags tags) const {
+    FColor MapElement::getWayColor(WayTags tags) const {
         FColor roadColor = Constants::ROAD_COLOR;
         if (hasFlag(tags, WayTags::Motorway)) {
             roadColor = Constants::MOTORWAY_COLOR;
@@ -164,7 +164,7 @@ namespace tjs::visualization {
         return roadColor;
     }
     
-    int MapRenderer::renderWay(const WayInfo& way, const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {
+    int MapElement::renderWay(const WayInfo& way, const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {
         if (way.nodeRefs.size() < 2) { 
             return 0;
         }
@@ -199,7 +199,7 @@ namespace tjs::visualization {
         return segmentsRendered;
     }
     
-    void MapRenderer::renderBoundingBox() const {
+    void MapElement::renderBoundingBox() const {
         // Convert all corners of the bounding box to screen coordinates
         Position topLeft = convertToScreen({minLat, minLon});
         Position topRight = convertToScreen({minLat, maxLon});
@@ -216,7 +216,7 @@ namespace tjs::visualization {
         renderer.drawLine(bottomLeft.x, bottomLeft.y, topLeft.x, topLeft.y);
     }
 
-    int MapRenderer::drawThickLine(const std::vector<Position>& nodes, float thickness, FColor color) {
+    int MapElement::drawThickLine(const std::vector<Position>& nodes, float thickness, FColor color) {
         if (nodes.size() < 2) { 
             return 0;
         }
@@ -263,7 +263,7 @@ namespace tjs::visualization {
         return segmentsRendered;
     }
     
-    void MapRenderer::drawLaneMarkers(const std::vector<Position>& nodes, int lanes, int laneWidthPixels) {
+    void MapElement::drawLaneMarkers(const std::vector<Position>& nodes, int lanes, int laneWidthPixels) {
         if (nodes.size() < 2) {
              return;
         }
