@@ -20,7 +20,7 @@ namespace tjs {
             // Create FPS label
             fpsLabel = new QLabel("FPS: 00 | Frame time: 00 ms", this);
             fpsLabel->setAlignment(Qt::AlignCenter);
-            fpsLabel->setSizePolicy( QSizePolicy::Expanding, QSizePolicy::Preferred );
+            fpsLabel->setSizePolicy( QSizePolicy::Expanding, QSizePolicy::Preferred);
             fpsLabel->setStyleSheet("font-size: 24px; font-weight: bold;");
             
             layout->addWidget(fpsLabel);

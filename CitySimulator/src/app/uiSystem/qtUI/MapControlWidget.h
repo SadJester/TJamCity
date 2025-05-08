@@ -5,6 +5,7 @@
 #include <QPushButton>
 #include <QHBoxLayout>
 #include <QSpinBox>
+#include <QLabel>
 
 
 namespace tjs {
@@ -24,6 +25,7 @@ namespace tjs {
         
         private:
             void UpdateButtonsState();
+            void UpdateLabels();
 
         private slots:
             void onZoomIn();
@@ -50,6 +52,8 @@ namespace tjs {
             QPushButton* _southButton;
             QPushButton* _westButton;
             QPushButton* _eastButton;
+            QLabel* _coeffLabel;
+            QLabel* _zoomLevel;
         };
     }
 }

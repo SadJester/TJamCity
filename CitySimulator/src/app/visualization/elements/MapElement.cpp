@@ -12,6 +12,10 @@
 
 namespace tjs::visualization {
     using namespace tjs::core;
+
+    static double minMetersPP = 1.0f;
+    static double maxMetersPP = 9.0f;
+    static double diffPP = maxMetersPP - minMetersPP;
     
     MapElement::MapElement(Application& application)
         : SceneNode("MapElement")
@@ -33,6 +37,10 @@ namespace tjs::visualization {
 
     void MapElement::setZoomLevel(double metersPerPixel) {
         this->metersPerPixel = metersPerPixel;
+        double latRad = projectionCenter.latitude * Constants::DEG_TO_RAD;
+        metersPerPixel *= std::cos(latRad);
+        metersPerPixel = std::clamp(metersPerPixel, minMetersPP, maxMetersPP);
+        _laneWidth = std::lerp(Constants::LANE_WIDTH, 15.0,  (maxMetersPP - metersPerPixel) / diffPP);
     }
 
     void MapElement::update() {
@@ -66,11 +74,7 @@ namespace tjs::visualization {
     
     void MapElement::setView(const Coordinates& center, double zoomMetersPerPixel) {
         projectionCenter = center;
-        metersPerPixel = zoomMetersPerPixel;
-        
-        // Adjust for Mercator projection stretching at high latitudes
-        double latRad = center.latitude * Constants::DEG_TO_RAD;
-        metersPerPixel *= std::cos(latRad);
+        setZoomLevel(zoomMetersPerPixel);
     }
     
     Position MapElement::convertToScreen(const Coordinates& coord) const {
@@ -125,15 +129,11 @@ namespace tjs::visualization {
         double zoomX = widthMeters / (renderer.screenWidth() * 0.9);
         double zoomY = heightMeters / (renderer.screenHeight() * 0.9);
     
-        metersPerPixel = std::min(zoomX, zoomY); // Use min to ensure the entire map fits
+        setZoomLevel(std::min(zoomX, zoomY)); // Use min to ensure the entire map fits
     
         // Recalculate screen center based on the new zoom level
         screenCenterX = renderer.screenWidth() / 2.0;
         screenCenterY = renderer.screenHeight() / 2.0;
-    
-        // Adjust for latitude
-        double latRad = projectionCenter.latitude * Constants::DEG_TO_RAD;
-        metersPerPixel *= std::cos(latRad);
     }
 
     void MapElement::calculateMapBounds(const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {
@@ -197,11 +197,10 @@ namespace tjs::visualization {
         }
 
         FColor color = getWayColor(way.tags);
-        color = hasOut ? FColor{1.0f, 0.0f, 0.0f, 1.0f} : FColor{0.f, 1.f, 0.f, 1.f};
-        int segmentsRendered = drawThickLine(screenPoints, way.lanes * Constants::LANE_WIDTH, color);
+        int segmentsRendered = drawThickLine(screenPoints, way.lanes * _laneWidth, color);
         
         if (way.lanes > 1) {
-            drawLaneMarkers(screenPoints, way.lanes, Constants::LANE_WIDTH);
+            drawLaneMarkers(screenPoints, way.lanes, _laneWidth);
         }
 
         return segmentsRendered;

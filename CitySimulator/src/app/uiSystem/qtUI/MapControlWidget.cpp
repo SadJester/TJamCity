@@ -30,6 +30,26 @@ namespace tjs {
             mainLayout->addWidget(_updateButton);
             connect(_updateButton, &QPushButton::clicked, this, &MapControlWidget::onUpdate);
 
+            // Create info layout
+            QFrame* infoFrame = new QFrame();
+            infoFrame->setFrameStyle(QFrame::Box | QFrame::Sunken);
+            infoFrame->setLineWidth(2);
+            infoFrame->setMidLineWidth(1);
+
+            QGridLayout* infoLayout = new QGridLayout(infoFrame);
+            _zoomLevel = new QLabel("Meters per pixel: 000", this);
+            _zoomLevel->setAlignment(Qt::AlignCenter);
+            _zoomLevel->setSizePolicy( QSizePolicy::Expanding, QSizePolicy::Preferred);
+            _zoomLevel->setStyleSheet("font-size: 24px; font-weight: bold;");
+
+            _coeffLabel = new QLabel("Coeff: 000", this);
+            _coeffLabel->setAlignment(Qt::AlignCenter);
+            _coeffLabel->setSizePolicy( QSizePolicy::Expanding, QSizePolicy::Preferred );
+            _coeffLabel->setStyleSheet("font-size: 24px; font-weight: bold;");
+            infoLayout->addWidget(_zoomLevel, 0, 0);
+            infoLayout->addWidget(_coeffLabel, 0, 1);
+            
+
             // Create zoom buttons layout
             QHBoxLayout* zoomLayout = new QHBoxLayout();
             _zoomInButton = new QPushButton("Zoom In", this);
@@ -74,6 +94,7 @@ namespace tjs {
             coordsLayout->addWidget(_longitude);
             
             // Add all elements to main layout
+            mainLayout->addWidget(infoFrame);
             mainLayout->addLayout(zoomLayout);
             mainLayout->addWidget(arrowsFrame);
             mainLayout->addLayout(coordsLayout);
@@ -107,14 +128,21 @@ namespace tjs {
             _longitude->setEnabled(value);
         }
 
+        void MapControlWidget::UpdateLabels() {
+            _zoomLevel->setText(QString("Meters per pixel: %1").arg(_mapElement->getZoomLevel()));
+            _coeffLabel->setText(QString("Coeff: %1").arg(_mapElement->getLaneWidth()));
+        }
+
         void MapControlWidget::onZoomIn() {
             double currentZoom = _mapElement->getZoomLevel();
             _mapElement->setZoomLevel(currentZoom * 0.9); // Zoom in (decrease meters per pixel)
+            UpdateLabels();
         }
         
         void MapControlWidget::onZoomOut() {
             double currentZoom = _mapElement->getZoomLevel();
             _mapElement->setZoomLevel(currentZoom * 1.1); // Zoom out (increase meters per pixel)
+            UpdateLabels();
         }
         
         void MapControlWidget::onLatitudeChanged(double value) {

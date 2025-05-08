@@ -20,6 +20,8 @@ namespace tjs {
             // Map bounds for coordinate conversion
             float minLat = 90.0f, maxLat = -90.0f;
             float minLon = 180.0f, maxLon = -180.0f;
+
+            double _laneWidth = 0.0;
             
             // Projection state
             core::Coordinates projectionCenter{0, 0};
@@ -57,6 +59,10 @@ namespace tjs {
             void setProjectionCenter(const core::Coordinates& newCenter);
             const core::Coordinates& getProjectionCenter() const {
                 return projectionCenter;
+            }
+
+            double getLaneWidth() const {
+                return _laneWidth;
             }
 
         private:
