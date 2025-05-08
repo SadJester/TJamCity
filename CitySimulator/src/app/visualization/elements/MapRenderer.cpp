@@ -1,14 +1,14 @@
 #include "stdafx.h"
 
-#include "render/sdl/MapRenderer.h"
+#include "visualization/elements/MapRenderer.h"
 
 #include "render/RenderBase.h"
 #include "render/sdl/SDLRenderer.h"
-#include "render/sdl/RenderConstants.h"
+#include "visualization/RenderConstants.h"
 #include "Application.h"
 
 
-namespace tjs::render::visualization {
+namespace tjs::visualization {
     using namespace tjs::core;
     
     MapRenderer::MapRenderer(Application& application)

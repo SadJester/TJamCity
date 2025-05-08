@@ -2,7 +2,7 @@
 
 #include "render/RenderBase.h"
 
-namespace tjs::render {
+namespace tjs::visualization {
     struct Constants  {
         static constexpr float LANE_WIDTH = 2.5f; // meters in world space
         static constexpr float PIXELS_PER_METER = 2.0f;

@@ -1,8 +1,7 @@
 #include "stdafx.h"
 
 #include "render/sdl/SDLRenderer.h"
-#include "render/sdl/MapRenderer.h"
-#include "render/sdl/RenderConstants.h"
+#include "visualization/elements/MapRenderer.h"
 
 #include <SDL3/SDL_properties.h>
 #include <SDL3/SDL_video.h>

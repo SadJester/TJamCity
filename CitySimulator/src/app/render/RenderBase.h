@@ -1,7 +1,5 @@
 #pragma once
 
-#include <span>
-
 namespace tjs {
 
     struct Position {

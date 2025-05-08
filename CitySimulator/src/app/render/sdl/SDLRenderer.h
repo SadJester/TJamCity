@@ -7,12 +7,11 @@
 
 namespace tjs {
     class Application;
+    namespace visualization {
+        class MapRenderer;
+    }
 
     namespace render {
-        namespace visualization {
-            class MapRenderer;
-        }
-
         class SDLRenderer final : public IRenderer {
             public:
                 explicit SDLRenderer(Application& application);

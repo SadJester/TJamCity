@@ -9,7 +9,7 @@ namespace tjs {
     class Application;
     class IRenderer;
 
-    namespace render::visualization {
+    namespace visualization {
         class MapRenderer {
         private:
             Application& _application;
