@@ -3,13 +3,16 @@
 #include "uiSystem/qtUI/QTController.h"
 
 #include "uiSystem/qtUI/MainWindow.h"
-#include "uiSystem/qtUI/RenderMetricsWidget.h"
 
 #include "Application.h"
 
 #include <QApplication>
 #include <QPushButton>
 #include <QVBoxLayout>
+
+/// Place somwhere to be more pretty
+#include "uiSystem/qtUI/RenderMetricsWidget.h"
+#include "uiSystem/qtUI/MapControlWidget.h"
 
 
 namespace tjs {
@@ -50,6 +53,9 @@ namespace tjs {
             
             RenderMetricsWidget* fpsLabel = new RenderMetricsWidget(_application, window);
             layout->addWidget(fpsLabel);
+            
+            MapControlWidget* mapControlWidget = new MapControlWidget(_application, window);
+            layout->addWidget(mapControlWidget);
 
             // Add widgets
             QPushButton* button = new QPushButton("Quit");

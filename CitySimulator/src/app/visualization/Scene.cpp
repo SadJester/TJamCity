@@ -30,6 +30,15 @@ namespace tjs::visualization {
         _nodes.erase(it, _nodes.end());
     }
 
+    SceneNode* Scene::getNode(std::string_view name) {
+        for(auto& node : _nodes) {
+            if(node->name() == name) {
+                return node.get();
+            }
+        }
+        return nullptr;
+    }
+
     void Scene::initialize() {
         for(auto& node : _nodes) {
             node->init();

@@ -21,6 +21,7 @@ namespace tjs::visualization {
         // Container for scene elements
         void addNode(std::unique_ptr<SceneNode> node);
         void removeNode(std::string_view name);
+        SceneNode* getNode(std::string_view name);
 
         std::string_view getName() const { return _name; }
         SceneSystem& sceneSystem() { return _sceneSystem; }

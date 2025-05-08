@@ -27,6 +27,14 @@ namespace tjs::visualization {
         }
     }
 
+    void MapElement::setProjectionCenter(const Coordinates& center) {
+        projectionCenter = center;
+    }
+
+    void MapElement::setZoomLevel(double metersPerPixel) {
+        this->metersPerPixel = metersPerPixel;
+    }
+
     void MapElement::update() {
 
     }

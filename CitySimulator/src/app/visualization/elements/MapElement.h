@@ -49,6 +49,16 @@ namespace tjs {
             int renderWay(const core::WayInfo& way, const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
             void renderBoundingBox() const;
 
+            void setZoomLevel(double newZoom);
+            double getZoomLevel() const {
+                return metersPerPixel;
+            }
+            
+            void setProjectionCenter(const core::Coordinates& newCenter);
+            const core::Coordinates& getProjectionCenter() const {
+                return projectionCenter;
+            }
+
         private:
             int drawThickLine(const std::vector<Position>& nodes, float thickness, FColor color);
             void drawLaneMarkers(const std::vector<Position>& nodes, int lanes, int laneWidthPixels);
