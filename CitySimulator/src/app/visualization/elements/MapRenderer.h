@@ -1,16 +1,19 @@
 #pragma once
 
 #include <core/dataLayer/DataTypes.h>
-#include "render/RenderBase.h"
 
-class SDL_Renderer;
+#include "render/RenderPrimitives.h"
+#include "render/IRenderable.h"
+
+#include "visualization/SceneNode.h"
+
 
 namespace tjs {
     class Application;
     class IRenderer;
 
     namespace visualization {
-        class MapRenderer {
+        class MapRenderer : public SceneNode {
         private:
             Application& _application;
             
@@ -33,6 +36,10 @@ namespace tjs {
             const core::Coordinates GetCurrentView() const {
                 return projectionCenter;
             }
+
+            virtual void init() override;
+            virtual void update() override;
+            virtual void render(IRenderer& renderer) override;
             
             Position convertToScreen(const core::Coordinates& coord) const;
             void calculateMapBounds(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);

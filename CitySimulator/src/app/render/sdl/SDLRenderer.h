@@ -7,9 +7,6 @@
 
 namespace tjs {
     class Application;
-    namespace visualization {
-        class MapRenderer;
-    }
 
     namespace render {
         class SDLRenderer final : public IRenderer {
@@ -21,7 +18,8 @@ namespace tjs {
                 virtual void release() override;
     
                 virtual void update() override;
-                virtual void draw() override;
+                virtual void beginFrame() override;
+                virtual void endFrame() override;
 
                 virtual void setDrawColor(FColor color) override;
                 virtual void drawLine(int x1, int y1, int x2, int y2) override;
@@ -35,8 +33,6 @@ namespace tjs {
                 
                 // Track if SDL is initialized
                 bool _isInited = false;
-
-                std::unique_ptr<visualization::MapRenderer> _mapRenderer;
         };
     }
 }

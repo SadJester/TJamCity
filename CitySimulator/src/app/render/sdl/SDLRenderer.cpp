@@ -40,7 +40,6 @@ namespace tjs::render {
         _sdlWindow = SDL_CreateWindowWithProperties(props);
         SDL_DestroyProperties(props);
         
-
         if (!_sdlWindow) {
             //qWarning("Window could not be created! SDL Error: %s", SDL_GetError());
             SDL_Quit();
@@ -63,15 +62,6 @@ namespace tjs::render {
         SDL_SetRenderDrawColor(_sdlRenderer, 0, 0, 0, 255);
         SDL_RenderClear(_sdlRenderer);
         SDL_RenderPresent(_sdlRenderer);
-        
-        _mapRenderer = std::make_unique<visualization::MapRenderer>(_application);
-
-        auto& world = _application.worldData();
-        auto& segments = world.segments();
-
-        if (!segments.empty()) {
-            _mapRenderer->autoZoom(segments.front()->nodes);
-        }
         _isInited = true;
     }
 
@@ -102,41 +92,23 @@ namespace tjs::render {
         }
     }
 
-    void SDLRenderer::draw() {
+    void SDLRenderer::beginFrame() {
         if (!_sdlRenderer) {
             return;
         }
-        
-        auto& world = _application.worldData();
-        auto& segments = world.segments();
 
-        if (segments.empty()) {
+        SDL_SetRenderDrawColorFloat(_sdlRenderer, _clearColor.a, _clearColor.r, _clearColor.g, _clearColor.b);
+        SDL_RenderClear(_sdlRenderer);
+    }
+
+    void SDLRenderer::endFrame() {
+        if (!_sdlRenderer) {
             return;
         }
 
-        auto& segment = segments.front();
-
-         // Clear screen
-         SDL_SetRenderDrawColor(_sdlRenderer, 240, 240, 240, 255);
-         SDL_RenderClear(_sdlRenderer);
-
-         _mapRenderer->renderBoundingBox();
-         // Render all ways
-         int waysRendered = 0;
-         int totalNodesRendered = 0;
-         int realNodeSegments = 0;
-         for (const auto& wayPair : segment->ways) {
-            int nodesRendered = _mapRenderer->renderWay(*wayPair.second, segment->nodes);
-            realNodeSegments += wayPair.second->nodes.size() / 2;
-            if (nodesRendered > 0) {
-                waysRendered++;
-            }
-            totalNodesRendered += nodesRendered;
-         }
          // Present the renderer
          SDL_RenderPresent(_sdlRenderer);
     }
-
 
     void SDLRenderer::setDrawColor(FColor color) {
         SDL_SetRenderDrawColorFloat(_sdlRenderer, color.r, color.g, color.b, color.a);

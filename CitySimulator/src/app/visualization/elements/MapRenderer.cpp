@@ -3,16 +3,57 @@
 #include "visualization/elements/MapRenderer.h"
 
 #include "render/RenderBase.h"
-#include "render/sdl/SDLRenderer.h"
 #include "visualization/RenderConstants.h"
 #include "Application.h"
+
+#include <core/dataLayer/WorldData.h>
+#include <core/dataLayer/DataTypes.h>
 
 
 namespace tjs::visualization {
     using namespace tjs::core;
     
     MapRenderer::MapRenderer(Application& application)
-        : _application(application) {
+        : SceneNode("MapRenderer")
+        , _application(application) {
+    }
+
+    void MapRenderer::init() {
+        auto& world = _application.worldData();
+        auto& segments = world.segments();
+
+        if (!segments.empty()) {
+            autoZoom(segments.front()->nodes);
+        }
+    }
+
+    void MapRenderer::update() {
+
+    }
+
+    void MapRenderer::render(IRenderer& renderer) {
+        auto& world = _application.worldData();
+        auto& segments = world.segments();
+
+        if (segments.empty()) {
+            return;
+        }
+
+        auto& segment = segments.front();
+
+        renderBoundingBox();
+         // Render all ways
+         int waysRendered = 0;
+         int totalNodesRendered = 0;
+         int realNodeSegments = 0;
+         for (const auto& wayPair : segment->ways) {
+            int nodesRendered = renderWay(*wayPair.second, segment->nodes);
+            realNodeSegments += wayPair.second->nodes.size() / 2;
+            if (nodesRendered > 0) {
+                waysRendered++;
+            }
+            totalNodesRendered += nodesRendered;
+         }
     }
     
     void MapRenderer::setView(const Coordinates& center, double zoomMetersPerPixel) {
@@ -259,11 +300,11 @@ namespace tjs::visualization {
                     float t1 = s / static_cast<float>(segments);
                     float t2 = (s+1) / static_cast<float>(segments);
                     
-                    SDL_Point sp1 = {
+                    Position sp1 = {
                         static_cast<int>(p1.x + t1 * dx + perpx),
                         static_cast<int>(p1.y + t1 * dy + perpy)
                     };
-                    SDL_Point sp2 = {
+                    Position sp2 = {
                         static_cast<int>(p1.x + t2 * dx + perpx),
                         static_cast<int>(p1.y + t2 * dy + perpy)
                     };
@@ -273,6 +314,5 @@ namespace tjs::visualization {
             }
         }
     }
-
 
 }
