@@ -1,6 +1,6 @@
 #pragma once
 
-#include <SDL3/SDL_pixels.h>
+#include "render/RenderBase.h"
 
 namespace tjs::render {
     struct Constants  {
@@ -12,10 +12,10 @@ namespace tjs::render {
         static constexpr double DEG_TO_RAD = M_PI / 180.0;
 
         // Color definitions
-        static constexpr SDL_FColor ROAD_COLOR = {0.392f, 0.392f, 0.392f, 1.0f};
-        static constexpr SDL_FColor LANE_MARKER_COLOR = {0.392f, 0.392f, 0.392f, 1.0f};
-        static constexpr SDL_FColor MOTORWAY_COLOR = {0.314f, 0.314f, 0.471f, 1.0f};
-        static constexpr SDL_FColor PRIMARY_COLOR = {0.353f, 0.353f, 0.353f, 1.0f};
-        static constexpr SDL_FColor RESIDENTIAL_COLOR = {0.471f, 0.471f, 0.471f, 1.0f};
+        static constexpr FColor ROAD_COLOR = {0.392f, 0.392f, 0.392f, 1.0f};
+        static constexpr FColor LANE_MARKER_COLOR = {0.392f, 0.392f, 0.392f, 1.0f};
+        static constexpr FColor MOTORWAY_COLOR = {0.314f, 0.314f, 0.471f, 1.0f};
+        static constexpr FColor PRIMARY_COLOR = {0.353f, 0.353f, 0.353f, 1.0f};
+        static constexpr FColor RESIDENTIAL_COLOR = {0.471f, 0.471f, 0.471f, 1.0f};
     };
 }

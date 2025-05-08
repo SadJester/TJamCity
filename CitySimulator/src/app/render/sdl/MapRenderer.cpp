@@ -11,10 +11,8 @@
 namespace tjs::render::visualization {
     using namespace tjs::core;
     
-    MapRenderer::MapRenderer(Application& application, SDL_Renderer* sdlRenderer)
-        : _application(application)
-        , renderer(sdlRenderer) {
-
+    MapRenderer::MapRenderer(Application& application)
+        : _application(application) {
     }
     
     void MapRenderer::setView(const Coordinates& center, double zoomMetersPerPixel) {
@@ -26,7 +24,7 @@ namespace tjs::render::visualization {
         metersPerPixel *= std::cos(latRad);
     }
     
-    SDL_Point MapRenderer::convertToScreen(const Coordinates& coord) const {
+    Position MapRenderer::convertToScreen(const Coordinates& coord) const {
         // Convert geographic coordinates to meters using Mercator projection
         double x = (coord.longitude - projectionCenter.longitude) * Constants::DEG_TO_RAD * Constants::EARTH_RADIUS;
         double y = -std::log(std::tan((90.0 + coord.latitude) * Constants::DEG_TO_RAD / 2.0)) * Constants::EARTH_RADIUS;
@@ -111,8 +109,8 @@ namespace tjs::render::visualization {
         projectionCenter.longitude = (minLon + maxLon) / 2.0f;
     }
 
-    SDL_FColor MapRenderer::getWayColor(WayTags tags) const {
-        SDL_FColor roadColor = Constants::ROAD_COLOR;
+    FColor MapRenderer::getWayColor(WayTags tags) const {
+        FColor roadColor = Constants::ROAD_COLOR;
         if (hasFlag(tags, WayTags::Motorway)) {
             roadColor = Constants::MOTORWAY_COLOR;
         }
@@ -130,7 +128,7 @@ namespace tjs::render::visualization {
             return 0;
         }
         
-        std::vector<SDL_Point> screenPoints;
+        std::vector<Position> screenPoints;
         bool hasOut = false;
         for (Node* node : way.nodes) {
             if (38.97230 > node->coordinates.longitude || 38.99089 < node->coordinates.longitude) {
@@ -149,8 +147,8 @@ namespace tjs::render::visualization {
             return 0;
         }
 
-        SDL_FColor color = getWayColor(way.tags);
-        color = hasOut ? SDL_FColor{1.0f, 0.0f, 0.0f, 1.0f} : SDL_FColor{0.f, 1.f, 0.f, 1.f};
+        FColor color = getWayColor(way.tags);
+        color = hasOut ? FColor{1.0f, 0.0f, 0.0f, 1.0f} : FColor{0.f, 1.f, 0.f, 1.f};
         int segmentsRendered = drawThickLine(screenPoints, way.lanes * Constants::LANE_WIDTH, color);
         
         if (way.lanes > 1) {
@@ -162,28 +160,30 @@ namespace tjs::render::visualization {
     
     void MapRenderer::renderBoundingBox() const {
         // Convert all corners of the bounding box to screen coordinates
-        SDL_Point topLeft = convertToScreen({minLat, minLon});
-        SDL_Point topRight = convertToScreen({minLat, maxLon});
-        SDL_Point bottomLeft = convertToScreen({maxLat, minLon});
-        SDL_Point bottomRight = convertToScreen({maxLat, maxLon});
+        Position topLeft = convertToScreen({minLat, minLon});
+        Position topRight = convertToScreen({minLat, maxLon});
+        Position bottomLeft = convertToScreen({maxLat, minLon});
+        Position bottomRight = convertToScreen({maxLat, maxLon});
         
-        // Set the color for the bounding box (red)
-        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-        
-        // Draw the bounding box lines
-        SDL_RenderLine(renderer, topLeft.x, topLeft.y, topRight.x, topRight.y);
-        SDL_RenderLine(renderer, topRight.x, topRight.y, bottomRight.x, bottomRight.y);
-        SDL_RenderLine(renderer, bottomRight.x, bottomRight.y, bottomLeft.x, bottomLeft.y);
-        SDL_RenderLine(renderer, bottomLeft.x, bottomLeft.y, topLeft.x, topLeft.y);
+        auto& renderer = _application.renderer();
+
+        renderer.setDrawColor({1.f, 0.f, 0.f, 1.f});
+
+        renderer.drawLine(topLeft.x, topLeft.y, topRight.x, topRight.y);
+        renderer.drawLine(topRight.x, topRight.y, bottomRight.x, bottomRight.y);
+        renderer.drawLine(bottomRight.x, bottomRight.y, bottomLeft.x, bottomLeft.y);
+        renderer.drawLine(bottomLeft.x, bottomLeft.y, topLeft.x, topLeft.y);
     }
 
-    int MapRenderer::drawThickLine(const std::vector<SDL_Point>& nodes, float thickness, SDL_FColor color) {
+    int MapRenderer::drawThickLine(const std::vector<Position>& nodes, float thickness, FColor color) {
         if (nodes.size() < 2) { 
             return 0;
         }
+
+        auto& renderer = _application.renderer();
         
         int segmentsRendered = 0;
-        SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+        renderer.setDrawColor(color);
         
         for (size_t i = 0; i < nodes.size() - 1; i++) {
             auto p1 = nodes[i];
@@ -201,7 +201,7 @@ namespace tjs::render::visualization {
             float perpy = dx/len * thickness/2;
             
             // Draw a thick line as a quad
-            SDL_Vertex vertices[4] = {
+            Vertex vertices[4] = {
                 { { p1.x + perpx, p1.y + perpy }, color, { 0.f, 0.f } }, // top-left
                 { { p1.x - perpx, p1.y - perpy }, color, { 0.f, 0.f } }, // bottom-left
                 { { p2.x - perpx, p2.y - perpy }, color, { 0.f, 0.f } }, // bottom-right
@@ -212,24 +212,23 @@ namespace tjs::render::visualization {
                 0, 3, 2, // First triangle
                 2, 1, 0  // Second triangle
             };
+            Geometry geometry{
+                std::span(vertices),
+                std::span(squareIndices)
+            };
 
-            SDL_RenderGeometry(renderer, nullptr, vertices, 4, squareIndices, 6);
+            renderer.drawGeometry(geometry);
         }
         return segmentsRendered;
     }
     
-    void MapRenderer::drawLaneMarkers(const std::vector<SDL_Point>& nodes, int lanes, int laneWidthPixels) {
+    void MapRenderer::drawLaneMarkers(const std::vector<Position>& nodes, int lanes, int laneWidthPixels) {
         if (nodes.size() < 2) {
              return;
         }
         
-        SDL_SetRenderDrawColor(
-            renderer, 
-            Constants::LANE_MARKER_COLOR.r, 
-            Constants::LANE_MARKER_COLOR.g, 
-            Constants::LANE_MARKER_COLOR.b, 
-            Constants::LANE_MARKER_COLOR.a
-        );
+        auto& renderer = _application.renderer();
+        renderer.setDrawColor(Constants::LANE_MARKER_COLOR);
         
         float totalWidth = lanes * Constants::LANE_WIDTH * Constants::PIXELS_PER_METER;
         float laneWidth = totalWidth / lanes;
@@ -238,8 +237,8 @@ namespace tjs::render::visualization {
             float offset = -totalWidth/2 + lane * laneWidth;
             
             for (size_t i = 0; i < nodes.size() - 1; i++) {                            
-                SDL_Point p1 = nodes[i];
-                SDL_Point p2 = nodes[i+1];
+                Position p1 = nodes[i];
+                Position p2 = nodes[i+1];
                 
                 // Calculate perpendicular vector
                 float dx = p2.x - p1.x;
@@ -269,7 +268,7 @@ namespace tjs::render::visualization {
                         static_cast<int>(p1.y + t2 * dy + perpy)
                     };
                     
-                    SDL_RenderLine(renderer, sp1.x, sp1.y, sp2.x, sp2.y);
+                    renderer.drawLine(sp1.x, sp1.y, sp2.x, sp2.y);
                 }
             }
         }

@@ -65,7 +65,7 @@ namespace tjs::render {
         SDL_RenderClear(_sdlRenderer);
         SDL_RenderPresent(_sdlRenderer);
         
-        _mapRenderer = std::make_unique<visualization::MapRenderer>(_application, _sdlRenderer);
+        _mapRenderer = std::make_unique<visualization::MapRenderer>(_application);
 
         auto& world = _application.worldData();
         auto& segments = world.segments();
@@ -137,5 +137,52 @@ namespace tjs::render {
          // Present the renderer
          SDL_RenderPresent(_sdlRenderer);
     }
-}
 
+
+    void SDLRenderer::setDrawColor(FColor color) {
+        SDL_SetRenderDrawColorFloat(_sdlRenderer, color.r, color.g, color.b, color.a);
+    }
+
+    void SDLRenderer::drawLine(int x1, int y1, int x2, int y2) {
+        SDL_RenderLine(_sdlRenderer, x1, y1, x2, y2);
+    }
+
+    void SDLRenderer::drawGeometry(const Geometry& geometry) {
+        SDL_RenderGeometry(
+            _sdlRenderer,
+            nullptr,
+            reinterpret_cast<SDL_Vertex*>(geometry.vertices.data()),
+            4,
+            geometry.indices.data(),
+            geometry.indices.size()
+        );
+    }
+
+    void SDLRenderer::drawCircle(int centerX, int centerY, int radius) {
+        // Midpoint circle algorithm
+        int x = radius;
+        int y = 0;
+        int err = 0;
+
+        while (x >= y) {
+            SDL_RenderPoint(_sdlRenderer, centerX + x, centerY + y);
+            SDL_RenderPoint(_sdlRenderer, centerX + y, centerY + x);
+            SDL_RenderPoint(_sdlRenderer, centerX - y, centerY + x);
+            SDL_RenderPoint(_sdlRenderer, centerX - x, centerY + y);
+            SDL_RenderPoint(_sdlRenderer, centerX - x, centerY - y);
+            SDL_RenderPoint(_sdlRenderer, centerX - y, centerY - x);
+            SDL_RenderPoint(_sdlRenderer, centerX + y, centerY - x);
+            SDL_RenderPoint(_sdlRenderer, centerX + x, centerY - y);
+
+            if (err <= 0) {
+                y += 1;
+                err += 2*y + 1;
+            }
+            if (err > 0) {
+                x -= 1;
+                err -= 2*x + 1;
+            }
+        }
+    }
+
+}

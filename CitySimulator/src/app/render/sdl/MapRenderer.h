@@ -1,7 +1,7 @@
 #pragma once
 
 #include <core/dataLayer/DataTypes.h>
-#include <SDL3/SDL_render.h>
+#include "render/RenderBase.h"
 
 class SDL_Renderer;
 
@@ -12,7 +12,6 @@ namespace tjs {
     namespace render::visualization {
         class MapRenderer {
         private:
-            SDL_Renderer* renderer;
             Application& _application;
             
             // Map bounds for coordinate conversion
@@ -25,7 +24,7 @@ namespace tjs {
             double screenCenterX = 512.0f;
             double screenCenterY = 512.0f;
         public:
-            MapRenderer(Application& application, SDL_Renderer* sdlRenderer);
+            MapRenderer(Application& application);
             ~MapRenderer() = default;
             
             void autoZoom(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
@@ -35,17 +34,17 @@ namespace tjs {
                 return projectionCenter;
             }
             
-            SDL_Point convertToScreen(const core::Coordinates& coord) const;
+            Position convertToScreen(const core::Coordinates& coord) const;
             void calculateMapBounds(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
 
-            SDL_FColor getWayColor(core::WayTags tags) const;
+            FColor getWayColor(core::WayTags tags) const;
             
             int renderWay(const core::WayInfo& way, const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
             void renderBoundingBox() const;
 
         private:
-            int drawThickLine(const std::vector<SDL_Point>& nodes, float thickness, SDL_FColor color);
-            void drawLaneMarkers(const std::vector<SDL_Point>& nodes, int lanes, int laneWidthPixels);
+            int drawThickLine(const std::vector<Position>& nodes, float thickness, FColor color);
+            void drawLaneMarkers(const std::vector<Position>& nodes, int lanes, int laneWidthPixels);
         };
     }
 }
