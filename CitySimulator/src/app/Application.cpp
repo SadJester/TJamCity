@@ -22,10 +22,8 @@ namespace tjs {
     }
 
 
-    Application::Application(int& argc, char** argv, ApplicationConfig&& config)
+    Application::Application(int& argc, char** argv)
         : _commandLine(argc, argv)
-        , _config(config)
-        , _frameStats(_config.targetFPS)
     {
     }
 
@@ -39,6 +37,9 @@ namespace tjs {
         _uiSystem = std::move(uiSystem);
         _sceneSystem = std::move(sceneSystem);
         _worldData = std::move(worldData);
+
+        _settings.load();
+        _frameStats.init(_settings.render.targetFPS);
     }
 
     void Application::initialize() {
@@ -50,10 +51,13 @@ namespace tjs {
     void Application::run() {
         using duration = FrameStats::duration;
 
-        const duration targetFrameTime(1.0 / _config.targetFPS);
+        const int targetFPS = _settings.render.targetFPS;
+        const duration targetFrameTime(1.0 / targetFPS);
 
         auto lastFrameTime = std::chrono::high_resolution_clock::now();
         int currentFPS = 0.0;
+
+        auto lastTimeSaveSettings = std::chrono::high_resolution_clock::now();
 
         while (!isFinished()) {
             // Record the start time of this frame
@@ -68,9 +72,18 @@ namespace tjs {
             _renderer->beginFrame();
             _sceneSystem->render(*_renderer);
             _renderer->endFrame();
-            
+
             // Calculate actual frame time
             auto frameEnd = std::chrono::high_resolution_clock::now();
+
+            // check for saving settings
+            duration saveDuration = frameEnd - lastTimeSaveSettings;
+            if (saveDuration.count() > UserSettings::AUTOSAVE_TIME_SEC) {
+                // TODO: Refactor when it will be error handling mechanism
+                _settings.save();
+                lastTimeSaveSettings = frameEnd;
+            }
+
             duration frameDuration = frameEnd - frameStart;
             duration totalFrameTime = frameEnd - lastFrameTime;
             lastFrameTime = frameEnd;
@@ -81,7 +94,7 @@ namespace tjs {
                 fps = 1.0f / totalFrameTime.count();
             }
             _frameStats.setFPS(fps, frameDuration);
-            
+
             // Calculate how long to sleep to maintain target FPS
             duration sleepTime = targetFrameTime - frameDuration;
             // If we're running faster than the target FPS, sleep for the remaining time
@@ -89,6 +102,9 @@ namespace tjs {
                 std::this_thread::sleep_for(std::chrono::duration_cast<std::chrono::milliseconds>(sleepTime));
             }
         }
+    
+        // Save settings before quit
+        _settings.save();
     }
 
 }

@@ -43,6 +43,7 @@ if(WIN32)
 endif()
 
 # Add subdirectories for app and core
+add_subdirectory(src/launcher)
 add_subdirectory(src/app)
 add_subdirectory(src/core)
 

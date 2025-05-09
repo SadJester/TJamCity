@@ -3,6 +3,7 @@
 #include "uiSystem/qtUI/MapControlWidget.h"
 
 #include "Application.h"
+#include "settings/GeneralSettings.h"
 #include "visualization/elements/MapElement.h"
 
 #include <QLabel>
@@ -27,6 +28,7 @@ namespace tjs {
 
             // File button
             _openFileButton = new QPushButton("Open OSMX File");
+            openFile(_application.settings().general.selectedFile);
 
             // Update button
             _updateButton = new QPushButton("Update");
@@ -229,6 +231,19 @@ namespace tjs {
             _longitude->setValue(center.longitude);
         }
 
+        void MapControlWidget::openFile(std::string_view fileName) {
+            if (fileName.empty()) {
+                return;
+            }
+            if (tjs::core::WorldCreator::loadOSMData(_application.worldData(), fileName)) {
+                _application.settings().general.selectedFile = fileName;
+                onUpdate();
+                if (_mapElement != nullptr) {
+                    _mapElement->init();
+                }
+            }
+        }
+
         void MapControlWidget::openOSMFile() {
             QString fileName = QFileDialog::getOpenFileName(
                 this,
@@ -237,14 +252,7 @@ namespace tjs {
                 tr("OSMX Files (*.osmx)")
             );
             
-            if (!fileName.isEmpty()) {
-                if (tjs::core::WorldCreator::loadOSMData(_application.worldData(), fileName.toStdString())) {
-                    onUpdate();
-                    if (_mapElement != nullptr) {
-                        _mapElement->init();
-                    }
-                }
-            }
+            openFile(fileName.toStdString());
         }
     }
 }

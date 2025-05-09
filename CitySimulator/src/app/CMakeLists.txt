@@ -8,16 +8,18 @@ file(GLOB_RECURSE APP_SOURCES
 )
 
 # Add executable target with the TJC_ prefix
-add_executable(TJC_TJamSimulator ${APP_SOURCES})
+add_library(TJC_TJamApp STATIC ${APP_SOURCES})
 
+# add dependencies
 find_package(Qt6 6.8.3 REQUIRED COMPONENTS Core Gui Widgets)
+
 
 message(STATUS "[SDKS]Found Qt6 version: ${Qt6_VERSION}")
 
-target_precompile_headers(TJC_TJamSimulator PRIVATE "stdafx.h")
+target_precompile_headers(TJC_TJamApp PRIVATE "stdafx.h")
 
 # Link the core static library to the app executable
-target_link_libraries(TJC_TJamSimulator PRIVATE
+target_link_libraries(TJC_TJamApp PRIVATE
     TJC_Core
     Qt6::Core
     Qt6::Gui
@@ -34,20 +36,16 @@ add_subdirectory(
 SET(CMAKE_AUTOMOC   ON)
 SET(CMAKE_AUTOMOC_MOC_OPTIONS "-nw")
 
-set_target_properties(TJC_TJamSimulator PROPERTIES
-    WIN32_EXECUTABLE ON
-    MACOSX_BUNDLE ON
-)
-
 # Specify the include directories for app
-target_include_directories(TJC_TJamSimulator PRIVATE 
+target_include_directories(TJC_TJamApp PRIVATE 
     "${CMAKE_SOURCE_DIR}/CitySimulator/src/app"
     "${CMAKE_SOURCE_DIR}/CitySimulator/src/core/include"
+    ${JSON_INCLUDE_DIR}
 )
 
 # Set platform-specific flags for app if necessary
 if(WIN32)
-    target_compile_definitions(TJC_TJamSimulator PRIVATE "PLATFORM_WINDOWS")
+    target_compile_definitions(TJC_TJamApp PRIVATE "PLATFORM_WINDOWS")
 elseif(APPLE)
-    target_compile_definitions(TJC_TJamSimulator PRIVATE "PLATFORM_MAC")
+    target_compile_definitions(TJC_TJamApp PRIVATE "PLATFORM_MAC")
 endif()

@@ -26,6 +26,7 @@ namespace tjs {
         private:
             void UpdateButtonsState();
             void UpdateLabels();
+            void openFile(std::string_view fileName);
 
         private slots:
             void onZoomIn();
