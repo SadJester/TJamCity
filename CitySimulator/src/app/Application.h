@@ -1,5 +1,7 @@
 #pragma once
 
+#include "settings/UserSettings.h"
+
 namespace tjs {
 
     class UISystem;
@@ -97,8 +99,11 @@ namespace tjs {
         void initialize();
         void run();
 
-
         // System getters
+        UserSettings& settings() {
+            return _settings;
+        }
+
         core::WorldData& worldData() {
             return *_worldData;
         }
@@ -121,6 +126,8 @@ namespace tjs {
         bool _isFinished = false;
         
         FrameStats _frameStats;
+
+        UserSettings _settings;
 
         // Systems
         std::unique_ptr<IRenderer> _renderer;

@@ -10,7 +10,9 @@ file(GLOB_RECURSE APP_SOURCES
 # Add executable target with the TJC_ prefix
 add_library(TJC_TJamApp STATIC ${APP_SOURCES})
 
+# add dependencies
 find_package(Qt6 6.8.3 REQUIRED COMPONENTS Core Gui Widgets)
+
 
 message(STATUS "[SDKS]Found Qt6 version: ${Qt6_VERSION}")
 
@@ -38,6 +40,7 @@ SET(CMAKE_AUTOMOC_MOC_OPTIONS "-nw")
 target_include_directories(TJC_TJamApp PRIVATE 
     "${CMAKE_SOURCE_DIR}/CitySimulator/src/app"
     "${CMAKE_SOURCE_DIR}/CitySimulator/src/core/include"
+    ${JSON_INCLUDE_DIR}
 )
 
 # Set platform-specific flags for app if necessary
