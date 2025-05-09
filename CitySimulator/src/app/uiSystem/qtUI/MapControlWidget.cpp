@@ -19,9 +19,6 @@
 
 namespace tjs {
     namespace ui {
-
-        static constexpr double CHANGE_CENTER_STEP = 0.001;
-
         MapControlWidget::MapControlWidget(Application& application, QWidget* parent)
             : QWidget(parent)
             , _application(application) {
@@ -47,13 +44,7 @@ namespace tjs {
             _zoomLevel->setAlignment(Qt::AlignCenter);
             _zoomLevel->setSizePolicy( QSizePolicy::Expanding, QSizePolicy::Preferred);
             _zoomLevel->setStyleSheet("font-size: 14px; font-weight: bold;");
-
-            _coeffLabel = new QLabel("Coeff: 000", this);
-            _coeffLabel->setAlignment(Qt::AlignCenter);
-            _coeffLabel->setSizePolicy( QSizePolicy::Expanding, QSizePolicy::Preferred );
-            _coeffLabel->setStyleSheet("font-size: 14px; font-weight: bold;");
             infoLayout->addWidget(_zoomLevel, 0, 0);
-            infoLayout->addWidget(_coeffLabel, 0, 1);
             
 
             // Create zoom buttons layout
@@ -88,10 +79,12 @@ namespace tjs {
             
             _latitude = new QDoubleSpinBox();
             _latitude->setRange(-90.0, 90.0);
+            _latitude->setDecimals(6);
             _latitude->setSuffix("°");
             
             _longitude = new QDoubleSpinBox();
             _longitude->setRange(-180.0, 180.0);
+            _longitude->setDecimals(6);
             _longitude->setSuffix("°");
             
             coordsLayout->addWidget(latLabel);
@@ -139,7 +132,6 @@ namespace tjs {
 
         void MapControlWidget::UpdateLabels() {
             _zoomLevel->setText(QString("Meters per pixel: %1").arg(_mapElement->getZoomLevel()));
-            _coeffLabel->setText(QString("Coeff: %1").arg(_mapElement->getLaneWidth()));
         }
 
         void MapControlWidget::onZoomIn() {
@@ -166,10 +158,27 @@ namespace tjs {
             _mapElement->setProjectionCenter(newCenter);
         }
         
+        double getChangedStep(double metersPerPixel) {
+            // Определяем границы
+            const double minMetersPerPixel = 0.1;
+            const double maxMetersPerPixel = 13.0;
+            
+            const double minStep = 0.0000001;
+            const double maxStep = 0.001;
+            
+            // Линейная интерполяция
+            double normalizedValue = (metersPerPixel - minMetersPerPixel) / (maxMetersPerPixel - minMetersPerPixel);
+            
+            // Рассчитываем step
+            double step = maxStep - (maxStep - minStep) * normalizedValue;
+            
+            return step;
+        }
+
         void MapControlWidget::moveNorth() {
             core::Coordinates current = _mapElement->getProjectionCenter();
             if (current.latitude < 90.0) {
-                current.latitude += CHANGE_CENTER_STEP; // Change step size as needed
+                current.latitude += getChangedStep(_mapElement->getZoomLevel()); // Change step size as needed
                 _latitude->setValue(current.latitude);
                 _mapElement->setProjectionCenter(current);
             }
@@ -178,7 +187,7 @@ namespace tjs {
         void MapControlWidget::moveSouth() {
             core::Coordinates current = _mapElement->getProjectionCenter();
             if (current.latitude > -90.0) {
-                current.latitude -= CHANGE_CENTER_STEP; // Change step size as needed
+                current.latitude -= getChangedStep(_mapElement->getZoomLevel()); // Change step size as needed
                 _latitude->setValue(current.latitude);
                 _mapElement->setProjectionCenter(current);
             }
@@ -187,7 +196,7 @@ namespace tjs {
         void MapControlWidget::moveWest() {
             core::Coordinates current = _mapElement->getProjectionCenter();
             if (current.longitude > -180.0) {
-                current.longitude -= CHANGE_CENTER_STEP; // Change step size as needed
+                current.longitude -= getChangedStep(_mapElement->getZoomLevel()); // Change step size as needed
                 _longitude->setValue(current.longitude);
                 _mapElement->setProjectionCenter(current);
             }
@@ -196,7 +205,7 @@ namespace tjs {
         void MapControlWidget::moveEast() {
             core::Coordinates current = _mapElement->getProjectionCenter();
             if (current.longitude < 180.0) {
-                current.longitude += CHANGE_CENTER_STEP; // Change step size as needed
+                current.longitude += getChangedStep(_mapElement->getZoomLevel()); // Change step size as needed
                 _longitude->setValue(current.longitude);
                 _mapElement->setProjectionCenter(current);
             }
@@ -209,11 +218,10 @@ namespace tjs {
             }
 
             _mapElement = dynamic_cast<visualization::MapElement*>(scene->getNode("MapElement"));
+            UpdateButtonsState();
             if (_mapElement == nullptr) {
-                UpdateButtonsState();
                 return;
             }
-            UpdateButtonsState();
 
             // Initialize spin boxes with current values
             const auto& center = _mapElement->getProjectionCenter();

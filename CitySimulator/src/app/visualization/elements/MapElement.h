@@ -65,6 +65,10 @@ namespace tjs {
                 return _laneWidth;
             }
 
+            void setLaneWidthPerPixel(double lW) {
+                _laneWidth = lW;
+            }
+
         private:
             int drawThickLine(const std::vector<Position>& nodes, float thickness, FColor color);
             void drawLaneMarkers(const std::vector<Position>& nodes, int lanes, int laneWidthPixels);

@@ -38,7 +38,6 @@ namespace tjs {
             void moveEast();
             void onUpdate();
             void openOSMFile();
-        
         private:
             Application& _application;
             visualization::MapElement* _mapElement = nullptr;
@@ -55,7 +54,6 @@ namespace tjs {
             QPushButton* _eastButton;
             QPushButton* _openFileButton;
 
-            QLabel* _coeffLabel;
             QLabel* _zoomLevel;
         };
     }

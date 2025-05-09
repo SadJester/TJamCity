@@ -12,10 +12,6 @@
 
 namespace tjs::visualization {
     using namespace tjs::core;
-
-    static double minMetersPP = 1.0f;
-    static double maxMetersPP = 9.0f;
-    static double diffPP = maxMetersPP - minMetersPP;
     
     MapElement::MapElement(Application& application)
         : SceneNode("MapElement")
@@ -39,8 +35,6 @@ namespace tjs::visualization {
         this->metersPerPixel = metersPerPixel;
         double latRad = projectionCenter.latitude * Constants::DEG_TO_RAD;
         metersPerPixel *= std::cos(latRad);
-        metersPerPixel = std::clamp(metersPerPixel, minMetersPP, maxMetersPP);
-        _laneWidth = std::lerp(Constants::LANE_WIDTH, 15.0,  (maxMetersPP - metersPerPixel) / diffPP);
     }
 
     void MapElement::update() {
@@ -178,16 +172,8 @@ namespace tjs::visualization {
         }
         
         std::vector<Position> screenPoints;
-        bool hasOut = false;
-        for (Node* node : way.nodes) {
-            if (38.97230 > node->coordinates.longitude || 38.99089 < node->coordinates.longitude) {
-                hasOut = true;
-            }
-
-            if (node->coordinates.latitude > 45.12687 || node->coordinates.latitude < 45.10864) {
-                hasOut = true;
-            }
-
+        screenPoints.reserve(way.nodes.size());
+        for (Node* node : way.nodes){
             screenPoints.push_back(convertToScreen(node->coordinates));
         }
         
@@ -196,11 +182,11 @@ namespace tjs::visualization {
             return 0;
         }
 
-        FColor color = getWayColor(way.tags);
-        int segmentsRendered = drawThickLine(screenPoints, way.lanes * _laneWidth, color);
+        const FColor color = getWayColor(way.tags);
+        int segmentsRendered = drawThickLine(screenPoints, way.lanes * Constants::LANE_WIDTH, color);
         
         if (way.lanes > 1) {
-            drawLaneMarkers(screenPoints, way.lanes, _laneWidth);
+            drawLaneMarkers(screenPoints, way.lanes, Constants::LANE_WIDTH);
         }
 
         return segmentsRendered;
@@ -230,6 +216,8 @@ namespace tjs::visualization {
 
         auto& renderer = _application.renderer();
         
+        thickness /= metersPerPixel;
+
         int segmentsRendered = 0;
         renderer.setDrawColor(color);
         
@@ -271,6 +259,10 @@ namespace tjs::visualization {
     }
     
     void MapElement::drawLaneMarkers(const std::vector<Position>& nodes, int lanes, int laneWidthPixels) {
+        if (metersPerPixel > Constants::DRAW_LANE_MARKERS_MPP) {
+            return;
+        }
+
         if (nodes.size() < 2) {
              return;
         }
@@ -278,7 +270,7 @@ namespace tjs::visualization {
         auto& renderer = _application.renderer();
         renderer.setDrawColor(Constants::LANE_MARKER_COLOR);
         
-        float totalWidth = lanes * Constants::LANE_WIDTH * Constants::PIXELS_PER_METER;
+        float totalWidth = lanes * Constants::LANE_WIDTH * metersPerPixel;
         float laneWidth = totalWidth / lanes;
         
         for (int lane = 1; lane < lanes; lane++) {
@@ -301,7 +293,7 @@ namespace tjs::visualization {
                 
                 // Draw dashed lane markers
                 float segmentLength = 5.0f; // meters
-                int segments = static_cast<int>(len / (segmentLength * Constants::PIXELS_PER_METER));
+                int segments = static_cast<int>(len / (segmentLength * metersPerPixel));
                 
                 for (int s = 0; s < segments; s += 2) {
                     float t1 = s / static_cast<float>(segments);
