@@ -6,6 +6,9 @@
 
 #include "uiSystem/UISystem.h"
 #include "render/RenderBase.h"
+#include "visualization/SceneSystem.h"
+
+#include <core/dataLayer/WorldData.h>
 
 
 namespace tjs {
@@ -28,15 +31,20 @@ namespace tjs {
 
     void Application::setup(
             std::unique_ptr<IRenderer>&& renderer,
-            std::unique_ptr<UISystem>&& uiSystem
+            std::unique_ptr<UISystem>&& uiSystem,
+            std::unique_ptr<visualization::SceneSystem>&& sceneSystem,
+            std::unique_ptr<core::WorldData>&& worldData
     ) {
         _renderer = std::move(renderer);
         _uiSystem = std::move(uiSystem);
+        _sceneSystem = std::move(sceneSystem);
+        _worldData = std::move(worldData);
     }
 
     void Application::initialize() {
         _uiSystem->initialize();
         _renderer->initialize();
+        _sceneSystem->initialize();
     }
 
     void Application::run() {
@@ -54,7 +62,12 @@ namespace tjs {
             // Run the update and draw operations
             _uiSystem->update();
             _renderer->update();
-            _renderer->draw();
+            _sceneSystem->update();
+
+            // Rendering
+            _renderer->beginFrame();
+            _sceneSystem->render(*_renderer);
+            _renderer->endFrame();
             
             // Calculate actual frame time
             auto frameEnd = std::chrono::high_resolution_clock::now();

@@ -34,3 +34,6 @@
 /build/*
 /.cmake/*
 /sdks/installed/*
+
+# installed packages
+/vcpkg_installed/*

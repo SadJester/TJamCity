@@ -10,9 +10,18 @@ add_library(TJC_Core STATIC ${CORE_SOURCES})
 
 # Specify the include directories for core
 target_include_directories(TJC_Core PRIVATE 
-    "${CMAKE_CURRENT_SOURCE_DIR}/include/core"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
+	"${PUGI_INCLUDE_DIR}"
 )
+
+if (WIN32)
+	target_link_libraries(TJC_Core PUBLIC ${PUGI_LIB_DIR}/pugixml.lib)
+elseif(APPLE) 
+	target_link_libraries(TJC_Core PUBLIC ${PUGI_LIB_DIR}/libpugixml.a)
+endif()
+
+target_precompile_headers(TJC_Core PRIVATE "include/core/stdafx.h")
 
 # Set platform-specific flags for core if necessary
 if(WIN32)

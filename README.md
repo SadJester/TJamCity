@@ -3,7 +3,7 @@ Expected usage of Visual Code and Cmake for running builds.
 
 ## Install qt6
 1.  Darwin: brew install qt (need to fix its version)
-2. Windows: <TODO>
+2. Windows: in default location C:/Qt/6.9.0/msvc2022_64
 
 
 ## IDE. Visual code
@@ -13,7 +13,7 @@ Install plugins for VS Code
 
 
 # Work in Visual Code
-Cntrl+Shift+P - running commands.
+Hint: Run commands using shortcut Cntrl+Shift+P
 
 1. Select configure preset `CMake: Select Configure preset`
 - win - for windows. It uses msbuild v143 toolchain
