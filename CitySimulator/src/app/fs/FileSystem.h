@@ -71,5 +71,11 @@ namespace tjs::fs {
     public:
         static std::filesystem::path getApplicationDir(std::string_view appName);
         static std::string getConfigPath(std::string_view appName, std::string_view fileName);
+
+    private:
+        static bool ensureDirectoryExists(const std::filesystem::path& p);
+
+    private:
+        static std::vector<std::string> _createdPaths;
     };
 }

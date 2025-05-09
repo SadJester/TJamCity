@@ -1,8 +1,23 @@
 #include "stdafx.h"
 
 #include "fs/FileSystem.h"
+#include <ranges>
 
 namespace tjs::fs {
+
+    std::vector<std::string> FileLocator::_createdPaths = {};
+
+    bool FileLocator::ensureDirectoryExists(const std::filesystem::path& p) {
+        const bool created = std::ranges::find(FileLocator::_createdPaths, p.c_str()) != FileLocator::_createdPaths.end();
+        if (!created) {
+            // TODO: Refactor when it will be good error fetching mechanism
+            const bool result = std::filesystem::create_directories(p);
+            _createdPaths.push_back(p.string());
+            return result;
+        }
+        return true;
+    }
+
     std::filesystem::path FileLocator::getApplicationDir(std::string_view appName) {
         #ifdef _WIN32
         std::filesystem::path p = std::getenv("APPDATA");
@@ -15,8 +30,7 @@ namespace tjs::fs {
         #endif
         
         p /= appName;
-        // TODO: Error handling
-        std::filesystem::create_directories(p);
+        ensureDirectoryExists(p);
         return p.string();
     }
 
