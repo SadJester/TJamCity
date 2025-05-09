@@ -57,9 +57,9 @@ namespace tjs::settings {
             this->_configPath = configPath;
         }
 
-        bool load(const std::string& appName) {
+        bool load(std::string_view appName, std::string_view fileName) {
             if(_configPath.empty()) {
-                _configPath = fs::FileLocator::getConfigPath(appName);
+                _configPath = fs::FileLocator::getConfigPath(appName, fileName);
             }
             
             json temp;

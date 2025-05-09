@@ -3,7 +3,7 @@
 #include "fs/FileSystem.h"
 
 namespace tjs::fs {
-    std::string FileLocator::getConfigPath(const std::string& appName) {
+    std::filesystem::path FileLocator::getApplicationDir(std::string_view appName) {
         #ifdef _WIN32
         std::filesystem::path p = std::getenv("APPDATA");
         #elif __APPLE__
@@ -15,7 +15,13 @@ namespace tjs::fs {
         #endif
         
         p /= appName;
+        // TODO: Error handling
         std::filesystem::create_directories(p);
-        return (p / "settings.json").string();
+        return p.string();
+    }
+
+    std::string FileLocator::getConfigPath(std::string_view appName, std::string_view fileName) {
+        auto appDir = getApplicationDir(appName);
+        return (appDir / fileName).string();
     }
 }

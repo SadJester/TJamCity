@@ -14,7 +14,7 @@ namespace tjs {
             : QMainWindow(parent, flags)
             ,  _app(app) {
             _updateTimer = new QTimer(this);
-            _updateTimer->start(1000 / app.config().targetFPS);
+            _updateTimer->start(1000 / settings::RenderSettings::DEFAULT_FPS);
         }
         
         void MainWindow::closeEvent (QCloseEvent *event) {

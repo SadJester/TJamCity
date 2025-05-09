@@ -34,21 +34,16 @@ namespace tjs {
         char** _argv = nullptr;
     };
 
-
-    struct ApplicationConfig {
-        int targetFPS = 60;
-    };
     
     struct FrameStats {
         using duration = std::chrono::duration<float>;
 
-        FrameStats(float targetFPS)
-            : _smoothedFPS(targetFPS) {
-
+        void init(float fps) {
+            _smoothedFPS = fps;
+            _fps = fps;
         }
-
+        
         void setFPS(float fps, duration frameTime);
-
         float smoothedFPS() const {
             return _smoothedFPS;
         }
@@ -68,7 +63,7 @@ namespace tjs {
 
     class Application {
     public:
-        Application(int& argc, char** argv, ApplicationConfig&& config);
+        Application(int& argc, char** argv);
         
         void setFinished() {
             _isFinished = true;
@@ -76,10 +71,6 @@ namespace tjs {
 
         bool isFinished() const {
             return _isFinished;
-        }
-
-        const ApplicationConfig& config() const {
-            return _config;
         }
 
         const FrameStats& frameStats() const {
@@ -121,7 +112,6 @@ namespace tjs {
         }
 
     private:
-        ApplicationConfig _config;
         CommandLine _commandLine;
         bool _isFinished = false;
         

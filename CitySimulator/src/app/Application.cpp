@@ -22,10 +22,9 @@ namespace tjs {
     }
 
 
-    Application::Application(int& argc, char** argv, ApplicationConfig&& config)
+    Application::Application(int& argc, char** argv)
         : _commandLine(argc, argv)
-        , _config(config)
-        , _frameStats(_config.targetFPS)
+        , _frameStats()
     {
     }
 
@@ -41,6 +40,7 @@ namespace tjs {
         _worldData = std::move(worldData);
 
         _settings.load();
+        _frameStats.init(_settings.render.targetFPS);
     }
 
     void Application::initialize() {
@@ -52,7 +52,8 @@ namespace tjs {
     void Application::run() {
         using duration = FrameStats::duration;
 
-        const duration targetFrameTime(1.0 / _config.targetFPS);
+        const int targetFPS = _settings.render.targetFPS;
+        const duration targetFrameTime(1.0 / targetFPS);
 
         auto lastFrameTime = std::chrono::high_resolution_clock::now();
         int currentFPS = 0.0;
@@ -78,7 +79,8 @@ namespace tjs {
 
             // check for saving settings
             duration saveDuration = frameEnd - lastTimeSaveSettings;
-            if (saveDuration.count() > 10) {
+            if (saveDuration.count() > UserSettings::AUTOSAVE_TIME_SEC) {
+                // TODO: Refactor when it will be error handling mechanism
                 _settings.save();
                 lastTimeSaveSettings = frameEnd;
             }

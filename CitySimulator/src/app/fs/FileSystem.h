@@ -69,6 +69,7 @@ namespace tjs::fs {
     // Локатор файлов для разных ОС
     class FileLocator {
     public:
-        static std::string getConfigPath(const std::string& appName);
+        static std::filesystem::path getApplicationDir(std::string_view appName);
+        static std::string getConfigPath(std::string_view appName, std::string_view fileName);
     };
 }

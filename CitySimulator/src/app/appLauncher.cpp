@@ -17,8 +17,7 @@ namespace tjs {
     int launch(int argc, char* argv[]) {
         tjs::Application application(
             argc,
-            argv,
-            tjs::ApplicationConfig { 60 });
+            argv);
 
         application.setup(
             std::make_unique<tjs::render::SDLRenderer>(application),
