@@ -3,6 +3,7 @@
 #include "Application.h"
 #include "uiSystem/UISystem.h"
 #include "render/sdl/SDLRenderer.h"
+#include "render/RenderConstants.h"
 #include "visualization/SceneSystem.h"
 #include "visualization/SceneCreator.h"
 
@@ -25,8 +26,8 @@ int main(int argc, char* argv[]) {
 
     application.initialize();
 
-    // TODO: Will move to some QT functional
-    application.renderer().setClearColor({0.95f, 0.95f, 0.95f, 1.0f});
+    // TODO: Will move to user settings in some time
+    application.renderer().setClearColor(tjs::render::RenderConstants::BASE_CLEAR_COLOR);
     tjs::visualization::prepareScene(application);
 
     application.run();

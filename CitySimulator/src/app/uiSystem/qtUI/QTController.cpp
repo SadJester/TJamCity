@@ -10,7 +10,7 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 
-/// Place somwhere to be more pretty
+/// TODO: Place somwhere to be more pretty
 #include "uiSystem/qtUI/RenderMetricsWidget.h"
 #include "uiSystem/qtUI/MapControlWidget.h"
 

@@ -17,7 +17,7 @@ namespace tjs {
                 WorldData() = default;
                 ~WorldData() = default;
                 WorldData(const WorldData&) = delete;
-                WorldData(WorldData&& other);
+                WorldData(WorldData&& other) = default;
 
                 WorldEntries<Vehicle>& vehicles() {
                     return _vehicles;

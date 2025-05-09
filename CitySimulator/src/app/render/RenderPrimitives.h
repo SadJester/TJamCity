@@ -23,7 +23,6 @@ namespace tjs {
     static_assert(sizeof(FColor) == 16, "FColor should be 16 bytes");
     static_assert(std::is_pod<FColor>::value, "FColor should be POD");
 
-
     struct Vertex
     {
         FPoint position;        /**< Vertex position, in SDL_Renderer coordinates  */
