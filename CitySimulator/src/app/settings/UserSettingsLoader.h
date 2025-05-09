@@ -75,7 +75,7 @@ namespace tjs::settings {
         }
 
         template<typename T>
-        T get(const std::string& key, const T& defaultValue = {}) const {
+        T get(const std::string& key, T defaultValue = {}) const {
             try {
                 return data.value(key, defaultValue);
             } catch (...) {
@@ -85,7 +85,7 @@ namespace tjs::settings {
 
         template<typename T>
         void set(const std::string& key, T&& value) {
-            data[key] = value;
+            data[key] = std::forward<T>(value);
         }
     }; 
 }

@@ -24,7 +24,6 @@ namespace tjs {
 
     Application::Application(int& argc, char** argv)
         : _commandLine(argc, argv)
-        , _frameStats()
     {
     }
 
