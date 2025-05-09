@@ -55,7 +55,7 @@ namespace tjs::core {
                         // Add other node tag checks as needed
                     }
                     
-                    world.nodes[id] = Node::create(id, Coordinates(lat, lon), tags);
+                    world.nodes[id] = Node::create(id, Coordinates{lat, lon}, tags);
                 }
             
                 static void parseWay(const pugi::xml_node& xml_way, WorldSegment& world) {
@@ -144,6 +144,7 @@ namespace tjs::core {
         if (!segment) {
             return false;
         }
+        data.segments().clear();
         data.segments().push_back(std::move(segment));
         return true;
     }

@@ -23,11 +23,6 @@ int main(int argc, char* argv[]) {
         std::make_unique<tjs::core::WorldData>()
     );
 
-    const char* fileName = "F:/PetProjects/near_me_map.osmx";
-    if (!tjs::core::WorldCreator::loadOSMData(application.worldData(), fileName)) {
-        return 1;
-    }
-
     application.initialize();
 
     // TODO: Will move to some QT functional

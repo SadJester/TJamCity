@@ -6,12 +6,15 @@
 #include "visualization/elements/MapElement.h"
 
 #include <QLabel>
+#include <QFileDialog>
 
 
-/// Place somwhere to be more pretty
+/// TODO: Place somwhere to be more pretty
 #include "visualization/Scene.h"
 #include "visualization/SceneSystem.h"
 #include "visualization/elements/MapElement.h"
+
+#include <core/dataLayer/WorldCreator.h>
 
 
 namespace tjs {
@@ -24,6 +27,9 @@ namespace tjs {
             , _application(application) {
              // Create main layout
             QVBoxLayout* mainLayout = new QVBoxLayout(this);
+
+            // File button
+            _openFileButton = new QPushButton("Open OSMX File");
 
             // Update button
             _updateButton = new QPushButton("Update");
@@ -40,12 +46,12 @@ namespace tjs {
             _zoomLevel = new QLabel("Meters per pixel: 000", this);
             _zoomLevel->setAlignment(Qt::AlignCenter);
             _zoomLevel->setSizePolicy( QSizePolicy::Expanding, QSizePolicy::Preferred);
-            _zoomLevel->setStyleSheet("font-size: 24px; font-weight: bold;");
+            _zoomLevel->setStyleSheet("font-size: 14px; font-weight: bold;");
 
             _coeffLabel = new QLabel("Coeff: 000", this);
             _coeffLabel->setAlignment(Qt::AlignCenter);
             _coeffLabel->setSizePolicy( QSizePolicy::Expanding, QSizePolicy::Preferred );
-            _coeffLabel->setStyleSheet("font-size: 24px; font-weight: bold;");
+            _coeffLabel->setStyleSheet("font-size: 14px; font-weight: bold;");
             infoLayout->addWidget(_zoomLevel, 0, 0);
             infoLayout->addWidget(_coeffLabel, 0, 1);
             
@@ -94,6 +100,7 @@ namespace tjs {
             coordsLayout->addWidget(_longitude);
             
             // Add all elements to main layout
+            mainLayout->addWidget(_openFileButton);
             mainLayout->addWidget(infoFrame);
             mainLayout->addLayout(zoomLayout);
             mainLayout->addWidget(arrowsFrame);
@@ -106,6 +113,8 @@ namespace tjs {
             connect(_southButton, &QPushButton::clicked, this, &MapControlWidget::moveSouth);
             connect(_westButton, &QPushButton::clicked, this, &MapControlWidget::moveWest);
             connect(_eastButton, &QPushButton::clicked, this, &MapControlWidget::moveEast);
+
+            connect(_openFileButton, &QPushButton::clicked, this, &MapControlWidget::openOSMFile);
             connect(_latitude, SIGNAL(valueChanged(double)), this, SLOT(onLatitudeChanged(double)));
             connect(_longitude, SIGNAL(valueChanged(double)), this, SLOT(onLongitudeChanged(double)));
 
@@ -210,6 +219,24 @@ namespace tjs {
             const auto& center = _mapElement->getProjectionCenter();
             _latitude->setValue(center.latitude);
             _longitude->setValue(center.longitude);
+        }
+
+        void MapControlWidget::openOSMFile() {
+            QString fileName = QFileDialog::getOpenFileName(
+                this,
+                tr("Open OSMX File"),
+                "",
+                tr("OSMX Files (*.osmx)")
+            );
+            
+            if (!fileName.isEmpty()) {
+                if (tjs::core::WorldCreator::loadOSMData(_application.worldData(), fileName.toStdString())) {
+                    onUpdate();
+                    if (_mapElement != nullptr) {
+                        _mapElement->init();
+                    }
+                }
+            }
         }
     }
 }

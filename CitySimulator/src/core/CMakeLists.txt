@@ -15,7 +15,11 @@ target_include_directories(TJC_Core PRIVATE
 	"${PUGI_INCLUDE_DIR}"
 )
 
-target_link_libraries(TJC_Core PUBLIC ${PUGI_LIB_DIR}/pugixml.lib)
+if (WIN32)
+	target_link_libraries(TJC_Core PUBLIC ${PUGI_LIB_DIR}/pugixml.lib)
+elseif(APPLE) 
+	target_link_libraries(TJC_Core PUBLIC ${PUGI_LIB_DIR}/libpugixml.a)
+endif()
 
 target_precompile_headers(TJC_Core PRIVATE "include/core/stdafx.h")
 
