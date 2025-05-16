@@ -236,6 +236,7 @@ namespace tjs {
                 return;
             }
             if (tjs::core::WorldCreator::loadOSMData(_application.worldData(), fileName)) {
+                tjs::core::WorldCreator::createVehicles(_application.worldData(), _application.settings().general.vehiclesCount);
                 _application.settings().general.selectedFile = fileName;
                 onUpdate();
                 if (_mapElement != nullptr) {

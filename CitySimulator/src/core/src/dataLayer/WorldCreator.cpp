@@ -12,6 +12,43 @@ namespace tjs::core {
         return false;
     }
 
+    bool WorldCreator::createVehicles(WorldData& data, size_t count) {
+        auto& vehicles = data.vehicles();
+        vehicles.clear();
+
+        vehicles.reserve(count);
+
+        // Get all nodes from the road network
+        auto& segment = data.segments()[0];
+        const auto& allNodes = segment->nodes;
+        
+        // Random number generator
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> uidDist(1, 10000000); // Example range for UID
+        std::uniform_real_distribution<> speedDist(0.0f, 100.0f); // Example range for speed
+        std::uniform_int_distribution<> typeDist(static_cast<int>(VehicleType::SimpleCar), static_cast<int>(VehicleType::FireTrack));
+    
+        // Generate vehicles
+        for (size_t i = 0; i < count; ++i) {
+            // Randomly select a node for the vehicle's coordinates
+            auto nodeIt = std::next(allNodes.begin(), std::uniform_int_distribution<>(0, allNodes.size() - 1)(gen));
+            const Coordinates& coordinates = nodeIt->second->coordinates;
+    
+            // Create a vehicle with random attributes and the selected node's coordinates
+            Vehicle vehicle;
+            vehicle.uid = uidDist(gen);
+            vehicle.type = static_cast<VehicleType>(typeDist(gen));
+            vehicle.currentSpeed = speedDist(gen);
+            vehicle.maxSpeed = speedDist(gen);
+            vehicle.coordinates = coordinates;
+    
+            vehicles.push_back(vehicle);
+        }
+
+        return true;
+    }
+
     namespace details {
         class OSMParser {
             public:

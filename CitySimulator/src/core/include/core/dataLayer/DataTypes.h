@@ -59,10 +59,10 @@ namespace tjs::core {
 
     struct Vehicle {
         int uid;
-        VehicleType type;
         float currentSpeed;
         float maxSpeed;
         Coordinates coordinates;
+        VehicleType type;
     };
     static_assert(std::is_pod<Vehicle>::value, "Data object expect to be POD");
 

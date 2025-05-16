@@ -7,6 +7,7 @@
 #include <string>
 #include <cmath>
 #include <iostream>
+#include <random>
 
 #include <pugixml.hpp>
 

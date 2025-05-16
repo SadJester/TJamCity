@@ -11,11 +11,14 @@ namespace tjs::settings {
         //core::Coordinates projectionCenter;
         double zoomLevel;
 
+        int vehiclesCount = 100;
+
         static constexpr const char* NAME = "General";
         NLOHMANN_DEFINE_TYPE_INTRUSIVE(GeneralSettings,
             selectedFile,
             //projectionCenter,
-            zoomLevel
+            zoomLevel,
+            vehiclesCount
         )
     };
 }
