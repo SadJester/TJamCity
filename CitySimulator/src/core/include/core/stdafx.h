@@ -9,3 +9,5 @@
 #include <iostream>
 
 #include <pugixml.hpp>
+
+#include <core/enum_flags.h>

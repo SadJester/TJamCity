@@ -9,6 +9,7 @@
 #include "visualization/SceneSystem.h"
 
 #include <core/dataLayer/WorldData.h>
+#include <core/simulation/simulation_system.h>
 
 
 namespace tjs {
@@ -31,12 +32,14 @@ namespace tjs {
             std::unique_ptr<IRenderer>&& renderer,
             std::unique_ptr<UISystem>&& uiSystem,
             std::unique_ptr<visualization::SceneSystem>&& sceneSystem,
-            std::unique_ptr<core::WorldData>&& worldData
+            std::unique_ptr<core::WorldData>&& worldData,
+            std::unique_ptr<simulation::TrafficSimulationSystem>&& simulationSystem
     ) {
         _renderer = std::move(renderer);
         _uiSystem = std::move(uiSystem);
         _sceneSystem = std::move(sceneSystem);
         _worldData = std::move(worldData);
+        _simulationSystem = std::move(simulationSystem);
 
         _settings.load();
         _frameStats.init(_settings.render.targetFPS);
@@ -46,6 +49,7 @@ namespace tjs {
         _uiSystem->initialize();
         _renderer->initialize();
         _sceneSystem->initialize();
+        _simulationSystem->initialize();
     }
 
     void Application::run() {
@@ -63,6 +67,9 @@ namespace tjs {
             // Record the start time of this frame
             auto frameStart = std::chrono::high_resolution_clock::now();
             
+            auto fromLastUpdate = frameStart - lastFrameTime;
+            _simulationSystem->update(fromLastUpdate.count());
+
             // Run the update and draw operations
             _uiSystem->update();
             _renderer->update();

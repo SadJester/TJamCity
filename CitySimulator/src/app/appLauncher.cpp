@@ -12,6 +12,8 @@
 #include <core/dataLayer/WorldData.h>
 #include <core/dataLayer/WorldCreator.h>
 
+#include <core/simulation/simulation_system.h>
+
 
 namespace tjs {
     int launch(int argc, char* argv[]) {
@@ -19,11 +21,16 @@ namespace tjs {
             argc,
             argv);
 
+        
+        auto worldData = std::make_unique<tjs::core::WorldData>();
+        auto simulationSystem = std::make_unique<tjs::simulation::TrafficSimulationSystem>(*worldData);
+
         application.setup(
             std::make_unique<tjs::render::SDLRenderer>(application),
             std::make_unique<tjs::UISystem>(application),
             std::make_unique<tjs::visualization::SceneSystem>(application),
-            std::make_unique<tjs::core::WorldData>()
+            std::move(worldData),
+            std::move(simulationSystem)
         );
 
         application.initialize();
