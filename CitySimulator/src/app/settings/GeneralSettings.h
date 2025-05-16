@@ -11,7 +11,7 @@ namespace tjs::settings {
         //core::Coordinates projectionCenter;
         double zoomLevel;
 
-        int vehiclesCount = 100;
+        int vehiclesCount = 10000;
 
         static constexpr const char* NAME = "General";
         NLOHMANN_DEFINE_TYPE_INTRUSIVE(GeneralSettings,

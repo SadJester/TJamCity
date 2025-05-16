@@ -5,6 +5,7 @@
 #include "visualization/SceneSystem.h"
 #include "visualization/Scene.h"
 #include "visualization/elements/MapElement.h"
+#include <visualization/elements/vehicle_renderer.h>
 
 #include "Application.h"
 
@@ -19,6 +20,7 @@ namespace tjs::visualization {
         }
 
         scene->addNode(std::make_unique<MapElement>(app));
+        scene->addNode(std::make_unique<VehicleRenderer>(app));
         
         scene->initialize();
     }

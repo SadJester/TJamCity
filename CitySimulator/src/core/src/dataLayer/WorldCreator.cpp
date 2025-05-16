@@ -2,7 +2,7 @@
 
 #include "core/dataLayer/WorldCreator.h"
 #include "core/dataLayer/WorldData.h"
-
+#include <algorithm>
 
 namespace tjs::core {
     bool WorldCreator::loadOSMData(WorldData& data, std::string_view osmFilename) {
@@ -20,8 +20,22 @@ namespace tjs::core {
 
         // Get all nodes from the road network
         auto& segment = data.segments()[0];
-        const auto& allNodes = segment->nodes;
+
+        std::vector<core::Node*> allNodes;
+        allNodes.reserve(segment->nodes.size());
+
+        auto& ways = segment->ways;
+        // TODO: create with view
+        // allNodes = std::views::join(ways | std::ranges::view::transform([](const core::WayInfo& way) {
+        //    return way.nodes;
+        //})) | std::ranges::to<std::vector>();
         
+        for (auto& way : ways) {
+            for (auto node : way.second->nodes) {
+                allNodes.push_back(node);
+            }
+        }
+
         // Random number generator
         std::random_device rd;
         std::mt19937 gen(rd());
@@ -33,7 +47,7 @@ namespace tjs::core {
         for (size_t i = 0; i < count; ++i) {
             // Randomly select a node for the vehicle's coordinates
             auto nodeIt = std::next(allNodes.begin(), std::uniform_int_distribution<>(0, allNodes.size() - 1)(gen));
-            const Coordinates& coordinates = nodeIt->second->coordinates;
+            const Coordinates& coordinates = (*nodeIt)->coordinates;
     
             // Create a vehicle with random attributes and the selected node's coordinates
             Vehicle vehicle;
