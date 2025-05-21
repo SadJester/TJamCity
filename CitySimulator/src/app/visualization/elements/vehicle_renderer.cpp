@@ -47,8 +47,8 @@ namespace tjs::visualization
 
     struct VehicleRenderSettings {
         FColor color;
+        float length;
         float width;
-        float height;
     };
     
     struct VehicleSettings {
@@ -60,10 +60,10 @@ namespace tjs::visualization
         {
             VehicleRenderSettings{FColor{0.0f, 0.0f, 1.0f, 1.0f}, 4.5f, 1.8f}, // SimpleCar - Blue
             VehicleRenderSettings{FColor{1.0f, 0.0f, 0.0f, 1.0f}, 6.5f, 2.5f}, // SmallTruck - Red
-            VehicleRenderSettings{FColor{0.0f, 1.0f, 0.0f, 1.0f}, 10.0f, 3.5f}, // BigTruck - Green
+            VehicleRenderSettings{FColor{0.0f, 1.0f, 0.0f, 1.0f}, 10.0f, 2.5f}, // BigTruck - Green
             VehicleRenderSettings{FColor{1.0f, 1.0f, 0.0f, 1.0f}, 5.5f, 2.2f}, // Ambulance - Yellow
             VehicleRenderSettings{FColor{0.0f, 1.0f, 1.0f, 1.0f}, 5.0f, 2.0f}, // PoliceCar - Cyan
-            VehicleRenderSettings{FColor{1.0f, 0.0f, 1.0f, 1.0f}, 8.0f, 3.0f} // FireTrack - Magenta
+            VehicleRenderSettings{FColor{1.0f, 0.0f, 1.0f, 1.0f}, 8.0f, 2.5f} // FireTrack - Magenta
         }
     };
 
@@ -80,15 +80,15 @@ namespace tjs::visualization
         auto [screenX, screenY] = _mapElement->convertToScreen(vehicle.coordinates);
 
         // Calculate width and height in pixels based on metersPerPixel
-        const int widthInPixels = static_cast<int>(settings.width / metersPerPixel);
-        const int heightInPixels = static_cast<int>(settings.height / metersPerPixel);
+        const float widthInPixels = settings.width / metersPerPixel;
+        const float lengthInPixels = settings.length / metersPerPixel;
 
         // Define vertices for the rectangle
         Vertex vertices[4] = {
-            {{screenX - widthInPixels / 2.0f, screenY - heightInPixels / 2.0f}, settings.color, {0.f, 0.f}}, // bottom-left
-            {{screenX + widthInPixels / 2.0f, screenY - heightInPixels / 2.0f}, settings.color, {0.f, 0.f}}, // top-left
-            {{screenX + widthInPixels / 2.0f, screenY + heightInPixels / 2.0f}, settings.color, {0.f, 0.f}}, // top-right
-            {{screenX - widthInPixels / 2.0f, screenY + heightInPixels / 2.0f}, settings.color, {0.f, 0.f}}  // bottom-right
+            {{screenX - widthInPixels / 2.0f, screenY - lengthInPixels / 2.0f}, settings.color, {0.f, 0.f}}, // bottom-left
+            {{screenX + widthInPixels / 2.0f, screenY - lengthInPixels / 2.0f}, settings.color, {0.f, 0.f}}, // top-left
+            {{screenX + widthInPixels / 2.0f, screenY + lengthInPixels / 2.0f}, settings.color, {0.f, 0.f}}, // top-right
+            {{screenX - widthInPixels / 2.0f, screenY + lengthInPixels / 2.0f}, settings.color, {0.f, 0.f}}  // bottom-right
         };
 
         // Define indices for the rectangle (two triangles)
