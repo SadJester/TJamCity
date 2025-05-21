@@ -76,6 +76,6 @@ namespace tjs::fs {
         static bool ensureDirectoryExists(const std::filesystem::path& p);
 
     private:
-        static std::vector<std::string> _createdPaths;
+        static std::vector<std::filesystem::path> _createdPaths;
     };
 }

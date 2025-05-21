@@ -5,10 +5,10 @@
 
 namespace tjs::fs {
 
-    std::vector<std::string> FileLocator::_createdPaths = {};
+    std::vector<std::filesystem::path> FileLocator::_createdPaths = {};
 
     bool FileLocator::ensureDirectoryExists(const std::filesystem::path& p) {
-        const bool created = std::ranges::find(FileLocator::_createdPaths, p.c_str()) != FileLocator::_createdPaths.end();
+        const bool created = std::ranges::find(FileLocator::_createdPaths, p) != FileLocator::_createdPaths.end();
         if (!created) {
             // TODO: Refactor when it will be good error fetching mechanism
             const bool result = std::filesystem::create_directories(p);
