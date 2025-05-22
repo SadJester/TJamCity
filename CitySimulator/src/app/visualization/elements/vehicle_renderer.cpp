@@ -6,7 +6,7 @@
 #include <Application.h>
 #include <visualization/Scene.h>
 #include <visualization/SceneSystem.h>
-#include <core/dataLayer/DataTypes.h>
+#include <core/dataLayer/data_types.h>
 #include <core/dataLayer/WorldData.h>
 
 
@@ -80,8 +80,9 @@ namespace tjs::visualization
         auto [screenX, screenY] = _mapElement->convertToScreen(vehicle.coordinates);
 
         // Calculate width and height in pixels based on metersPerPixel
-        const float widthInPixels = settings.width / metersPerPixel;
-        const float lengthInPixels = settings.length / metersPerPixel;
+        const float scaler = _application.settings().render.vehicleScaler;
+        const float widthInPixels = scaler * settings.width / metersPerPixel;
+        const float lengthInPixels = scaler * settings.length / metersPerPixel;
 
         // Define vertices for the rectangle
         Vertex vertices[4] = {
@@ -90,6 +91,15 @@ namespace tjs::visualization
             {{screenX + widthInPixels / 2.0f, screenY + lengthInPixels / 2.0f}, settings.color, {0.f, 0.f}}, // top-right
             {{screenX - widthInPixels / 2.0f, screenY + lengthInPixels / 2.0f}, settings.color, {0.f, 0.f}}  // bottom-right
         };
+
+        const float angle = vehicle.rotationAngle;
+        for (auto& v : vertices) {
+            // Translate to origin, rotate, then translate back
+            float dx = v.position.x - screenX;
+            float dy = v.position.y - screenY;
+            v.position.x = dx * cos(angle) - dy * sin(angle) + screenX;
+            v.position.y = dx * sin(angle) + dy * cos(angle) + screenY;
+        }
 
         // Define indices for the rectangle (two triangles)
         int squareIndices[6] = {

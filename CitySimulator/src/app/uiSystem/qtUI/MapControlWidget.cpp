@@ -100,6 +100,8 @@ namespace tjs {
             mainLayout->addLayout(zoomLayout);
             mainLayout->addWidget(arrowsFrame);
             mainLayout->addLayout(coordsLayout);
+
+            createVehicleInformation(mainLayout);
             
             // Connections
             connect(_zoomInButton, &QPushButton::clicked, this, &MapControlWidget::onZoomIn);
@@ -118,6 +120,46 @@ namespace tjs {
 
         MapControlWidget::~MapControlWidget() {
             // Cleanup
+        }
+
+        void MapControlWidget::createVehicleInformation(QVBoxLayout* layout) {
+            QFrame* infoFrame = new QFrame();
+            infoFrame->setFrameStyle(QFrame::Box | QFrame::Sunken);
+            infoFrame->setLineWidth(2);
+            infoFrame->setMidLineWidth(1);
+
+
+            QHBoxLayout *intLayout = new QHBoxLayout(infoFrame);
+            QLabel* intLabel = new QLabel("Vehicles count:", this);
+            vehicleCount = new QSpinBox(this);
+            vehicleCount->setRange(1, 1000); // Set range
+            vehicleCount->setValue(_application.settings().general.vehiclesCount); // Default value
+            intLayout->addWidget(intLabel);
+            intLayout->addWidget(vehicleCount);
+            
+            layout->addWidget(infoFrame);
+
+            // Create float input
+            QHBoxLayout* floatLayout = new QHBoxLayout();
+            QLabel *floatLabel = new QLabel("Float Value:", this);
+            vehicleSizeMultipler = new QDoubleSpinBox(this);
+            vehicleSizeMultipler->setRange(1.0f, 50.0f); // Set range
+            vehicleSizeMultipler->setValue(_application.settings().render.vehicleScaler); // Default value
+            vehicleSizeMultipler->setSingleStep(0.5); // Increment step
+            vehicleSizeMultipler->setDecimals(1); // Decimal places
+
+            connect(vehicleCount, &QSpinBox::valueChanged, vehicleSizeMultipler, [this](int value) {
+                _application.settings().general.vehiclesCount = value;
+            });
+
+            connect(vehicleSizeMultipler, &QDoubleSpinBox::valueChanged, vehicleCount, [this](double value) {
+                _application.settings().render.vehicleScaler = value;
+            });
+
+            floatLayout->addWidget(floatLabel);
+            floatLayout->addWidget(vehicleSizeMultipler);
+            
+            layout->addLayout(floatLayout);
         }
 
         void MapControlWidget::UpdateButtonsState() {

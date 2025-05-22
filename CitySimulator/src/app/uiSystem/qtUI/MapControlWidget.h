@@ -28,6 +28,8 @@ namespace tjs {
             void UpdateLabels();
             void openFile(std::string_view fileName);
 
+            void createVehicleInformation(QVBoxLayout* layout);
+
         private slots:
             void onZoomIn();
             void onZoomOut();
@@ -54,6 +56,9 @@ namespace tjs {
             QPushButton* _westButton;
             QPushButton* _eastButton;
             QPushButton* _openFileButton;
+
+            QSpinBox* vehicleCount;
+            QDoubleSpinBox* vehicleSizeMultipler;
 
             QLabel* _zoomLevel;
         };

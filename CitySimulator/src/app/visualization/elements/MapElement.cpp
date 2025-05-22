@@ -7,7 +7,7 @@
 #include "Application.h"
 
 #include <core/dataLayer/WorldData.h>
-#include <core/dataLayer/DataTypes.h>
+#include <core/dataLayer/data_types.h>
 
 
 namespace tjs::visualization {
