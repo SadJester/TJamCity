@@ -1,5 +1,7 @@
 #pragma once
 
+#include <core/simulation/simulation_settings.h>
+
 namespace tjs::core
 {
         class WorldData;
@@ -7,7 +9,7 @@ namespace tjs::core
         class WorldCreator final {
         public:
             static bool loadOSMData(WorldData& data, std::string_view osmFilename);
-            static bool createVehicles(WorldData& data, size_t vehiclesCount);
+            static bool createRandomVehicles(WorldData& data, const SimulationSettings& settings);
 
         private:
             WorldCreator() = delete;

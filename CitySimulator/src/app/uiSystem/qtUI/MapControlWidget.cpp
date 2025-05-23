@@ -128,38 +128,67 @@ namespace tjs {
             infoFrame->setLineWidth(2);
             infoFrame->setMidLineWidth(1);
 
+            QVBoxLayout* mainLayout = new QVBoxLayout(infoFrame);
 
-            QHBoxLayout *intLayout = new QHBoxLayout(infoFrame);
+            // Vehicles count
+            QHBoxLayout *intLayout = new QHBoxLayout();
             QLabel* intLabel = new QLabel("Vehicles count:", this);
             vehicleCount = new QSpinBox(this);
-            vehicleCount->setRange(1, 1000); // Set range
-            vehicleCount->setValue(_application.settings().general.vehiclesCount); // Default value
+            vehicleCount->setRange(1, 1000);
+            vehicleCount->setValue(_application.settings().simulationSettings.vehiclesCount);
             intLayout->addWidget(intLabel);
             intLayout->addWidget(vehicleCount);
-            
-            layout->addWidget(infoFrame);
+            mainLayout->addLayout(intLayout);
 
-            // Create float input
+            // Float value
             QHBoxLayout* floatLayout = new QHBoxLayout();
             QLabel *floatLabel = new QLabel("Float Value:", this);
             vehicleSizeMultipler = new QDoubleSpinBox(this);
-            vehicleSizeMultipler->setRange(1.0f, 50.0f); // Set range
-            vehicleSizeMultipler->setValue(_application.settings().render.vehicleScaler); // Default value
-            vehicleSizeMultipler->setSingleStep(0.5); // Increment step
-            vehicleSizeMultipler->setDecimals(1); // Decimal places
+            vehicleSizeMultipler->setRange(1.0f, 50.0f);
+            vehicleSizeMultipler->setValue(_application.settings().render.vehicleScaler);
+            vehicleSizeMultipler->setSingleStep(0.5);
+            vehicleSizeMultipler->setDecimals(1);
+            floatLayout->addWidget(floatLabel);
+            floatLayout->addWidget(vehicleSizeMultipler);
+            mainLayout->addLayout(floatLayout);
 
+            // Random seed checkbox and spinbox
+            randomSeed = new QCheckBox(tr("Random Seed"), this);
+            randomSeed->setChecked(_application.settings().simulationSettings.randomSeed);
+            mainLayout->addWidget(randomSeed);
+
+            seedValue = new QSpinBox(this);
+            seedValue->setRange(0, 99999);
+            seedValue->setValue(0);
+            seedValue->setVisible(!_application.settings().simulationSettings.randomSeed);
+            mainLayout->addWidget(seedValue);
+
+            _regenerateVehiclesButton = new QPushButton("Regenerate vehicles", this);
+            mainLayout->addWidget(_regenerateVehiclesButton);
+
+            // Подключения сигналов
             connect(vehicleCount, &QSpinBox::valueChanged, vehicleSizeMultipler, [this](int value) {
-                _application.settings().general.vehiclesCount = value;
+                _application.settings().simulationSettings.vehiclesCount = value;
             });
 
             connect(vehicleSizeMultipler, &QDoubleSpinBox::valueChanged, vehicleCount, [this](double value) {
                 _application.settings().render.vehicleScaler = value;
             });
 
-            floatLayout->addWidget(floatLabel);
-            floatLayout->addWidget(vehicleSizeMultipler);
-            
-            layout->addLayout(floatLayout);
+            connect(randomSeed, &QCheckBox::stateChanged, [this](int state) {
+                _application.settings().simulationSettings.randomSeed = state == Qt::Checked;
+                seedValue->setVisible(state != Qt::Checked); // Показываем/скрываем spinbox
+            });
+
+            connect(seedValue, &QSpinBox::valueChanged, [this](int value) {
+                _application.settings().simulationSettings.seedValue = value;
+            });
+
+            connect(_regenerateVehiclesButton, &QPushButton::clicked, [this]() {
+                tjs::core::WorldCreator::createRandomVehicles(_application.worldData(), _application.settings().simulationSettings); 
+            });
+
+            layout->addWidget(infoFrame);            
         }
 
         void MapControlWidget::UpdateButtonsState() {
@@ -278,7 +307,7 @@ namespace tjs {
                 return;
             }
             if (tjs::core::WorldCreator::loadOSMData(_application.worldData(), fileName)) {
-                tjs::core::WorldCreator::createVehicles(_application.worldData(), _application.settings().general.vehiclesCount);
+                tjs::core::WorldCreator::createRandomVehicles(_application.worldData(), _application.settings().simulationSettings);
                 _application.settings().general.selectedFile = fileName;
                 onUpdate();
                 if (_mapElement != nullptr) {

@@ -13,6 +13,7 @@ target_include_directories(TJC_Core PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
 	"${PUGI_INCLUDE_DIR}"
+	"${JSON_INCLUDE_DIR}"
 )
 
 if (WIN32)

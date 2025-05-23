@@ -6,6 +6,7 @@
 #include <QHBoxLayout>
 #include <QSpinBox>
 #include <QLabel>
+#include <QCheckBox>
 
 
 namespace tjs {
@@ -59,6 +60,9 @@ namespace tjs {
 
             QSpinBox* vehicleCount;
             QDoubleSpinBox* vehicleSizeMultipler;
+            QCheckBox* randomSeed;
+            QSpinBox* seedValue;
+            QPushButton* _regenerateVehiclesButton;
 
             QLabel* _zoomLevel;
         };

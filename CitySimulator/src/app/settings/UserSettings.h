@@ -4,6 +4,7 @@
 
 #include "settings/GeneralSettings.h"
 #include "settings/RenderSettings.h"
+#include <core/simulation/simulation_settings.h>
 
 namespace tjs {
 
@@ -15,12 +16,14 @@ namespace tjs {
 
         settings::GeneralSettings general;
         settings::RenderSettings render;
+        core::SimulationSettings simulationSettings;
 
         void load() {
             settings::UserSettingsLoader<> parser;
             parser.load(APP_NAME, SETTINGS_FILE);
             general = parser.get<settings::GeneralSettings>(settings::GeneralSettings::NAME);
             render = parser.get<settings::RenderSettings>(settings::RenderSettings::NAME);
+            simulationSettings = parser.get<core::SimulationSettings>(core::SimulationSettings::NAME);
         }
 
         void save() {
@@ -29,6 +32,7 @@ namespace tjs {
             
             parser.set(settings::GeneralSettings::NAME, general);
             parser.set(settings::RenderSettings::NAME, render);
+            parser.set(core::SimulationSettings::NAME, simulationSettings);
 
             parser.save();
         }

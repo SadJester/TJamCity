@@ -20,11 +20,11 @@ namespace tjs::core {
         return result;
     }
 
-    bool WorldCreator::createVehicles(WorldData& data, size_t count) {
+    bool WorldCreator::createRandomVehicles(WorldData& data, const SimulationSettings& settings) {
         auto& vehicles = data.vehicles();
         vehicles.clear();
 
-        vehicles.reserve(count);
+        vehicles.reserve(settings.vehiclesCount);
 
         // Get all nodes from the road network
         auto& segment = data.segments()[0];
@@ -47,6 +47,11 @@ namespace tjs::core {
         // Random number generator
         std::random_device rd;
         std::mt19937 gen(rd());
+
+        if (!settings.randomSeed) {
+            gen.seed(settings.seedValue);
+        }
+
         std::uniform_int_distribution<> uidDist(1, 10000000); // Example range for UID
         std::uniform_real_distribution<> speedDist(0.0f, 100.0f); // Example range for speed
         std::uniform_int_distribution<> typeDist(static_cast<int>(VehicleType::SimpleCar), static_cast<int>(VehicleType::FireTrack));
@@ -63,7 +68,7 @@ namespace tjs::core {
         };
 
         // Generate vehicles
-        for (size_t i = 0; i < count; ++i) {
+        for (size_t i = 0; i < settings.vehiclesCount; ++i) {
             // Randomly select a node for the vehicle's coordinates
             auto nodeIt = std::next(allNodes.begin(), std::uniform_int_distribution<>(0, allNodes.size() - 1)(gen));
             const Coordinates& coordinates = (*nodeIt)->coordinates;
