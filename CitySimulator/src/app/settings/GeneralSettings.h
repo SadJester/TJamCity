@@ -8,13 +8,13 @@ namespace tjs::settings {
 
     struct GeneralSettings {
         std::string selectedFile;
-        //core::Coordinates projectionCenter;
+        core::Coordinates projectionCenter;
         double zoomLevel;
 
         static constexpr const char* NAME = "General";
         NLOHMANN_DEFINE_TYPE_INTRUSIVE(GeneralSettings,
             selectedFile,
-            //projectionCenter,
+            projectionCenter,
             zoomLevel
         )
     };

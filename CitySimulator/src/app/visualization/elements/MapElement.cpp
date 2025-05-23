@@ -182,6 +182,17 @@ namespace tjs::visualization {
             return 0;
         }
 
+        bool hasVisiblePoints = false;
+        for (auto& point : screenPoints) {
+            if (_application.renderer().is_point_visible(point.x, point.y)) {
+                hasVisiblePoints = true;
+                break;
+            }
+        }
+        if (!hasVisiblePoints) {
+            return 0;
+        }
+
         const FColor color = getWayColor(way.tags);
         int segmentsRendered = drawThickLine(screenPoints, way.lanes * Constants::LANE_WIDTH, color);
         

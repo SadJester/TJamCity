@@ -20,6 +20,7 @@ namespace tjs::simulation {
     void TrafficSimulationSystem::initialize() {
         auto& vehicles = _worldData.vehicles();
 
+        _agents.clear();
         _agents.reserve(vehicles.size());
         for (size_t i = 0; i < vehicles.size(); ++i) {
             _agents.push_back({

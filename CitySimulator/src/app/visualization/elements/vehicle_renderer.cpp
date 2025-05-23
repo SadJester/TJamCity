@@ -79,6 +79,10 @@ namespace tjs::visualization
         // Convert coordinates to screen coordinates
         auto [screenX, screenY] = _mapElement->convertToScreen(vehicle.coordinates);
 
+        if (!_application.renderer().is_point_visible(screenX, screenY)) {
+            return;
+        }
+
         // Calculate width and height in pixels based on metersPerPixel
         const float scaler = _application.settings().render.vehicleScaler;
         const float widthInPixels = scaler * settings.width / metersPerPixel;

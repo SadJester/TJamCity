@@ -27,15 +27,13 @@ namespace tjs {
         private:
             void UpdateButtonsState();
             void UpdateLabels();
-            void openFile(std::string_view fileName);
+            bool openFile(std::string_view fileName);
 
             void createVehicleInformation(QVBoxLayout* layout);
 
         private slots:
             void onZoomIn();
             void onZoomOut();
-            void onLatitudeChanged(double value);
-            void onLongitudeChanged(double value);
             void moveNorth();
             void moveSouth();
             void moveWest();

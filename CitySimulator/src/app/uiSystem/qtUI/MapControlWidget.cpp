@@ -16,6 +16,7 @@
 #include "visualization/elements/MapElement.h"
 
 #include <core/dataLayer/WorldCreator.h>
+#include <core/simulation/simulation_system.h>
 
 
 namespace tjs {
@@ -83,11 +84,13 @@ namespace tjs {
             _latitude->setRange(-90.0, 90.0);
             _latitude->setDecimals(6);
             _latitude->setSuffix("°");
+            _latitude->setReadOnly(true);
             
             _longitude = new QDoubleSpinBox();
             _longitude->setRange(-180.0, 180.0);
             _longitude->setDecimals(6);
             _longitude->setSuffix("°");
+            _longitude->setReadOnly(true);
             
             coordsLayout->addWidget(latLabel);
             coordsLayout->addWidget(_latitude);
@@ -112,8 +115,14 @@ namespace tjs {
             connect(_eastButton, &QPushButton::clicked, this, &MapControlWidget::moveEast);
 
             connect(_openFileButton, &QPushButton::clicked, this, &MapControlWidget::openOSMFile);
-            connect(_latitude, SIGNAL(valueChanged(double)), this, SLOT(onLatitudeChanged(double)));
-            connect(_longitude, SIGNAL(valueChanged(double)), this, SLOT(onLongitudeChanged(double)));
+
+            connect(_latitude, &QDoubleSpinBox::valueChanged, [this](double value) {
+                _application.settings().general.projectionCenter.latitude = value;
+            });
+
+            connect(_longitude, &QDoubleSpinBox::valueChanged, [this](double value) {
+                _application.settings().general.projectionCenter.longitude = value;
+            });
 
             UpdateButtonsState();
         }
@@ -167,11 +176,11 @@ namespace tjs {
             mainLayout->addWidget(_regenerateVehiclesButton);
 
             // Подключения сигналов
-            connect(vehicleCount, &QSpinBox::valueChanged, vehicleSizeMultipler, [this](int value) {
+            connect(vehicleCount, &QSpinBox::valueChanged, [this](int value) {
                 _application.settings().simulationSettings.vehiclesCount = value;
             });
 
-            connect(vehicleSizeMultipler, &QDoubleSpinBox::valueChanged, vehicleCount, [this](double value) {
+            connect(vehicleSizeMultipler, &QDoubleSpinBox::valueChanged, [this](double value) {
                 _application.settings().render.vehicleScaler = value;
             });
 
@@ -186,6 +195,8 @@ namespace tjs {
 
             connect(_regenerateVehiclesButton, &QPushButton::clicked, [this]() {
                 tjs::core::WorldCreator::createRandomVehicles(_application.worldData(), _application.settings().simulationSettings); 
+                // TODO: message system
+                _application.simulationSystem().initialize();
             });
 
             layout->addWidget(infoFrame);            
@@ -205,6 +216,10 @@ namespace tjs {
 
         void MapControlWidget::UpdateLabels() {
             _zoomLevel->setText(QString("Meters per pixel: %1").arg(_mapElement->getZoomLevel()));
+            _latitude->setValue(_mapElement->getProjectionCenter().latitude);
+            _longitude->setValue(_mapElement->getProjectionCenter().longitude);
+
+            _application.settings().general.zoomLevel = _mapElement->getZoomLevel();
         }
 
         void MapControlWidget::onZoomIn() {
@@ -217,18 +232,6 @@ namespace tjs {
             double currentZoom = _mapElement->getZoomLevel();
             _mapElement->setZoomLevel(currentZoom * 1.1); // Zoom out (increase meters per pixel)
             UpdateLabels();
-        }
-        
-        void MapControlWidget::onLatitudeChanged(double value) {
-            core::Coordinates newCenter = _mapElement->getProjectionCenter();
-            newCenter.latitude = value;
-            _mapElement->setProjectionCenter(newCenter);
-        }
-        
-        void MapControlWidget::onLongitudeChanged(double value) {
-            core::Coordinates newCenter = _mapElement->getProjectionCenter();
-            newCenter.longitude = value;
-            _mapElement->setProjectionCenter(newCenter);
         }
         
         double getChangedStep(double metersPerPixel) {
@@ -296,15 +299,22 @@ namespace tjs {
                 return;
             }
 
+            const auto& projectionCenter = _application.settings().general.projectionCenter;
+            if (projectionCenter.latitude != 0.0 || projectionCenter.longitude != 0.0) {
+                _mapElement->setProjectionCenter(_application.settings().general.projectionCenter);   
+            }
+            _mapElement->setZoomLevel(_application.settings().general.zoomLevel);
+            UpdateLabels();
+
             // Initialize spin boxes with current values
             const auto& center = _mapElement->getProjectionCenter();
             _latitude->setValue(center.latitude);
             _longitude->setValue(center.longitude);
         }
 
-        void MapControlWidget::openFile(std::string_view fileName) {
+        bool MapControlWidget::openFile(std::string_view fileName) {
             if (fileName.empty()) {
-                return;
+                return false;
             }
             if (tjs::core::WorldCreator::loadOSMData(_application.worldData(), fileName)) {
                 tjs::core::WorldCreator::createRandomVehicles(_application.worldData(), _application.settings().simulationSettings);
@@ -313,7 +323,9 @@ namespace tjs {
                 if (_mapElement != nullptr) {
                     _mapElement->init();
                 }
+                return true;
             }
+            return false;
         }
 
         void MapControlWidget::openOSMFile() {

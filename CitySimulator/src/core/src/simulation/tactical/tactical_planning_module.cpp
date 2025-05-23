@@ -39,7 +39,7 @@ namespace tjs::simulation
             nextNode->coordinates.latitude - currentNode->coordinates.latitude,
             nextNode->coordinates.longitude - currentNode->coordinates.longitude
         };
-        vehicle.rotationAngle = atan2(dir.latitude, dir.longitude);
+        vehicle.rotationAngle = atan2(dir.longitude, dir.latitude);
     }
 
 } // namespace tjs::simulation

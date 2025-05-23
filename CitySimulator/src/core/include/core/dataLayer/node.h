@@ -1,11 +1,17 @@
 #pragma once
 #include <core/enum_flags.h>
+#include <nlohmann/json.hpp>
 
 
 namespace tjs::core {
     struct Coordinates {
         double latitude;
         double longitude;
+
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE(Coordinates,
+            latitude,
+            longitude
+        )
     };
 
 
