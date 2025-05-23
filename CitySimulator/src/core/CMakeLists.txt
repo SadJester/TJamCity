@@ -34,11 +34,23 @@ endif()
 if(WITH_TESTS)
 	file(GLOB_RECURSE TEST_SOURCE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
 	add_executable(core.Tests ${TEST_SOURCE_FILES})
-	target_include_directories(core.Tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests ${CMAKE_CURRENT_SOURCE_DIR}/include ${GTEST_INCLUDE_DIR})
+	target_include_directories(core.Tests PRIVATE
+		${CMAKE_CURRENT_SOURCE_DIR}/tests
+		${CMAKE_CURRENT_SOURCE_DIR}/include
+		"${JSON_INCLUDE_DIR}"
+		${GTEST_INCLUDE_DIR})
 	if (WIN32)
-		target_link_libraries(core.Tests PRIVATE ${GTEST_LIB_DIR}/gtest.lib ${GTEST_LIB_DIR}/gmock.lib)
+		target_link_libraries(core.Tests PRIVATE
+			TJC_Core
+			${GTEST_LIB_DIR}/gtest.lib
+			${GTEST_LIB_DIR}/gmock.lib
+		)
 	elseif(APPLE)
-		target_link_libraries(core.Tests PRIVATE ${GTEST_LIB_DIR}/libgtest.a ${GTEST_LIB_DIR}/libgmock.a)
+		target_link_libraries(core.Tests PRIVATE
+			TJC_Core
+			${GTEST_LIB_DIR}/libgtest.a
+			${GTEST_LIB_DIR}/libgmock.a
+		)
 	endif()
 	add_dependencies(core.Tests gtest)
 	add_test(NAME core.Tests COMMAND core.Tests)

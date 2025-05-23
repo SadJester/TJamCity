@@ -54,10 +54,15 @@ namespace tjs::core {
         // Spatial grid: Maps grid cell (x, y) to list of WayInfo* in that cell
 
         using GridKey = std::pair<int, int>;
-        std::unordered_map<GridKey, std::vector<WayInfo*>, PairHash> spatialGrid;
+        using WaysInCell = std::vector<WayInfo*>;
+        std::unordered_map<GridKey, WaysInCell, PairHash> spatialGrid;
         double cellSize = SimulationConstants::GRID_CELL_SIZE; // Meters per grid cell (adjust based on road density)
 
         void add_way(WayInfo* way);
+
+        
+        std::optional<std::reference_wrapper<const WaysInCell>> get_ways_in_cell(Coordinates coordinates) const;
+        std::optional<std::reference_wrapper<const WaysInCell>> get_ways_in_cell(int x, int y) const;
     };
 
     struct SegmentBoundingBox {
@@ -68,9 +73,6 @@ namespace tjs::core {
     };
 
     struct WorldSegment {
-        ~WorldSegment();
-
-
         SegmentBoundingBox boundingBox;
         std::unordered_map<uint64_t, std::unique_ptr<Node>> nodes;
         std::unordered_map<uint64_t, std::unique_ptr<WayInfo>> ways;

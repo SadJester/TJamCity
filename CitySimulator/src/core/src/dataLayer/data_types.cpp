@@ -4,24 +4,41 @@
 
 
 namespace tjs::core {
-    WorldSegment::~WorldSegment() {   
-    }
-
-
     void SpatialGrid::add_way(WayInfo* way) {
+        if (way == nullptr) {
+            return;
+        }
+
         for (auto& node : way->nodes) {
             auto gridKey = std::make_pair(
-                static_cast<int>(way->nodes[0]->coordinates.latitude / cellSize),
-                static_cast<int>(way->nodes[0]->coordinates.longitude / cellSize)
+                static_cast<int>(node->coordinates.latitude / cellSize),
+                static_cast<int>(node->coordinates.longitude / cellSize)
             );
             auto& cell = spatialGrid[gridKey];
-            cell.push_back(way);   
+            if (std::ranges::find(cell, way) == cell.end()) {
+                cell.emplace_back(way);
+            }
         }
     }
 
+    std::optional<std::reference_wrapper<const SpatialGrid::WaysInCell>> SpatialGrid::get_ways_in_cell(Coordinates coordinates) const {
+        return get_ways_in_cell(
+            static_cast<int>(coordinates.latitude / cellSize),
+            static_cast<int>(coordinates.longitude / cellSize)
+        );
+    }
+
+    std::optional<std::reference_wrapper<const SpatialGrid::WaysInCell>> SpatialGrid::get_ways_in_cell(int x, int y) const {
+        auto it = spatialGrid.find(std::make_pair(x, y));
+        if (it != spatialGrid.end()) {
+            return it->second;
+        }
+        return std::nullopt;
+    }
+
     void WorldSegment::rebuild_grid() {
-        for (auto& way : ways) {
-            spatialGrid.add_way(way.second.get());
+        for (const auto& [_, way] : ways) {
+            spatialGrid.add_way(way.get());
         }
     }
 

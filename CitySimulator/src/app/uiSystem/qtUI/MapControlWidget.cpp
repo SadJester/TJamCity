@@ -168,7 +168,7 @@ namespace tjs {
 
             seedValue = new QSpinBox(this);
             seedValue->setRange(0, 99999);
-            seedValue->setValue(0);
+            seedValue->setValue(_application.settings().simulationSettings.seedValue);
             seedValue->setVisible(!_application.settings().simulationSettings.randomSeed);
             mainLayout->addWidget(seedValue);
 
@@ -299,8 +299,9 @@ namespace tjs {
                 return;
             }
 
-            const auto& projectionCenter = _application.settings().general.projectionCenter;
-            if (projectionCenter.latitude != 0.0 || projectionCenter.longitude != 0.0) {
+            if (const auto& projectionCenter = _application.settings().general.projectionCenter;
+                projectionCenter.latitude != 0.0 || projectionCenter.longitude != 0.0
+            ) {
                 _mapElement->setProjectionCenter(_application.settings().general.projectionCenter);   
             }
             _mapElement->setZoomLevel(_application.settings().general.zoomLevel);

@@ -183,7 +183,7 @@ namespace tjs::visualization {
         }
 
         bool hasVisiblePoints = false;
-        for (auto& point : screenPoints) {
+        for (const auto& point : screenPoints) {
             if (_application.renderer().is_point_visible(point.x, point.y)) {
                 hasVisiblePoints = true;
                 break;
