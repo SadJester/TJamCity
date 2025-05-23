@@ -6,6 +6,7 @@
 #include <QHBoxLayout>
 #include <QSpinBox>
 #include <QLabel>
+#include <QCheckBox>
 
 
 namespace tjs {
@@ -26,13 +27,13 @@ namespace tjs {
         private:
             void UpdateButtonsState();
             void UpdateLabels();
-            void openFile(std::string_view fileName);
+            bool openFile(std::string_view fileName);
+
+            void createVehicleInformation(QVBoxLayout* layout);
 
         private slots:
             void onZoomIn();
             void onZoomOut();
-            void onLatitudeChanged(double value);
-            void onLongitudeChanged(double value);
             void moveNorth();
             void moveSouth();
             void moveWest();
@@ -54,6 +55,12 @@ namespace tjs {
             QPushButton* _westButton;
             QPushButton* _eastButton;
             QPushButton* _openFileButton;
+
+            QSpinBox* vehicleCount;
+            QDoubleSpinBox* vehicleSizeMultipler;
+            QCheckBox* randomSeed;
+            QSpinBox* seedValue;
+            QPushButton* _regenerateVehiclesButton;
 
             QLabel* _zoomLevel;
         };

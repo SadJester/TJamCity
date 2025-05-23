@@ -36,6 +36,40 @@
             "preLaunchTask": "cs_win_build_release"
         },
         {
+            "name": "(Win) [UnitTests][Debug] TJC_Core_tests",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/cs/bin/Debug/core.Tests.exe",
+            "args": [],
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "${env:PATH};C:\\Qt\\6.9.0\\msvc2022_64\\bin"
+                }
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "cs_win_build_debug"
+        },
+        {
+            "name": "(Win) [UnitTests][Release] TJC_Core_tests",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/cs/bin/Release/core.Tests.exe",
+            "args": [],
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "${env:PATH};C:\\Qt\\6.9.0\\msvc2022_64\\bin"
+                }
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "cs_win_build_release"
+        },
+        {
             "name": "(Mac) [Debug] TJC_TJamSimulator",
             "type": "cppdbg",
             "request": "launch",

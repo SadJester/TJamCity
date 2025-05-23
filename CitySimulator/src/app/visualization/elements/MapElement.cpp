@@ -7,7 +7,7 @@
 #include "Application.h"
 
 #include <core/dataLayer/WorldData.h>
-#include <core/dataLayer/DataTypes.h>
+#include <core/dataLayer/data_types.h>
 
 
 namespace tjs::visualization {
@@ -179,6 +179,17 @@ namespace tjs::visualization {
         
         // Draw the way
         if (screenPoints.size() < 2)  {
+            return 0;
+        }
+
+        bool hasVisiblePoints = false;
+        for (const auto& point : screenPoints) {
+            if (_application.renderer().is_point_visible(point.x, point.y)) {
+                hasVisiblePoints = true;
+                break;
+            }
+        }
+        if (!hasVisiblePoints) {
             return 0;
         }
 

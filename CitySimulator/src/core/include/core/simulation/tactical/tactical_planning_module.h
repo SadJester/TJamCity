@@ -1,5 +1,5 @@
 #pragma once
-#include "core/dataLayer/DataTypes.h"
+#include "core/dataLayer/data_types.h"
 #include "core/simulation/agent/agent_data.h"
 
 namespace tjs::simulation {

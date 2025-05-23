@@ -22,6 +22,10 @@ namespace tjs {
             int screenWidth() const { return _screenWidth; }
             int screenHeight() const { return _screenHeight; }
 
+            bool is_point_visible(int x, int y) const {
+                return x >= 0 && x < _screenWidth && y >= 0 && y < _screenHeight;
+            }
+
             virtual void setClearColor(FColor color) {
                 _clearColor = color;
             }

@@ -2,21 +2,29 @@
 
 #include "core/dataLayer/WorldCreator.h"
 #include "core/dataLayer/WorldData.h"
-#include <algorithm>
+
 
 namespace tjs::core {
     bool WorldCreator::loadOSMData(WorldData& data, std::string_view osmFilename) {
+        bool result = false;
         if (osmFilename.ends_with(".osmx")) {
-            return WorldCreator::loadOSMXmlData(data, osmFilename);
+            result = WorldCreator::loadOSMXmlData(data, osmFilename);
+        }        
+
+        // Prepare data
+        for (auto& segment : data.segments()) {
+            segment->rebuild_grid();
         }
-        return false;
+        // Create contraction road network
+
+        return result;
     }
 
-    bool WorldCreator::createVehicles(WorldData& data, size_t count) {
+    bool WorldCreator::createRandomVehicles(WorldData& data, const SimulationSettings& settings) {
         auto& vehicles = data.vehicles();
         vehicles.clear();
 
-        vehicles.reserve(count);
+        vehicles.reserve(settings.vehiclesCount);
 
         // Get all nodes from the road network
         auto& segment = data.segments()[0];
@@ -39,12 +47,28 @@ namespace tjs::core {
         // Random number generator
         std::random_device rd;
         std::mt19937 gen(rd());
+
+        if (!settings.randomSeed) {
+            gen.seed(settings.seedValue);
+        }
+
         std::uniform_int_distribution<> uidDist(1, 10000000); // Example range for UID
         std::uniform_real_distribution<> speedDist(0.0f, 100.0f); // Example range for speed
         std::uniform_int_distribution<> typeDist(static_cast<int>(VehicleType::SimpleCar), static_cast<int>(VehicleType::FireTrack));
     
+
+        auto find_way = [&](Node* node) -> core::WayInfo* {
+            auto it = std::ranges::find_if(ways, [&](const auto& way) {
+                return std::ranges::find(way.second->nodes, node) != way.second->nodes.end();
+            });
+            if (it != ways.end()) {
+                return it->second.get();
+            }
+            return nullptr;
+        };
+
         // Generate vehicles
-        for (size_t i = 0; i < count; ++i) {
+        for (size_t i = 0; i < settings.vehiclesCount; ++i) {
             // Randomly select a node for the vehicle's coordinates
             auto nodeIt = std::next(allNodes.begin(), std::uniform_int_distribution<>(0, allNodes.size() - 1)(gen));
             const Coordinates& coordinates = (*nodeIt)->coordinates;
@@ -56,6 +80,8 @@ namespace tjs::core {
             vehicle.currentSpeed = speedDist(gen);
             vehicle.maxSpeed = speedDist(gen);
             vehicle.coordinates = coordinates;
+            vehicle.currentSegmentIndex = 0;
+            vehicle.currentWay = find_way(*nodeIt);
     
             vehicles.push_back(vehicle);
         }
