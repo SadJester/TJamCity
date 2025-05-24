@@ -7,71 +7,71 @@
 
 #include "visualization/SceneNode.h"
 
-
 namespace tjs {
-    class Application;
-    class IRenderer;
+	class Application;
+	class IRenderer;
 
-    namespace visualization {
-        class MapElement : public SceneNode {
-        private:
-            Application& _application;
-            
-            // Map bounds for coordinate conversion
-            float minLat = 90.0f, maxLat = -90.0f;
-            float minLon = 180.0f, maxLon = -180.0f;
+	namespace visualization {
+		class MapElement : public SceneNode {
+		private:
+			Application& _application;
 
-            double _laneWidth = 0.0;
-            
-            // Projection state
-            core::Coordinates projectionCenter{0, 0};
-            double metersPerPixel = 1.0;
-            double screenCenterX = 512.0f;
-            double screenCenterY = 512.0f;
-        public:
-            MapElement(Application& application);
-            ~MapElement() = default;
-            
-            void autoZoom(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
-            void setView(const core::Coordinates& center, double zoomMetersPerPixel);
+			// Map bounds for coordinate conversion
+			float minLat = 90.0f, maxLat = -90.0f;
+			float minLon = 180.0f, maxLon = -180.0f;
 
-            const core::Coordinates GetCurrentView() const {
-                return projectionCenter;
-            }
+			double _laneWidth = 0.0;
 
-            virtual void init() override;
-            virtual void update() override;
-            virtual void render(IRenderer& renderer) override;
-            
-            Position convertToScreen(const core::Coordinates& coord) const;
-            void calculateMapBounds(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
+			// Projection state
+			core::Coordinates projectionCenter { 0, 0 };
+			double metersPerPixel = 1.0;
+			double screenCenterX = 512.0f;
+			double screenCenterY = 512.0f;
 
-            FColor getWayColor(core::WayTags tags) const;
-            
-            int renderWay(const core::WayInfo& way, const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
-            void renderBoundingBox() const;
+		public:
+			MapElement(Application& application);
+			~MapElement() = default;
 
-            void setZoomLevel(double newZoom);
-            double getZoomLevel() const {
-                return metersPerPixel;
-            }
-            
-            void setProjectionCenter(const core::Coordinates& newCenter);
-            const core::Coordinates& getProjectionCenter() const {
-                return projectionCenter;
-            }
+			void autoZoom(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
+			void setView(const core::Coordinates& center, double zoomMetersPerPixel);
 
-            double getLaneWidth() const {
-                return _laneWidth;
-            }
+			const core::Coordinates GetCurrentView() const {
+				return projectionCenter;
+			}
 
-            void setLaneWidthPerPixel(double lW) {
-                _laneWidth = lW;
-            }
+			virtual void init() override;
+			virtual void update() override;
+			virtual void render(IRenderer& renderer) override;
 
-        private:
-            int drawThickLine(const std::vector<Position>& nodes, float thickness, FColor color);
-            void drawLaneMarkers(const std::vector<Position>& nodes, int lanes, int laneWidthPixels);
-        };
-    }
-}
+			Position convertToScreen(const core::Coordinates& coord) const;
+			void calculateMapBounds(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
+
+			FColor getWayColor(core::WayTags tags) const;
+
+			int renderWay(const core::WayInfo& way, const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
+			void renderBoundingBox() const;
+
+			void setZoomLevel(double newZoom);
+			double getZoomLevel() const {
+				return metersPerPixel;
+			}
+
+			void setProjectionCenter(const core::Coordinates& newCenter);
+			const core::Coordinates& getProjectionCenter() const {
+				return projectionCenter;
+			}
+
+			double getLaneWidth() const {
+				return _laneWidth;
+			}
+
+			void setLaneWidthPerPixel(double lW) {
+				_laneWidth = lW;
+			}
+
+		private:
+			int drawThickLine(const std::vector<Position>& nodes, float thickness, FColor color);
+			void drawLaneMarkers(const std::vector<Position>& nodes, int lanes, int laneWidthPixels);
+		};
+	} // namespace visualization
+} // namespace tjs

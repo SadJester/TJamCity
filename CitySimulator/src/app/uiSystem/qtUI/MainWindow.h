@@ -5,24 +5,23 @@
 class QTimer;
 
 namespace tjs {
-    class Application;
+	class Application;
 
-    namespace ui {
-        class MainWindow final : public QMainWindow {
-            public:
-                MainWindow(Application& app, QWidget *parent = nullptr, Qt::WindowFlags flags = Qt::WindowFlags());
+	namespace ui {
+		class MainWindow final : public QMainWindow {
+		public:
+			MainWindow(Application& app, QWidget* parent = nullptr, Qt::WindowFlags flags = Qt::WindowFlags());
 
-                QTimer* timer() {
-                    return _updateTimer;
-                }
+			QTimer* timer() {
+				return _updateTimer;
+			}
 
-                virtual void closeEvent (QCloseEvent *event) override;
+			virtual void closeEvent(QCloseEvent* event) override;
 
-            private:
-                Application& _app;
-                QTimer* _updateTimer;
-        };
+		private:
+			Application& _app;
+			QTimer* _updateTimer;
+		};
 
-
-    }
-}
+	} // namespace ui
+} // namespace tjs

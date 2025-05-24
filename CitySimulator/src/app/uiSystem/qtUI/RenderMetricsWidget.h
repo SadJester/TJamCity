@@ -3,25 +3,24 @@
 #include <QWidget>
 #include <QLabel>
 
-
 namespace tjs {
-    class Application;
+	class Application;
 
-    namespace ui {
-        class MainWindow;
+	namespace ui {
+		class MainWindow;
 
-        class RenderMetricsWidget : public QWidget {
-            //Q_OBJECT
+		class RenderMetricsWidget : public QWidget {
+			//Q_OBJECT
 
-        private:
-            QLabel* fpsLabel;
-            Application& _app;
+		private:
+			QLabel* fpsLabel;
+			Application& _app;
 
-        public:
-            RenderMetricsWidget(Application& app, MainWindow* parent);
+		public:
+			RenderMetricsWidget(Application& app, MainWindow* parent);
 
-        private slots:
-            void updateFrame();
-        };
-    }
-}
+		private slots:
+			void updateFrame();
+		};
+	} // namespace ui
+} // namespace tjs

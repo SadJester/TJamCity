@@ -14,33 +14,30 @@
 
 #include <core/simulation/simulation_system.h>
 
-
 namespace tjs {
-    int launch(int argc, char* argv[]) {
-        tjs::Application application(
-            argc,
-            argv);
+	int launch(int argc, char* argv[]) {
+		tjs::Application application(
+			argc,
+			argv);
 
-        
-        auto worldData = std::make_unique<tjs::core::WorldData>();
-        auto simulationSystem = std::make_unique<tjs::simulation::TrafficSimulationSystem>(*worldData);
+		auto worldData = std::make_unique<tjs::core::WorldData>();
+		auto simulationSystem = std::make_unique<tjs::simulation::TrafficSimulationSystem>(*worldData);
 
-        application.setup(
-            std::make_unique<tjs::render::SDLRenderer>(application),
-            std::make_unique<tjs::UISystem>(application),
-            std::make_unique<tjs::visualization::SceneSystem>(application),
-            std::move(worldData),
-            std::move(simulationSystem)
-        );
+		application.setup(
+			std::make_unique<tjs::render::SDLRenderer>(application),
+			std::make_unique<tjs::UISystem>(application),
+			std::make_unique<tjs::visualization::SceneSystem>(application),
+			std::move(worldData),
+			std::move(simulationSystem));
 
-        application.initialize();
+		application.initialize();
 
-        // TODO: Will move to user settings in some time
-        application.renderer().setClearColor(tjs::render::RenderConstants::BASE_CLEAR_COLOR);
-        tjs::visualization::prepareScene(application);
+		// TODO: Will move to user settings in some time
+		application.renderer().setClearColor(tjs::render::RenderConstants::BASE_CLEAR_COLOR);
+		tjs::visualization::prepareScene(application);
 
-        application.run();
+		application.run();
 
-        return 0;
-    }
-}
+		return 0;
+	}
+} // namespace tjs

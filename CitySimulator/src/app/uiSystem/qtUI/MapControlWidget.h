@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <QWidget>
 #include <QPushButton>
 #include <QHBoxLayout>
@@ -8,61 +7,61 @@
 #include <QLabel>
 #include <QCheckBox>
 
-
 namespace tjs {
-    class Application;
+	class Application;
 
-    namespace visualization {
-        class MapElement;
-    }
+	namespace visualization {
+		class MapElement;
+	} // namespace visualization
 
-    namespace ui {
-        class MapControlWidget : public QWidget {
-            // Q_OBJECT
-        
-        public:
-            explicit MapControlWidget(Application& application, QWidget* parent = nullptr);
-            ~MapControlWidget() override;
-        
-        private:
-            void UpdateButtonsState();
-            void UpdateLabels();
-            bool openFile(std::string_view fileName);
+	namespace ui {
+		class MapControlWidget : public QWidget {
+			// Q_OBJECT
 
-            void createVehicleInformation(QVBoxLayout* layout);
+		public:
+			explicit MapControlWidget(Application& application, QWidget* parent = nullptr);
+			~MapControlWidget() override;
 
-        private slots:
-            void onZoomIn();
-            void onZoomOut();
-            void moveNorth();
-            void moveSouth();
-            void moveWest();
-            void moveEast();
-            void onUpdate();
-            void openOSMFile();
-        private:
-            Application& _application;
-            visualization::MapElement* _mapElement = nullptr;
-            // Temporary button, will erase it after refactoring
-            QPushButton* _updateButton;
+		private:
+			void UpdateButtonsState();
+			void UpdateLabels();
+			bool openFile(std::string_view fileName);
 
-            QPushButton* _zoomInButton;
-            QPushButton* _zoomOutButton;
-            QDoubleSpinBox* _latitude;
-            QDoubleSpinBox* _longitude;
-            QPushButton* _northButton;
-            QPushButton* _southButton;
-            QPushButton* _westButton;
-            QPushButton* _eastButton;
-            QPushButton* _openFileButton;
+			void createVehicleInformation(QVBoxLayout* layout);
 
-            QSpinBox* vehicleCount;
-            QDoubleSpinBox* vehicleSizeMultipler;
-            QCheckBox* randomSeed;
-            QSpinBox* seedValue;
-            QPushButton* _regenerateVehiclesButton;
+		private slots:
+			void onZoomIn();
+			void onZoomOut();
+			void moveNorth();
+			void moveSouth();
+			void moveWest();
+			void moveEast();
+			void onUpdate();
+			void openOSMFile();
 
-            QLabel* _zoomLevel;
-        };
-    }
-}
+		private:
+			Application& _application;
+			visualization::MapElement* _mapElement = nullptr;
+			// Temporary button, will erase it after refactoring
+			QPushButton* _updateButton;
+
+			QPushButton* _zoomInButton;
+			QPushButton* _zoomOutButton;
+			QDoubleSpinBox* _latitude;
+			QDoubleSpinBox* _longitude;
+			QPushButton* _northButton;
+			QPushButton* _southButton;
+			QPushButton* _westButton;
+			QPushButton* _eastButton;
+			QPushButton* _openFileButton;
+
+			QSpinBox* vehicleCount;
+			QDoubleSpinBox* vehicleSizeMultipler;
+			QCheckBox* randomSeed;
+			QSpinBox* seedValue;
+			QPushButton* _regenerateVehiclesButton;
+
+			QLabel* _zoomLevel;
+		};
+	} // namespace ui
+} // namespace tjs

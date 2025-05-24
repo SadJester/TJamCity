@@ -8,4 +8,6 @@ if [ ! -d "${REPOSITORY_DIR}/CitySimulator" ]; then
     exit 1
 fi
 
-find ./CitySimulator -type f -exec clang-format -i {} \;
+find ./CitySimulator -type f \( -name '*.cpp' -o -name '*.h' \) -exec clang-format -i {} \;
+
+echo "Done"

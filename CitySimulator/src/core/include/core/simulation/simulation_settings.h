@@ -2,23 +2,21 @@
 
 #include <nlohmann/json.hpp>
 
-namespace tjs::core
-{
-    
-    struct SimulationSettings {
-        static constexpr const char* NAME = "simulation_settings";
+namespace tjs::core {
 
-        static constexpr size_t DEFAULT_VEHICLES_COUNT = 100;
+	struct SimulationSettings {
+		static constexpr const char* NAME = "simulation_settings";
 
-        bool randomSeed = true;
-        int seedValue = 0;
-        size_t vehiclesCount = DEFAULT_VEHICLES_COUNT;
+		static constexpr size_t DEFAULT_VEHICLES_COUNT = 100;
 
-        NLOHMANN_DEFINE_TYPE_INTRUSIVE(SimulationSettings,
-            randomSeed,
-            seedValue,
-            vehiclesCount
-        )
-    };
+		bool randomSeed = true;
+		int seedValue = 0;
+		size_t vehiclesCount = DEFAULT_VEHICLES_COUNT;
+
+		NLOHMANN_DEFINE_TYPE_INTRUSIVE(SimulationSettings,
+			randomSeed,
+			seedValue,
+			vehiclesCount)
+	};
 
 } // namespace tjs::core

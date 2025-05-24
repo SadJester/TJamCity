@@ -5,26 +5,25 @@
 class QApplication;
 
 namespace tjs {
-    class Application;
+	class Application;
 
-    namespace ui
-    {
-        class QTUIController final
-            : public IUIController
-        {
-            public:
-                QTUIController(Application& application);
-                ~QTUIController();
+	namespace ui {
+		class QTUIController final
+			: public IUIController {
+		public:
+			QTUIController(Application& application);
+			~QTUIController();
 
-                virtual void run() override;
-                virtual void update() override;
-            private:
-                void createAndShowMainWindow();
+			virtual void run() override;
+			virtual void update() override;
 
-            private:
-                std::unique_ptr<QApplication> m_app;
-                Application& _application;
-                bool m_appInitialized = false;
-        };
-    }
-}
+		private:
+			void createAndShowMainWindow();
+
+		private:
+			std::unique_ptr<QApplication> m_app;
+			Application& _application;
+			bool m_appInitialized = false;
+		};
+	} // namespace ui
+} // namespace tjs
