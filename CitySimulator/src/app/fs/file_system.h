@@ -59,8 +59,8 @@ namespace tjs::fs {
 	public:
 		BinaryFileHandler()
 			: DiskFileHandler<std::vector<uint8_t>>(
-				[](const auto& data) { return std::string(data.begin(), data.end()); },
-				[](const std::string& s) { return std::vector<uint8_t>(s.begin(), s.end()); }) {
+				  [](const auto& data) { return std::string(data.begin(), data.end()); },
+				  [](const std::string& s) { return std::vector<uint8_t>(s.begin(), s.end()); }) {
 		}
 	};
 
