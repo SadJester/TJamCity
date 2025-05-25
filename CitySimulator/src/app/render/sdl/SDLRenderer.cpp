@@ -7,8 +7,8 @@
 #include <SDL3/SDL_render.h>
 
 #include "Application.h"
-#include <core/dataLayer/WorldData.h>
-#include <core/dataLayer/data_types.h>
+#include <core/data_layer/world_data.h>
+#include <core/data_layer/data_types.h>
 
 namespace tjs::render {
 	const int SCREEN_WIDTH = 1024;

@@ -2,9 +2,9 @@
 #include <core/enum_flags.h>
 #include <core/simulation_constants.h>
 
-#include <core/dataLayer/way_info.h>
-#include <core/dataLayer/node.h>
-#include <core/dataLayer/road_network.h>
+#include <core/data_layer/way_info.h>
+#include <core/data_layer/node.h>
+#include <core/data_layer/road_network.h>
 
 namespace tjs::core {
 	enum class VehicleType : char {

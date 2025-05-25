@@ -1,6 +1,6 @@
 #pragma once
 
-#include "visualization/SceneNode.h"
+#include "visualization/scene_node.h"
 
 namespace tjs {
 	class Application;

@@ -1,6 +1,6 @@
 #include <stdafx.h>
 
-#include <core/dataLayer/data_types.h>
+#include <core/data_layer/data_types.h>
 
 using namespace tjs::core;
 

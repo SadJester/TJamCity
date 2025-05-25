@@ -1,10 +1,10 @@
 #include "stdafx.h"
 
-#include "visualization/SceneCreator.h"
+#include "visualization/scene_creator.h"
 
-#include "visualization/SceneSystem.h"
+#include "visualization/scene_system.h"
 #include "visualization/Scene.h"
-#include "visualization/elements/MapElement.h"
+#include "visualization/elements/map_element.h"
 #include <visualization/elements/vehicle_renderer.h>
 
 #include "Application.h"

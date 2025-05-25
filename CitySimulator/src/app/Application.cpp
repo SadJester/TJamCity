@@ -6,9 +6,9 @@
 
 #include "uiSystem/UISystem.h"
 #include "render/RenderBase.h"
-#include "visualization/SceneSystem.h"
+#include "visualization/scene_system.h"
 
-#include <core/dataLayer/WorldData.h>
+#include <core/data_layer/world_data.h>
 #include <core/simulation/simulation_system.h>
 
 namespace tjs {

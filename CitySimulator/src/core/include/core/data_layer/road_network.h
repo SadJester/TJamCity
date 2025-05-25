@@ -1,7 +1,7 @@
 #pragma once
 
-#include <core/dataLayer/way_info.h>
-#include <core/dataLayer/node.h>
+#include <core/data_layer/way_info.h>
+#include <core/data_layer/node.h>
 
 namespace tjs::core {
 	struct RoadNetwork {

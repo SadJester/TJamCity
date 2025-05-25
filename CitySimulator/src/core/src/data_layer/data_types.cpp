@@ -1,6 +1,6 @@
 #include <core/stdafx.h>
 
-#include <core/dataLayer/data_types.h>
+#include <core/data_layer/data_types.h>
 
 namespace tjs::core {
 	void SpatialGrid::add_way(WayInfo* way) {

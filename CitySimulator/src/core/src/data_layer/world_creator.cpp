@@ -1,7 +1,7 @@
 #include "core/stdafx.h"
 
-#include "core/dataLayer/WorldCreator.h"
-#include "core/dataLayer/WorldData.h"
+#include "core/data_layer/world_creator.h"
+#include "core/data_layer/world_data.h"
 
 namespace tjs::core {
 	bool WorldCreator::loadOSMData(WorldData& data, std::string_view osmFilename) {

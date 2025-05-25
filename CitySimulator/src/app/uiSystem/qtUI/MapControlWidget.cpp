@@ -4,17 +4,16 @@
 
 #include "Application.h"
 #include "settings/GeneralSettings.h"
-#include "visualization/elements/MapElement.h"
 
 #include <QLabel>
 #include <QFileDialog>
 
 /// TODO: Place somwhere to be more pretty
 #include "visualization/Scene.h"
-#include "visualization/SceneSystem.h"
-#include "visualization/elements/MapElement.h"
+#include "visualization/scene_system.h"
+#include "visualization/elements/map_element.h"
 
-#include <core/dataLayer/WorldCreator.h>
+#include <core/data_layer/world_creator.h>
 #include <core/simulation/simulation_system.h>
 
 namespace tjs {

@@ -2,8 +2,8 @@
 
 #include <core/simulation/simulation_system.h>
 
-#include <core/dataLayer/data_types.h>
-#include <core/dataLayer/WorldData.h>
+#include <core/data_layer/data_types.h>
+#include <core/data_layer/world_data.h>
 
 namespace tjs::simulation {
 

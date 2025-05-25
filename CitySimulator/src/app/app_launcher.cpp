@@ -1,16 +1,16 @@
 #include "stdafx.h"
 
-#include "appLauncher.h"
+#include "app_launcher.h"
 
 #include <Application.h>
 #include <uiSystem/UISystem.h>
 #include <render/sdl/SDLRenderer.h>
-#include <render/RenderConstants.h>
-#include <visualization/SceneSystem.h>
-#include <visualization/SceneCreator.h>
+#include <render/render_constants.h>
+#include <visualization/scene_system.h>
+#include <visualization/scene_creator.h>
 
-#include <core/dataLayer/WorldData.h>
-#include <core/dataLayer/WorldCreator.h>
+#include <core/data_layer/world_data.h>
+#include <core/data_layer/world_creator.h>
 
 #include <core/simulation/simulation_system.h>
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/dataLayer/data_types.h"
+#include "core/data_layer/data_types.h"
 
 namespace tjs::simulation {
 	ENUM_FLAG(TacticalBehaviour,

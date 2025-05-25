@@ -1,13 +1,13 @@
 #include "stdafx.h"
 
-#include "visualization/elements/MapElement.h"
+#include "visualization/elements/map_element.h"
 
 #include "render/RenderBase.h"
-#include "visualization/RenderConstants.h"
+#include "visualization/visualization_constants.h"
 #include "Application.h"
 
-#include <core/dataLayer/WorldData.h>
-#include <core/dataLayer/data_types.h>
+#include <core/data_layer/world_data.h>
+#include <core/data_layer/data_types.h>
 
 namespace tjs::visualization {
 	using namespace tjs::core;

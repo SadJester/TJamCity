@@ -1,8 +1,8 @@
 #include "stdafx.h"
 
 #include "visualization/Scene.h"
-#include "visualization/SceneSystem.h"
-#include "visualization/SceneNode.h"
+#include "visualization/scene_system.h"
+#include "visualization/scene_node.h"
 
 namespace tjs::visualization {
 	Scene::Scene(SceneSystem& sceneSystem, std::string_view name, int priority)

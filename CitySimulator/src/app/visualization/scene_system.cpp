@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-#include "visualization/SceneSystem.h"
+#include "visualization/scene_system.h"
 #include "visualization/Scene.h"
 
 namespace tjs::visualization {

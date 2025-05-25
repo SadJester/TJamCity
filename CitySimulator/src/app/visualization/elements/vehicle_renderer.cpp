@@ -1,13 +1,13 @@
 #include <stdafx.h>
 
 #include <visualization/elements/vehicle_renderer.h>
-#include <visualization/elements/MapElement.h>
+#include <visualization/elements/map_element.h>
 
 #include <Application.h>
 #include <visualization/Scene.h>
-#include <visualization/SceneSystem.h>
-#include <core/dataLayer/data_types.h>
-#include <core/dataLayer/WorldData.h>
+#include <visualization/scene_system.h>
+#include <core/data_layer/data_types.h>
+#include <core/data_layer/world_data.h>
 
 namespace tjs::visualization {
 

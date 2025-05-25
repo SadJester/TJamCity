@@ -3,7 +3,7 @@
 #include <core/simulation/tactical/tactical_planning_module.h>
 #include <core/simulation/simulation_system.h>
 
-#include <core/dataLayer/data_types.h>
+#include <core/data_layer/data_types.h>
 
 namespace tjs::simulation {
 
