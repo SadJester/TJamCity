@@ -1,6 +1,6 @@
 #include "stdafx.h"
 
-#include "uiSystem/qtUI/MainWindow.h"
+#include "ui_system/qt_ui/main_window.h"
 
 #include "Application.h"
 

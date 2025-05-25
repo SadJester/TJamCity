@@ -1,6 +1,6 @@
 #pragma once
 
-#include "settings/UserSettings.h"
+#include "settings/user_settings.h"
 
 namespace tjs {
 

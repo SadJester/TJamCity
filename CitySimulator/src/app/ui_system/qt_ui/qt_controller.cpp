@@ -1,8 +1,8 @@
 #include "stdafx.h"
 
-#include "uiSystem/qtUI/QTController.h"
+#include "ui_system/qt_ui/qt_controller.h"
 
-#include "uiSystem/qtUI/MainWindow.h"
+#include "ui_system/qt_ui/main_window.h"
 
 #include "Application.h"
 
@@ -11,8 +11,8 @@
 #include <QVBoxLayout>
 
 /// TODO: Place somwhere to be more pretty
-#include "uiSystem/qtUI/RenderMetricsWidget.h"
-#include "uiSystem/qtUI/MapControlWidget.h"
+#include "ui_system/qt_ui/render_metrics_widget.h"
+#include "ui_system/qt_ui/map_control_widget.h"
 
 namespace tjs {
 	namespace ui {

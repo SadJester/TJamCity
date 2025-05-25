@@ -2,7 +2,7 @@
 
 #include <SDL3/SDL.h>
 
-#include "render/RenderBase.h"
+#include "render/render_base.h"
 
 namespace tjs {
 	class Application;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <nlohmann/json.hpp>
-#include "fs/FileSystem.h"
+#include "fs/file_system.h"
 
 namespace tjs::settings {
 	using json = nlohmann::json;

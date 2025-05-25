@@ -1,9 +1,9 @@
 #include "stdafx.h"
 
-#include "uiSystem/qtUI/MapControlWidget.h"
+#include "ui_system/qt_ui/map_control_widget.h"
 
 #include "Application.h"
-#include "settings/GeneralSettings.h"
+#include "settings/general_settings.h"
 
 #include <QLabel>
 #include <QFileDialog>

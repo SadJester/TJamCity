@@ -2,7 +2,7 @@
 
 #include "visualization/elements/map_element.h"
 
-#include "render/RenderBase.h"
+#include "render/render_base.h"
 #include "visualization/visualization_constants.h"
 #include "Application.h"
 

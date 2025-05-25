@@ -1,6 +1,6 @@
 #pragma once
 
-#include "render/RenderPrimitives.h"
+#include "render/render_primitives.h"
 
 namespace tjs {
 	class IRenderer {

@@ -2,7 +2,7 @@
 
 #include <core/data_layer/data_types.h>
 
-#include "render/RenderPrimitives.h"
+#include "render/render_primitives.h"
 #include "render/IRenderable.h"
 
 #include "visualization/scene_node.h"

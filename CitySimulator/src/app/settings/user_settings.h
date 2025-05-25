@@ -1,9 +1,9 @@
 #pragma once
 
-#include "settings/UserSettingsLoader.h"
+#include "settings/user_settings_loader.h"
 
-#include "settings/GeneralSettings.h"
-#include "settings/RenderSettings.h"
+#include "settings/general_settings.h"
+#include "settings/render_settings.h"
 #include <core/simulation/simulation_settings.h>
 
 namespace tjs {

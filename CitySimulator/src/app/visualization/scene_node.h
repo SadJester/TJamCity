@@ -1,7 +1,7 @@
 #pragma once
 
 #include "render/IRenderable.h"
-#include "render/RenderPrimitives.h"
+#include "render/render_primitives.h"
 
 namespace tjs::visualization {
 	class SceneNode : public render::IRenderable {

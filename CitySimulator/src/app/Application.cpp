@@ -2,10 +2,10 @@
 
 #include "Application.h"
 
-#include "render/RenderBase.h"
+#include "render/render_base.h"
 
-#include "uiSystem/UISystem.h"
-#include "render/RenderBase.h"
+#include "ui_system/ui_system.h"
+#include "render/render_base.h"
 #include "visualization/scene_system.h"
 
 #include <core/data_layer/world_data.h>

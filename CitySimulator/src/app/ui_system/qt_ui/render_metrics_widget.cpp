@@ -1,5 +1,5 @@
-#include "uiSystem/qtUI/RenderMetricsWidget.h"
-#include "uiSystem/qtUI/MainWindow.h"
+#include "ui_system/qt_ui/render_metrics_widget.h"
+#include "ui_system/qt_ui/main_window.h"
 
 #include "Application.h"
 

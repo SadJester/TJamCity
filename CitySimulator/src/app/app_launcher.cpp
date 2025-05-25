@@ -3,8 +3,8 @@
 #include "app_launcher.h"
 
 #include <Application.h>
-#include <uiSystem/UISystem.h>
-#include <render/sdl/SDLRenderer.h>
+#include <ui_system/ui_system.h>
+#include <render/sdl/sdl_renderer.h>
 #include <render/render_constants.h>
 #include <visualization/scene_system.h>
 #include <visualization/scene_creator.h>

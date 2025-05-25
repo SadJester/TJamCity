@@ -1,6 +1,6 @@
 #pragma once
 #include "render/IRenderable.h"
-#include "render/RenderBase.h"
+#include "render/render_base.h"
 
 namespace tjs {
 	class IRenderer;
