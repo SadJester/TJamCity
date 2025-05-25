@@ -1,20 +1,20 @@
 #pragma once
-#include "core/dataLayer/data_types.h"
+#include "core/data_layer/data_types.h"
 #include "core/simulation/agent/agent_data.h"
 
 namespace tjs::simulation {
-    class TrafficSimulationSystem;
+	class TrafficSimulationSystem;
 
-    class TacticalPlanningModule {
-    public:
-        TacticalPlanningModule(TrafficSimulationSystem& system);
+	class TacticalPlanningModule {
+	public:
+		TacticalPlanningModule(TrafficSimulationSystem& system);
 
-        void update();
+		void update();
 
-    private:
-        void updateAgentTactics(tjs::simulation::AgentData& agent);
+	private:
+		void updateAgentTactics(tjs::simulation::AgentData& agent);
 
-    private:
-        TrafficSimulationSystem& _system;
-    };
-}
+	private:
+		TrafficSimulationSystem& _system;
+	};
+} // namespace tjs::simulation

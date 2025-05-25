@@ -1,0 +1,43 @@
+#include "stdafx.h"
+
+#include "app_launcher.h"
+
+#include <Application.h>
+#include <ui_system/ui_system.h>
+#include <render/sdl/sdl_renderer.h>
+#include <render/render_constants.h>
+#include <visualization/scene_system.h>
+#include <visualization/scene_creator.h>
+
+#include <core/data_layer/world_data.h>
+#include <core/data_layer/world_creator.h>
+
+#include <core/simulation/simulation_system.h>
+
+namespace tjs {
+	int launch(int argc, char* argv[]) {
+		tjs::Application application(
+			argc,
+			argv);
+
+		auto worldData = std::make_unique<tjs::core::WorldData>();
+		auto simulationSystem = std::make_unique<tjs::simulation::TrafficSimulationSystem>(*worldData);
+
+		application.setup(
+			std::make_unique<tjs::render::SDLRenderer>(application),
+			std::make_unique<tjs::UISystem>(application),
+			std::make_unique<tjs::visualization::SceneSystem>(application),
+			std::move(worldData),
+			std::move(simulationSystem));
+
+		application.initialize();
+
+		// TODO: Will move to user settings in some time
+		application.renderer().setClearColor(tjs::render::RenderConstants::BASE_CLEAR_COLOR);
+		tjs::visualization::prepareScene(application);
+
+		application.run();
+
+		return 0;
+	}
+} // namespace tjs

@@ -1,140 +1,134 @@
 #pragma once
 
-#include "settings/UserSettings.h"
+#include "settings/user_settings.h"
 
 namespace tjs {
 
-    class UISystem;
-    class IRenderer;
-    namespace visualization {
-        class SceneSystem;
-    }
+	class UISystem;
+	class IRenderer;
+	namespace visualization {
+		class SceneSystem;
+	} // namespace visualization
 
-    namespace simulation
-    {
-        class TrafficSimulationSystem;
-    } // namespace simulation
-    
+	namespace simulation {
+		class TrafficSimulationSystem;
+	} // namespace simulation
 
-    namespace core {
-        class WorldData;
-    }
+	namespace core {
+		class WorldData;
+	} // namespace core
 
-    class CommandLine {
-    public:
-        CommandLine(int& argc, char** argv)
-            : _argc(argc)
-            , _argv(argv)
-        {}
+	class CommandLine {
+	public:
+		CommandLine(int& argc, char** argv)
+			: _argc(argc)
+			, _argv(argv) {}
 
-        int& argc() {
-            return _argc;
-        }
+		int& argc() {
+			return _argc;
+		}
 
-        char** argv() {
-            return _argv;
-        }
-            
-    private:
-        int _argc = 0;
-        char** _argv = nullptr;
-    };
+		char** argv() {
+			return _argv;
+		}
 
-    
-    struct FrameStats {
-        using duration = std::chrono::duration<float>;
+	private:
+		int _argc = 0;
+		char** _argv = nullptr;
+	};
 
-        void init(float fps) {
-            _smoothedFPS = fps;
-            _fps = fps;
-        }
-        
-        void setFPS(float fps, duration frameTime);
-        float smoothedFPS() const {
-            return _smoothedFPS;
-        }
-        float currentFPS() const {
-            return _fps;
-        }
-        duration frameTime() const {
-            return _frameTime;
-        }
-        
-        private:
-            float _smoothedFPS = 60.0;
-            float _fps = 0.f;
-            duration _frameTime {0};
-    };
+	struct FrameStats {
+		using duration = std::chrono::duration<float>;
 
+		void init(float fps) {
+			_smoothedFPS = fps;
+			_fps = fps;
+		}
 
-    class Application {
-    public:
-        Application(int& argc, char** argv);
-        
-        void setFinished() {
-            _isFinished = true;
-        }
+		void setFPS(float fps, duration frameTime);
+		float smoothedFPS() const {
+			return _smoothedFPS;
+		}
+		float currentFPS() const {
+			return _fps;
+		}
+		duration frameTime() const {
+			return _frameTime;
+		}
 
-        bool isFinished() const {
-            return _isFinished;
-        }
+	private:
+		float _smoothedFPS = 60.0;
+		float _fps = 0.f;
+		duration _frameTime { 0 };
+	};
 
-        const FrameStats& frameStats() const {
-            return _frameStats;
-        }
+	class Application {
+	public:
+		Application(int& argc, char** argv);
 
-        CommandLine& commandLine() {
-            return _commandLine;
-        }
+		void setFinished() {
+			_isFinished = true;
+		}
 
-        void setup(
-            std::unique_ptr<IRenderer>&& renderer,
-            std::unique_ptr<UISystem>&& uiSystem,
-            std::unique_ptr<visualization::SceneSystem>&& sceneSystem,
-            std::unique_ptr<core::WorldData>&& worldData,
-            std::unique_ptr<simulation::TrafficSimulationSystem>&& simulationSystem
-        );
-        void initialize();
-        void run();
+		bool isFinished() const {
+			return _isFinished;
+		}
 
-        // System getters
-        UserSettings& settings() {
-            return _settings;
-        }
+		const FrameStats& frameStats() const {
+			return _frameStats;
+		}
 
-        core::WorldData& worldData() {
-            return *_worldData;
-        }
+		CommandLine& commandLine() {
+			return _commandLine;
+		}
 
-        UISystem& uiSystem() {
-            return *_uiSystem;
-        }
+		void setup(
+			std::unique_ptr<IRenderer>&& renderer,
+			std::unique_ptr<UISystem>&& uiSystem,
+			std::unique_ptr<visualization::SceneSystem>&& sceneSystem,
+			std::unique_ptr<core::WorldData>&& worldData,
+			std::unique_ptr<simulation::TrafficSimulationSystem>&& simulationSystem);
+		void initialize();
+		void run();
 
-        IRenderer& renderer() {
-            return *_renderer;
-        }
+		// System getters
+		UserSettings& settings() {
+			return _settings;
+		}
 
-        visualization::SceneSystem& sceneSystem() {
-            return *_sceneSystem;
-        }
+		core::WorldData& worldData() {
+			return *_worldData;
+		}
 
-        simulation::TrafficSimulationSystem& simulationSystem() {
-            return *_simulationSystem;
-        }
+		UISystem& uiSystem() {
+			return *_uiSystem;
+		}
 
-    private:
-        CommandLine _commandLine;
-        bool _isFinished = false;
-        
-        FrameStats _frameStats;
+		IRenderer& renderer() {
+			return *_renderer;
+		}
 
-        UserSettings _settings;
+		visualization::SceneSystem& sceneSystem() {
+			return *_sceneSystem;
+		}
 
-        // Systems
-        std::unique_ptr<IRenderer> _renderer;
-        std::unique_ptr<UISystem> _uiSystem;
-        std::unique_ptr<visualization::SceneSystem> _sceneSystem;
-        std::unique_ptr<core::WorldData> _worldData;
-        std::unique_ptr<simulation::TrafficSimulationSystem> _simulationSystem;
-    };
-}
+		simulation::TrafficSimulationSystem& simulationSystem() {
+			return *_simulationSystem;
+		}
+
+	private:
+		CommandLine _commandLine;
+		bool _isFinished = false;
+
+		FrameStats _frameStats;
+
+		UserSettings _settings;
+
+		// Systems
+		std::unique_ptr<IRenderer> _renderer;
+		std::unique_ptr<UISystem> _uiSystem;
+		std::unique_ptr<visualization::SceneSystem> _sceneSystem;
+		std::unique_ptr<core::WorldData> _worldData;
+		std::unique_ptr<simulation::TrafficSimulationSystem> _simulationSystem;
+	};
+} // namespace tjs

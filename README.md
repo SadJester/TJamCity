@@ -1,6 +1,8 @@
 # Installing
 Expected usage of Visual Code and Cmake for running builds.
 
+Run ./prepare_all.sh (if on Windows it is expected that you have installed bash and it`s in your PATH)
+
 ## Install qt6
 1.  Darwin: brew install qt (need to fix its version)
 2. Windows: in default location C:/Qt/6.9.0/msvc2022_64
