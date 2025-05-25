@@ -180,7 +180,8 @@ namespace tjs {
 				_application.settings().render.vehicleScaler = value;
 			});
 
-			connect(randomSeed, &QCheckBox::stateChanged, [this](int state) {
+			connect(randomSeed, &QCheckBox::checkStateChanged, [this](int state)
+			{
 				_application.settings().simulationSettings.randomSeed = state == Qt::Checked;
 				seedValue->setVisible(state != Qt::Checked); // Показываем/скрываем spinbox
 			});
