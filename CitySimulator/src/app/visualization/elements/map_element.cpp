@@ -8,6 +8,7 @@
 
 #include <core/data_layer/world_data.h>
 #include <core/data_layer/data_types.h>
+#include <core/math_constants.h>
 
 namespace tjs::visualization {
 	using namespace tjs::core;
@@ -32,7 +33,7 @@ namespace tjs::visualization {
 
 	void MapElement::setZoomLevel(double metersPerPixel) {
 		this->metersPerPixel = metersPerPixel;
-		double latRad = projectionCenter.latitude * Constants::DEG_TO_RAD;
+		double latRad = projectionCenter.latitude * core::MathConstants::DEG_TO_RAD;
 		metersPerPixel *= std::cos(latRad);
 	}
 
@@ -71,9 +72,9 @@ namespace tjs::visualization {
 
 	Position MapElement::convertToScreen(const Coordinates& coord) const {
 		// Convert geographic coordinates to meters using Mercator projection
-		double x = (coord.longitude - projectionCenter.longitude) * Constants::DEG_TO_RAD * Constants::EARTH_RADIUS;
-		double y = -std::log(std::tan((90.0 + coord.latitude) * Constants::DEG_TO_RAD / 2.0)) * Constants::EARTH_RADIUS;
-		double yCenter = -std::log(std::tan((90.0 + projectionCenter.latitude) * Constants::DEG_TO_RAD / 2.0)) * Constants::EARTH_RADIUS;
+		double x = (coord.longitude - projectionCenter.longitude) * core::MathConstants::DEG_TO_RAD * core::MathConstants::EARTH_RADIUS;
+		double y = -std::log(std::tan((90.0 + coord.latitude) * core::MathConstants::DEG_TO_RAD / 2.0)) * core::MathConstants::EARTH_RADIUS;
+		double yCenter = -std::log(std::tan((90.0 + projectionCenter.latitude) * core::MathConstants::DEG_TO_RAD / 2.0)) * core::MathConstants::EARTH_RADIUS;
 		y -= yCenter;
 
 		// Scale to screen coordinates
@@ -99,12 +100,12 @@ namespace tjs::visualization {
 		double minY = std::numeric_limits<double>::max();
 		double maxY = std::numeric_limits<double>::lowest();
 
-		double yCenter = -std::log(std::tan((90.0 + projectionCenter.latitude) * Constants::DEG_TO_RAD / 2.0)) * Constants::EARTH_RADIUS;
+		double yCenter = -std::log(std::tan((90.0 + projectionCenter.latitude) * core::MathConstants::DEG_TO_RAD / 2.0)) * core::MathConstants::EARTH_RADIUS;
 
 		for (const auto& pair : nodes) {
 			const auto& node = pair.second;
-			double x = (node->coordinates.longitude - projectionCenter.longitude) * Constants::DEG_TO_RAD * Constants::EARTH_RADIUS;
-			double y = -std::log(std::tan((90.0 + node->coordinates.latitude) * Constants::DEG_TO_RAD / 2.0)) * Constants::EARTH_RADIUS - yCenter;
+			double x = (node->coordinates.longitude - projectionCenter.longitude) * core::MathConstants::DEG_TO_RAD * core::MathConstants::EARTH_RADIUS;
+			double y = -std::log(std::tan((90.0 + node->coordinates.latitude) * core::MathConstants::DEG_TO_RAD / 2.0)) * core::MathConstants::EARTH_RADIUS - yCenter;
 
 			minX = std::min(minX, x);
 			maxX = std::max(maxX, x);

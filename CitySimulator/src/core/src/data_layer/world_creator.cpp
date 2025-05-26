@@ -180,6 +180,16 @@ namespace tjs::core {
 					}
 				}
 
+				// Only add ways that have been classified as roads
+				if (tags == WayTags::None) {
+					return;
+				}
+
+				
+				auto way = WayInfo::create(id, lanes, maxSpeed, tags);
+				way->nodeRefs = std::move(nodeRefs);
+				world.ways[id] = std::move(way);
+
 				std::vector<Node*> nodes;
 				nodes.reserve(nodeRefs.size());
 				for (uint64_t nodeRef : nodeRefs) {
@@ -188,16 +198,10 @@ namespace tjs::core {
 						continue;
 					}
 					node->second->tags = node->second->tags | NodeTags::Way;
+					node->second->ways.emplace_back(way.get());
 					nodes.push_back(node->second.get());
 				}
-
-				// Only add ways that have been classified as roads
-				if (tags != WayTags::None) {
-					auto way = WayInfo::create(id, lanes, maxSpeed, tags);
-					way->nodeRefs = std::move(nodeRefs);
-					way->nodes = std::move(nodes);
-					world.ways[id] = std::move(way);
-				}
+				way->nodes = std::move(nodes);
 			}
 
 			static int parseSpeedValue(const std::string& speedStr) {

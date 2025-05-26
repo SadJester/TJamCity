@@ -28,6 +28,10 @@ namespace tjs::simulation {
 				core::Coordinates { 0.0, 0.0 },
 				&vehicles[i] });
 		}
+
+		_strategicModule.initialize();
+		_tacticalModule.initialize();
+		_vehicleMovementModule.initialize();
 	}
 
 	void TrafficSimulationSystem::update(double realTimeDelta) {
@@ -35,6 +39,7 @@ namespace tjs::simulation {
 
 		_strategicModule.update();
 		_tacticalModule.update();
+		_vehicleMovementModule.update();
 	}
 
 } // namespace tjs::simulation

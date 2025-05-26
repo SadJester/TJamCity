@@ -4,7 +4,7 @@ staged_files=$(git diff --staged --name-only | grep -E '\.(cpp|h)$')
 if [ -n "$staged_files" ]; then
     echo "Format changed files..."
     echo "$staged_files" | tee /dev/tty | xargs clang-format -i
+    for file in $staged_files; do
+        git add "$file"
+    done
 fi
-
-
-git add -u
