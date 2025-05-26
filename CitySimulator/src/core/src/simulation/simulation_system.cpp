@@ -10,7 +10,8 @@ namespace tjs::simulation {
 	TrafficSimulationSystem::TrafficSimulationSystem(core::WorldData& data)
 		: _worldData(data)
 		, _strategicModule(*this)
-		, _tacticalModule(*this) {
+		, _tacticalModule(*this)
+		, _vehicleMovementModule(*this) {
 	}
 
 	TrafficSimulationSystem::~TrafficSimulationSystem() {
@@ -29,8 +30,8 @@ namespace tjs::simulation {
 				&vehicles[i] });
 		}
 
-		_strategicModule.initialize();
-		_tacticalModule.initialize();
+		//_strategicModule.initialize();
+		//_tacticalModule.initialize();
 		_vehicleMovementModule.initialize();
 	}
 

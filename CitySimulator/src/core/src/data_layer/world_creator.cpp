@@ -187,9 +187,7 @@ namespace tjs::core {
 
 				
 				auto way = WayInfo::create(id, lanes, maxSpeed, tags);
-				way->nodeRefs = std::move(nodeRefs);
-				world.ways[id] = std::move(way);
-
+				
 				std::vector<Node*> nodes;
 				nodes.reserve(nodeRefs.size());
 				for (uint64_t nodeRef : nodeRefs) {
@@ -201,7 +199,9 @@ namespace tjs::core {
 					node->second->ways.emplace_back(way.get());
 					nodes.push_back(node->second.get());
 				}
+				way->nodeRefs = std::move(nodeRefs);
 				way->nodes = std::move(nodes);
+				world.ways[id] = std::move(way);
 			}
 
 			static int parseSpeedValue(const std::string& speedStr) {

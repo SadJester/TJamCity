@@ -23,7 +23,9 @@ namespace tjs::simulation {
 		void release();
 		void update(double realTimeDelta);
 
-		TimeModule& timeModule();
+		TimeModule& timeModule() {
+			return _timeModule;
+		}
 		Agents& agents() {
 			return _agents;
 		}

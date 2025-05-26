@@ -64,7 +64,8 @@ namespace tjs {
 			auto frameStart = std::chrono::high_resolution_clock::now();
 
 			auto fromLastUpdate = frameStart - lastFrameTime;
-			_simulationSystem->update(fromLastUpdate.count());
+			const double durationInSeconds = std::chrono::duration_cast<std::chrono::duration<double>>(fromLastUpdate).count();
+			_simulationSystem->update(durationInSeconds);
 
 			// Run the update and draw operations
 			_uiSystem->update();

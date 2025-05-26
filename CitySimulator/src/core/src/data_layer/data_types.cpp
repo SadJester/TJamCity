@@ -34,6 +34,7 @@ namespace tjs::core {
 	}
 
 	void WorldSegment::rebuild_grid() {
+		spatialGrid.cellSize = 0.0009;
 		for (const auto& [_, way] : ways) {
 			spatialGrid.add_way(way.get());
 		}
