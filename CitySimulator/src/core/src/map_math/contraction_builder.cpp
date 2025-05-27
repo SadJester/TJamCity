@@ -3,6 +3,28 @@
 #include <core/map_math/contraction_builder.h>
 
 namespace tjs::core::algo {
+	void ContractionBuilder::build_graph(core::RoadNetwork& network) {
+		// Очищаем предыдущие данные
+		network.adjacency_list.clear();
+
+		for (const auto& way_pair : network.ways) {
+			const auto& nodes = way_pair.second->nodes;
+
+			// Соединяем последовательные узлы в пути
+			for (size_t i = 0; i < nodes.size() - 1; ++i) {
+				Node* current = nodes[i];
+				Node* next = nodes[i + 1];
+
+				// Вычисляем расстояние между узлами
+				double dist = haversine_distance(current->coordinates, next->coordinates);
+
+				// Добавляем в обе стороны, так как граф ненаправленный
+				network.adjacency_list[current].emplace_back(next, dist);
+				network.adjacency_list[next].emplace_back(current, dist);
+			}
+		}
+	}
+
 	void ContractionBuilder::build_contraction_hierarchy(core::RoadNetwork& network) {
 		compute_node_priorities(network);
 

@@ -14,8 +14,18 @@ namespace tjs::core {
 		// Prepare data
 		for (auto& segment : data.segments()) {
 			segment->rebuild_grid();
+
+			auto& road_network = segment->road_network;
+			for (auto& [uid, way] : segment->ways) {
+				road_network->ways.emplace(uid, way.get());
+				for (auto node : way->nodes) {
+					road_network->nodes.emplace(node->uid, node);
+				}
+			}
+
 			algo::ContractionBuilder builder;
 			builder.build_contraction_hierarchy(*segment->road_network);
+			builder.build_graph(*segment->road_network);
 		}
 
 		return result;

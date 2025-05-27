@@ -12,6 +12,7 @@ namespace tjs::core::algo {
 	class ContractionBuilder {
 	public:
 		void build_contraction_hierarchy(core::RoadNetwork& network);
+		void build_graph(core::RoadNetwork& network);
 
 	private:
 		void compute_node_priorities(core::RoadNetwork& network);

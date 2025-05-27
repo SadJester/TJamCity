@@ -24,6 +24,9 @@ namespace tjs::core {
 		std::unordered_map<uint64_t, Node*> nodes;
 		std::unordered_map<uint64_t, WayInfo*> ways;
 
+		std::unordered_map<Node*, std::vector<std::pair<Node*, double>>> adjacency_list;
+		std::unordered_map<Node*, double> heuristic_cache;
+
 		std::unordered_map<uint64_t, std::vector<Edge>> upward_graph;
 		std::unordered_map<uint64_t, std::vector<Edge>> downward_graph;
 		std::unordered_map<uint64_t, int> node_levels;

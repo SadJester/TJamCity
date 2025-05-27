@@ -67,6 +67,62 @@ namespace tjs::simulation {
 			return {}; // Путь не найден
 		}
 
+		std::deque<Node*> find_path_a_star(const RoadNetwork& network, Node* source, Node* target) {
+			using NodeEntry = std::pair<double, Node*>;
+			std::priority_queue<NodeEntry, std::vector<NodeEntry>, std::greater<>> open_set;
+
+			std::unordered_map<Node*, double> g_score;
+			std::unordered_map<Node*, Node*> came_from;
+			std::unordered_set<Node*> closed_set;
+
+			// Инициализация
+			g_score[source] = 0.0;
+			double h_start = core::algo::haversine_distance(source->coordinates, target->coordinates);
+			open_set.emplace(h_start, source);
+
+			while (!open_set.empty()) {
+				Node* current = open_set.top().second;
+				open_set.pop();
+
+				if (current == target) {
+					// Восстанавливаем путь
+					std::deque<Node*> path;
+					while (current != nullptr) {
+						path.push_front(current);
+						current = came_from[current];
+					}
+					return path;
+				}
+
+				if (closed_set.count(current)) {
+					continue;
+				}
+				closed_set.insert(current);
+
+				const auto& neighbors = network.adjacency_list.find(current);
+				if (neighbors == network.adjacency_list.end()) {
+					continue;
+				}
+
+				for (const auto& [neighbor, edge_cost] : neighbors->second) {
+					if (closed_set.count(neighbor)) {
+						continue;
+					}
+
+					double tentative_g = g_score[current] + edge_cost;
+
+					if (!g_score.count(neighbor) || tentative_g < g_score[neighbor]) {
+						came_from[neighbor] = current;
+						g_score[neighbor] = tentative_g;
+						double h = core::algo::haversine_distance(neighbor->coordinates, target->coordinates);
+						open_set.emplace(tentative_g + h, neighbor);
+					}
+				}
+			}
+
+			return {}; // Путь не найден
+		}
+
 	private:
 		// Вспомогательная функция для проверки возможности перехода через shortcut
 		bool can_traverse_shortcut(const RoadNetwork& network,
@@ -148,7 +204,7 @@ namespace tjs::simulation {
 
 	std::deque<Node*> findPath(Node* start, Node* goal, RoadNetwork& road_network) {
 		PathFinder finder;
-		return finder.find_path(road_network, start->uid, goal->uid);
+		return finder.find_path_a_star(road_network, start, goal);
 	}
 
 	void TacticalPlanningModule::updateAgentTactics(tjs::simulation::AgentData& agent) {
@@ -231,7 +287,8 @@ namespace tjs::simulation {
 		}
 
 		// Step 3: Check if vehicle reached current step goal using haversine distance
-		if (core::algo::haversine_distance(vehicle.coordinates, agent.currentStepGoal) < SimulationConstants::ARRIVAL_THRESHOLD) {
+		const double distance_to_target = core::algo::haversine_distance(vehicle.coordinates, agent.currentStepGoal);
+		if (distance_to_target < SimulationConstants::ARRIVAL_THRESHOLD) {
 			if (!agent.path.empty()) {
 				// Update distance traveled with the segment we just completed
 				agent.distanceTraveled += core::algo::haversine_distance(vehicle.coordinates, agent.currentStepGoal);
