@@ -25,14 +25,19 @@ namespace tjs::simulation {
 			return;
 		}
 
+		if (VehicleMovementModule::haversine_distance(agent.vehicle->coordinates, agent.currentGoal) < 0.0001) {
+			agent.currentGoal = { 0.0, 0.0 };
+		}
+
+
 		if (agent.currentGoal.latitude != 0.0 || agent.currentGoal.longitude != 0.0) {
 			return;
 		}
 
 		auto& worldData = _system.worldData();
 		
-		static constexpr double MIN_RADIUS = 40.0;
-		static constexpr double MAX_RADIUS = 100.0;
+		static constexpr double MIN_RADIUS = 0.0018;
+		static constexpr double MAX_RADIUS = 0.004;
 
 		auto node = findRandomGoal(
 			worldData.segments().front()->spatialGrid,
