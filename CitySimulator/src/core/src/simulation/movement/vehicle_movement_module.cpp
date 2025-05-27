@@ -69,6 +69,17 @@ namespace tjs::simulation {
 		// Ensure speed doesn't exceed maximum
 		agent.vehicle->currentSpeed = std::min(agent.vehicle->currentSpeed,
 			agent.vehicle->maxSpeed);
+
+		auto& vehicle = *agent.vehicle;
+		if (vehicle.currentWay != nullptr && vehicle.currentSegmentIndex + 1 < vehicle.currentWay->nodes.size()) {
+			core::Node* currentNode = vehicle.currentWay->nodes[vehicle.currentSegmentIndex];
+			core::Node* nextNode = vehicle.currentWay->nodes[vehicle.currentSegmentIndex + 1];
+			core::Coordinates dir {
+				nextNode->coordinates.latitude - currentNode->coordinates.latitude,
+				nextNode->coordinates.longitude - currentNode->coordinates.longitude
+			};
+			vehicle.rotationAngle = atan2(dir.longitude, dir.latitude);
+		}
 	}
 
 } // namespace tjs::simulation

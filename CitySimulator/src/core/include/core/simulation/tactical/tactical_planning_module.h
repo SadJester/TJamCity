@@ -4,6 +4,7 @@
 
 namespace tjs::simulation {
 	class TrafficSimulationSystem;
+	using namespace tjs::core;
 
 	class TacticalPlanningModule {
 	public:
@@ -13,6 +14,11 @@ namespace tjs::simulation {
 
 	private:
 		void updateAgentTactics(tjs::simulation::AgentData& agent);
+		int findClosestSegmentIndex(const Coordinates& coords, WayInfo* way);
+		double distanceToSegment(const Coordinates& point,
+			const Coordinates& segStart,
+			const Coordinates& segEnd);
+		Node* findNearestNode(const Coordinates& coords, RoadNetwork& road_network);
 
 	private:
 		TrafficSimulationSystem& _system;

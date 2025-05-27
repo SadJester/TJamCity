@@ -37,8 +37,8 @@ namespace tjs::simulation {
 
 		auto& worldData = _system.worldData();
 
-		static constexpr double MIN_RADIUS = 0.0018;
-		static constexpr double MAX_RADIUS = 0.004;
+		static constexpr double MIN_RADIUS = 0.0036;
+		static constexpr double MAX_RADIUS = 0.01;
 
 		auto node = findRandomGoal(
 			worldData.segments().front()->spatialGrid,
