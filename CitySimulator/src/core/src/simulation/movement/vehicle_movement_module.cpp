@@ -27,11 +27,11 @@ namespace tjs::simulation {
 
 
     static double to_radians(double degrees) {
-        return degrees * core::MathConstants::M_PI / 180.0;
+        return degrees * core::MathConstants::DEG_TO_RAD;
     }
 
     static double to_degrees(double radians) {
-        return radians * 180.0 / core::MathConstants::M_PI;
+        return radians * core::MathConstants::RAD_TO_DEG;
     }
 
     double VehicleMovementModule::haversine_distance(const core::Coordinates& a, const core::Coordinates& b) {
@@ -73,7 +73,7 @@ namespace tjs::simulation {
 
         // Get current and target positions
         const core::Coordinates current = agent.vehicle->coordinates;
-        const core::Coordinates target = agent.currentGoal;
+        const core::Coordinates target = agent.currentStepGoal;
 
         // Calculate actual movement
         const double distance_to_target = haversine_distance(current, target);

@@ -23,6 +23,8 @@ namespace tjs::simulation {
 			return;
 		}
 
+		agent.currentStepGoal = agent.currentGoal;
+		
 		using namespace tjs::core;
 
 		auto& vehicle = *agent.vehicle;

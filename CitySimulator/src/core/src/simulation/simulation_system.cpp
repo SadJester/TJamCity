@@ -24,10 +24,13 @@ namespace tjs::simulation {
 		_agents.shrink_to_fit();
 		_agents.reserve(vehicles.size());
 		for (size_t i = 0; i < vehicles.size(); ++i) {
-			_agents.push_back({ 0,
+			_agents.push_back({
+				vehicles[i].uid,
 				TacticalBehaviour::Normal,
 				core::Coordinates { 0.0, 0.0 },
-				&vehicles[i] });
+				core::Coordinates { 0.0, 0.0 },
+				&vehicles[i]
+			});
 		}
 
 		//_strategicModule.initialize();

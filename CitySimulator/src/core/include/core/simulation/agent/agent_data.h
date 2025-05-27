@@ -13,6 +13,7 @@ namespace tjs::simulation {
 		uint64_t id;
 		TacticalBehaviour behaviour;
 		core::Coordinates currentGoal;
+		core::Coordinates currentStepGoal;
 		tjs::core::Vehicle* vehicle;
 	};
 	static_assert(std::is_pod<AgentData>::value, "AgentData must be POD");

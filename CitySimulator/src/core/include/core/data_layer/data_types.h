@@ -17,7 +17,7 @@ namespace tjs::core {
 	};
 
 	struct Vehicle {
-		int uid;
+		uint64_t uid;
 		float currentSpeed;
 		float maxSpeed;
 		Coordinates coordinates;
