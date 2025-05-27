@@ -2,6 +2,10 @@
 
 #include "core/data_layer/data_types.h"
 
+namespace tjs::core {
+	struct Node;
+} // namespace tjs::core
+
 namespace tjs::simulation {
 	ENUM_FLAG(TacticalBehaviour,
 		Normal,
@@ -12,7 +16,7 @@ namespace tjs::simulation {
 	struct AgentData {
 		uint64_t id;
 		TacticalBehaviour behaviour;
-		core::Coordinates currentGoal;
+		core::Node* currentGoal;
 		core::Coordinates currentStepGoal;
 		tjs::core::Vehicle* vehicle;
 	};

@@ -6,7 +6,7 @@
 #include <core/simulation/strategic/finding_goal_algo.h>
 
 #include <core/data_layer/world_data.h>
-
+#include <core/map_math/earth_math.h>
 
 namespace tjs::simulation {
 
@@ -25,17 +25,18 @@ namespace tjs::simulation {
 			return;
 		}
 
-		if (VehicleMovementModule::haversine_distance(agent.vehicle->coordinates, agent.currentGoal) < 0.0001) {
-			agent.currentGoal = { 0.0, 0.0 };
+		if (agent.currentGoal != nullptr) {
+			if (core::algo::haversine_distance(agent.vehicle->coordinates, agent.currentGoal->coordinates) < 0.0001) {
+				agent.currentGoal = nullptr;
+			}
 		}
 
-
-		if (agent.currentGoal.latitude != 0.0 || agent.currentGoal.longitude != 0.0) {
+		if (agent.currentGoal != nullptr) {
 			return;
 		}
 
 		auto& worldData = _system.worldData();
-		
+
 		static constexpr double MIN_RADIUS = 0.0018;
 		static constexpr double MAX_RADIUS = 0.004;
 
@@ -43,11 +44,10 @@ namespace tjs::simulation {
 			worldData.segments().front()->spatialGrid,
 			agent.vehicle->coordinates,
 			MIN_RADIUS,
-			MAX_RADIUS
-		);
+			MAX_RADIUS);
 
 		if (node != nullptr) {
-			agent.currentGoal = node->coordinates;
+			agent.currentGoal = node;
 		}
 	}
 

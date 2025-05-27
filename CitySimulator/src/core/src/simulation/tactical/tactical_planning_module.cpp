@@ -19,12 +19,12 @@ namespace tjs::simulation {
 	}
 
 	void TacticalPlanningModule::updateAgentTactics(tjs::simulation::AgentData& agent) {
-		if (agent.vehicle == nullptr) {
+		if (agent.vehicle == nullptr || agent.currentGoal == nullptr) {
 			return;
 		}
 
-		agent.currentStepGoal = agent.currentGoal;
-		
+		agent.currentStepGoal = agent.currentGoal->coordinates;
+
 		using namespace tjs::core;
 
 		auto& vehicle = *agent.vehicle;

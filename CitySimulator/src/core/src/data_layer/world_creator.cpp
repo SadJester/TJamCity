@@ -1,7 +1,8 @@
-#include "core/stdafx.h"
+#include <core/stdafx.h>
 
-#include "core/data_layer/world_creator.h"
-#include "core/data_layer/world_data.h"
+#include <core/data_layer/world_creator.h>
+#include <core/data_layer/world_data.h>
+#include <core/map_math/contraction_builder.h>
 
 namespace tjs::core {
 	bool WorldCreator::loadOSMData(WorldData& data, std::string_view osmFilename) {
@@ -13,8 +14,9 @@ namespace tjs::core {
 		// Prepare data
 		for (auto& segment : data.segments()) {
 			segment->rebuild_grid();
+			algo::ContractionBuilder builder;
+			builder.build_contraction_hierarchy(*segment->road_network);
 		}
-		// Create contraction road network
 
 		return result;
 	}
@@ -185,9 +187,8 @@ namespace tjs::core {
 					return;
 				}
 
-				
 				auto way = WayInfo::create(id, lanes, maxSpeed, tags);
-				
+
 				std::vector<Node*> nodes;
 				nodes.reserve(nodeRefs.size());
 				for (uint64_t nodeRef : nodeRefs) {
