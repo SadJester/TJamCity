@@ -4,11 +4,13 @@
 
 #include <core/data_layer/data_types.h>
 #include <core/data_layer/world_data.h>
+#include <core/store_models/idata_model.h>
 
 namespace tjs::simulation {
 
-	TrafficSimulationSystem::TrafficSimulationSystem(core::WorldData& data)
+	TrafficSimulationSystem::TrafficSimulationSystem(core::WorldData& data, core::model::DataModelStore& store)
 		: _worldData(data)
+		, _store(store)
 		, _strategicModule(*this)
 		, _tacticalModule(*this)
 		, _vehicleMovementModule(*this) {

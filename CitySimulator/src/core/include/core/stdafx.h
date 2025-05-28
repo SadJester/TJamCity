@@ -11,6 +11,7 @@
 #include <cmath>
 #include <iostream>
 #include <random>
+#include <typeindex>
 
 #include <pugixml.hpp>
 

@@ -13,6 +13,7 @@
 /// TODO: Place somwhere to be more pretty
 #include "ui_system/qt_ui/render_metrics_widget.h"
 #include "ui_system/qt_ui/map_control_widget.h"
+#include "ui_system/debug_ui/vehicle_analyze_widget.h"
 
 namespace tjs {
 	namespace ui {
@@ -53,6 +54,9 @@ namespace tjs {
 
 			MapControlWidget* mapControlWidget = new MapControlWidget(_application, window);
 			layout->addWidget(mapControlWidget);
+
+			VehicleAnalyzeWidget* vehicleAnalyzeWidget = new VehicleAnalyzeWidget(_application);
+			layout->addWidget(vehicleAnalyzeWidget);
 
 			// Add widgets
 			QPushButton* button = new QPushButton("Quit");

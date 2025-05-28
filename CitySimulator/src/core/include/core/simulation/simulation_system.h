@@ -8,6 +8,10 @@ namespace tjs::core {
 	class WorldData;
 } // namespace tjs::core
 
+namespace tjs::core::model {
+	class DataModelStore;
+}
+
 namespace tjs::simulation {
 	class TimeModule;
 
@@ -16,7 +20,7 @@ namespace tjs::simulation {
 		using Agents = std::vector<AgentData>;
 
 	public:
-		TrafficSimulationSystem(core::WorldData& data);
+		TrafficSimulationSystem(core::WorldData& data, core::model::DataModelStore& store);
 		~TrafficSimulationSystem();
 
 		void initialize();
@@ -33,6 +37,20 @@ namespace tjs::simulation {
 			 return _worldData;
 		}
 
+		StrategicPlanningModule& strategicModule() {
+			return _strategicModule;
+		}
+		TacticalPlanningModule& tacticalModule() {
+			return _tacticalModule;
+		}
+		VehicleMovementModule& vehicleMovementModule() {
+			return _vehicleMovementModule;
+		}
+
+		core::model::DataModelStore& store() {
+			return _store;
+		}
+
 	private:
 		Agents _agents;
 
@@ -40,6 +58,7 @@ namespace tjs::simulation {
 		StrategicPlanningModule _strategicModule;
 		TacticalPlanningModule _tacticalModule;
 		VehicleMovementModule _vehicleMovementModule;
+		core::model::DataModelStore& _store;
 
 		core::WorldData& _worldData;
 	};

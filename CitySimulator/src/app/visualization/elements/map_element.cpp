@@ -191,7 +191,7 @@ namespace tjs::visualization {
 		}
 
 		const FColor color = getWayColor(way.tags);
-		int segmentsRendered = drawThickLine(screenPoints, way.lanes * Constants::LANE_WIDTH, color);
+		int segmentsRendered = drawThickLine(_application.renderer(), screenPoints, metersPerPixel, way.lanes * Constants::LANE_WIDTH, color);
 
 		if (way.lanes > 1) {
 			drawLaneMarkers(screenPoints, way.lanes, Constants::LANE_WIDTH);
@@ -200,29 +200,10 @@ namespace tjs::visualization {
 		return segmentsRendered;
 	}
 
-	void MapElement::renderBoundingBox() const {
-		// Convert all corners of the bounding box to screen coordinates
-		Position topLeft = convertToScreen({ minLat, minLon });
-		Position topRight = convertToScreen({ minLat, maxLon });
-		Position bottomLeft = convertToScreen({ maxLat, minLon });
-		Position bottomRight = convertToScreen({ maxLat, maxLon });
-
-		auto& renderer = _application.renderer();
-
-		renderer.setDrawColor({ 1.f, 0.f, 0.f, 1.f });
-
-		renderer.drawLine(topLeft.x, topLeft.y, topRight.x, topRight.y);
-		renderer.drawLine(topRight.x, topRight.y, bottomRight.x, bottomRight.y);
-		renderer.drawLine(bottomRight.x, bottomRight.y, bottomLeft.x, bottomLeft.y);
-		renderer.drawLine(bottomLeft.x, bottomLeft.y, topLeft.x, topLeft.y);
-	}
-
-	int MapElement::drawThickLine(const std::vector<Position>& nodes, float thickness, FColor color) {
+	int drawThickLine(IRenderer& renderer, const std::vector<Position>& nodes, double metersPerPixel, float thickness, FColor color) {
 		if (nodes.size() < 2) {
 			return 0;
 		}
-
-		auto& renderer = _application.renderer();
 
 		thickness /= metersPerPixel;
 
@@ -264,6 +245,24 @@ namespace tjs::visualization {
 			renderer.drawGeometry(geometry);
 		}
 		return segmentsRendered;
+	}
+
+
+	void MapElement::renderBoundingBox() const {
+		// Convert all corners of the bounding box to screen coordinates
+		Position topLeft = convertToScreen({ minLat, minLon });
+		Position topRight = convertToScreen({ minLat, maxLon });
+		Position bottomLeft = convertToScreen({ maxLat, minLon });
+		Position bottomRight = convertToScreen({ maxLat, maxLon });
+
+		auto& renderer = _application.renderer();
+
+		renderer.setDrawColor({ 1.f, 0.f, 0.f, 1.f });
+
+		renderer.drawLine(topLeft.x, topLeft.y, topRight.x, topRight.y);
+		renderer.drawLine(topRight.x, topRight.y, bottomRight.x, bottomRight.y);
+		renderer.drawLine(bottomRight.x, bottomRight.y, bottomLeft.x, bottomLeft.y);
+		renderer.drawLine(bottomLeft.x, bottomLeft.y, topLeft.x, topLeft.y);
 	}
 
 	void MapElement::drawLaneMarkers(const std::vector<Position>& nodes, int lanes, int laneWidthPixels) {

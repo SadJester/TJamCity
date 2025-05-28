@@ -1,0 +1,27 @@
+#pragma once
+
+#include <core/store_models/idata_model.h>
+
+namespace tjs::core
+{
+    
+} // namespace tjs::core
+
+namespace tjs::simulation {
+    struct AgentData;
+}
+
+
+namespace tjs::core::model {
+    struct VehicleAnalyzeData : public IDataModel {
+        simulation::AgentData* agent = nullptr;
+
+        static std::type_index get_type() { 
+            return typeid(VehicleAnalyzeData);
+        }
+
+        void set_agent(simulation::AgentData* agent) { 
+            this->agent = agent;
+        }
+    };
+}

@@ -10,7 +10,8 @@ namespace tjs::visualization {
 		// Color definitions
 		static constexpr FColor ROAD_COLOR = { 0.392f, 0.392f, 0.392f, 1.0f };
 		static constexpr FColor LANE_MARKER_COLOR = { 1.0f, 1.0f, 0.0f, 1.0f };
-		;
+		static constexpr FColor PATH_COLOR = {0.0f, 1.0f, 0.0f, 1.0f};
+		
 		static constexpr FColor MOTORWAY_COLOR = { 0.314f, 0.314f, 0.471f, 1.0f };
 		static constexpr FColor PRIMARY_COLOR = { 0.353f, 0.353f, 0.353f, 1.0f };
 		static constexpr FColor RESIDENTIAL_COLOR = { 0.471f, 0.471f, 0.471f, 1.0f };

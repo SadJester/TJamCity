@@ -15,6 +15,7 @@
 
 #include <core/data_layer/world_creator.h>
 #include <core/simulation/simulation_system.h>
+#include <core/store_models/vehicle_analyze_data.h>
 
 namespace tjs {
 	namespace ui {
@@ -193,6 +194,7 @@ namespace tjs {
 				tjs::core::WorldCreator::createRandomVehicles(_application.worldData(), _application.settings().simulationSettings);
 				// TODO: message system
 				_application.simulationSystem().initialize();
+				_application.stores().get_model<core::model::VehicleAnalyzeData>()->agent = nullptr;
 			});
 
 			layout->addWidget(infoFrame);

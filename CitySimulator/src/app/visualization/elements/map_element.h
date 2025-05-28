@@ -70,8 +70,9 @@ namespace tjs {
 			}
 
 		private:
-			int drawThickLine(const std::vector<Position>& nodes, float thickness, FColor color);
 			void drawLaneMarkers(const std::vector<Position>& nodes, int lanes, int laneWidthPixels);
 		};
+	
+		int drawThickLine(IRenderer& renderer, const std::vector<Position>& nodes, double metersPerPixel, float thickness, FColor color);
 	} // namespace visualization
 } // namespace tjs

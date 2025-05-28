@@ -7,6 +7,7 @@
 #include <deque>
 
 #include <thread>
+#include <typeindex>
 #include <algorithm>
 #include <iostream>
 #include <span>

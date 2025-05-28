@@ -14,14 +14,24 @@
 
 #include <core/simulation/simulation_system.h>
 
+// Store models
+#include <core/store_models/vehicle_analyze_data.h>
+
 namespace tjs {
+
+	void setup_store_models(Application& app) {
+        app.stores().add_model<core::model::VehicleAnalyzeData>();
+    }
+
 	int launch(int argc, char* argv[]) {
 		tjs::Application application(
 			argc,
 			argv);
 
 		auto worldData = std::make_unique<tjs::core::WorldData>();
-		auto simulationSystem = std::make_unique<tjs::simulation::TrafficSimulationSystem>(*worldData);
+		auto simulationSystem = std::make_unique<tjs::simulation::TrafficSimulationSystem>(*worldData, application.stores());
+
+		setup_store_models(application);
 
 		application.setup(
 			std::make_unique<tjs::render::SDLRenderer>(application),
