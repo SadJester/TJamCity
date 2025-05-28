@@ -24,17 +24,22 @@ namespace tjs::simulation {
 		}
 	}
 
-	static core::Coordinates move_towards(const core::Coordinates& start, const core::Coordinates& end, double distance) {
+	static core::Coordinates move_towards(
+		const core::Coordinates& start,
+		const core::Coordinates& end,
+		double distance,
+		double total_distance // precalculated value
+	) {
 		if (distance <= 0) {
 			return start;
 		}
 
-		const double total_dist = core::algo::haversine_distance(start, end);
-		if (total_dist <= 1e-3) {
+		//const double total_dist = core::algo::haversine_distance(start, end);
+		if (total_distance <= 1e-3) {
 			return end;
 		}
 
-		const double fraction = distance / total_dist;
+		const double fraction = distance / total_distance;
 
 		const double lat = start.latitude + fraction * (end.latitude - start.latitude);
 		const double lon = start.longitude + fraction * (end.longitude - start.longitude);
@@ -63,23 +68,19 @@ namespace tjs::simulation {
 			agent.vehicle->coordinates = target;
 		} else {
 			// Calculate new position
-			agent.vehicle->coordinates = move_towards(current, target, max_move);
+			agent.vehicle->coordinates = move_towards(current, target, max_move, distance_to_target);
 		}
 
 		// Ensure speed doesn't exceed maximum
-		agent.vehicle->currentSpeed = std::min(agent.vehicle->currentSpeed,
+		agent.vehicle->currentSpeed = std::min(
+			agent.vehicle->currentSpeed,
 			agent.vehicle->maxSpeed);
 
-		auto& vehicle = *agent.vehicle;
-		if (vehicle.currentWay != nullptr && vehicle.currentSegmentIndex + 1 < vehicle.currentWay->nodes.size()) {
-			core::Node* currentNode = vehicle.currentWay->nodes[vehicle.currentSegmentIndex];
-			core::Node* nextNode = vehicle.currentWay->nodes[vehicle.currentSegmentIndex + 1];
-			core::Coordinates dir {
-				nextNode->coordinates.latitude - currentNode->coordinates.latitude,
-				nextNode->coordinates.longitude - currentNode->coordinates.longitude
-			};
-			vehicle.rotationAngle = atan2(dir.longitude, dir.latitude);
-		}
+		core::Coordinates dir {
+			target.latitude - current.latitude,
+			target.longitude - current.longitude
+		};
+		agent.vehicle->rotationAngle = atan2(dir.longitude, dir.latitude);
 	}
 
 } // namespace tjs::simulation

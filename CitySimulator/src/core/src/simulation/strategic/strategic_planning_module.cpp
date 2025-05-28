@@ -26,12 +26,6 @@ namespace tjs::simulation {
 		}
 
 		if (agent.currentGoal != nullptr) {
-			if (core::algo::haversine_distance(agent.vehicle->coordinates, agent.currentGoal->coordinates) < 0.0001) {
-				agent.currentGoal = nullptr;
-			}
-		}
-
-		if (agent.currentGoal != nullptr) {
 			return;
 		}
 
