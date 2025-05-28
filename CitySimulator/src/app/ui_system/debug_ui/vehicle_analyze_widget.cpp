@@ -34,6 +34,10 @@ namespace tjs::ui {
                     QVariant::fromValue(agent.id)
                 );
             }
+
+            if (agents.size() == 1) {
+                _agentComboBox->setCurrentIndex(1);
+            }
         };
 
         if (_agentComboBox != nullptr) {

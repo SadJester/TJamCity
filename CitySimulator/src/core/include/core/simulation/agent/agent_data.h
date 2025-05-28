@@ -20,6 +20,8 @@ namespace tjs::simulation {
 		core::Coordinates currentStepGoal;
 		tjs::core::Vehicle* vehicle;
 		std::deque<core::Node*> path;  // Path to follow
+		std::vector<core::Node*> visitedNodes;
+		bool last_segment = false;
 		double distanceTraveled = 0.0; // Total distance traveled
 	};
 	//static_assert(std::is_pod<AgentData>::value, "AgentData must be POD");

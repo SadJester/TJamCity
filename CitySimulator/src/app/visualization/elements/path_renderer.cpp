@@ -49,14 +49,47 @@ namespace tjs::visualization {
             return;
         }
 
-        std::vector<Position> screenPoints;
-		screenPoints.reserve(path.size());
-		for (Node* node : path) {
-			screenPoints.push_back(_mapElement->convertToScreen(node->coordinates));
+        auto& visited_path = model->agent->visitedNodes;
+
+        std::vector<Position> toVisitPoints;
+		toVisitPoints.reserve(path.size());
+
+        std::vector<Position> visitedPoints;
+        visitedPoints.reserve(visited_path.size());
+
+        renderer.setDrawColor(Constants::PATH_MARK_COLOR);
+		for (size_t i = 0; i < visited_path.size(); ++i) {
+            auto node = visited_path[i];
+            auto point = _mapElement->convertToScreen(node->coordinates);
+			visitedPoints.push_back(point);
+            renderer.drawCircle(
+                point.x,
+                point.y,
+                i == 0 ? 5.0f : 3.0f
+            );
+		}
+
+        // To visit nodes
+        bool markFirst = visited_path.size() == 0;
+		for (size_t i = 0; i < path.size(); ++i) {
+            auto node = path[i];
+            auto point = _mapElement->convertToScreen(node->coordinates);
+			toVisitPoints.push_back(point);
+            renderer.drawCircle(
+                point.x,
+                point.y,
+                (i == 0 && markFirst) ? 5.0f : 3.0f
+            );
 		}
 
         // TODO: thickness of path in settings
         static float thickness = 11.0f;
-        drawThickLine(renderer, screenPoints, _mapElement->getZoomLevel(), thickness, Constants::PATH_COLOR);
+        drawThickLine(renderer, visitedPoints, _mapElement->getZoomLevel(), thickness, FColor{0.f, 0.f, 1.0f, 1.0f});
+        drawThickLine(renderer, toVisitPoints, _mapElement->getZoomLevel(), thickness, Constants::PATH_COLOR);
+        
+
+        renderer.setDrawColor(FColor{0.f, 0.f, 1.0f, 1.0f});
+        auto currentGoal = _mapElement->convertToScreen(model->agent->currentStepGoal);
+        renderer.drawCircle(currentGoal.x, currentGoal.y, 4.0f);
     }
 }

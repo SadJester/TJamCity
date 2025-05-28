@@ -214,8 +214,6 @@ namespace tjs::simulation {
 			return;
 		}
 
-		agent.currentStepGoal = agent.currentGoal->coordinates;
-
 		auto& vehicle = *agent.vehicle;
 
 		auto& world = _system.worldData();
@@ -272,14 +270,16 @@ namespace tjs::simulation {
 		}
 
 		// Step 2: If we don't have a path to the goal, find one
-		if (agent.path.empty()) {
+		if (!agent.last_segment && agent.path.empty()) {
 			Node* start_node = findNearestNode(vehicle.coordinates, road_network);
 			Node* goal_node = agent.currentGoal;
 
 			if (start_node && goal_node) {
 				agent.path = findPath(start_node, goal_node, road_network);
+				agent.visitedNodes.clear();
 				if (!agent.path.empty()) {
 					agent.currentStepGoal = agent.path.front()->coordinates;
+					agent.visitedNodes.push_back(agent.path.front());
 					agent.path.pop_front();
 					agent.distanceTraveled = 0.0; // Reset distance for new path
 				}
@@ -291,17 +291,23 @@ namespace tjs::simulation {
 		if (distance_to_target < SimulationConstants::ARRIVAL_THRESHOLD) {
 			if (!agent.path.empty()) {
 				// Update distance traveled with the segment we just completed
-				agent.distanceTraveled += core::algo::haversine_distance(vehicle.coordinates, agent.currentStepGoal);
+				if (!agent.visitedNodes.empty()) {
+					auto last_visited = agent.visitedNodes.back();
+					agent.distanceTraveled += core::algo::haversine_distance(last_visited->coordinates, agent.currentStepGoal);
+				}
 
 				// Move to next point in path
 				agent.currentStepGoal = agent.path.front()->coordinates;
+				agent.visitedNodes.push_back(agent.path.front());
 				agent.path.pop_front();
+				agent.last_segment = agent.path.empty();
 			} else {
 				// Final segment distance
 				agent.distanceTraveled += core::algo::haversine_distance(vehicle.coordinates, agent.currentStepGoal);
 
 				// Reached final destination
 				agent.currentGoal = nullptr;
+				agent.last_segment = false;
 				return;
 			}
 		}

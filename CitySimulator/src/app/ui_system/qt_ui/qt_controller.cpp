@@ -57,6 +57,7 @@ namespace tjs {
 
 			VehicleAnalyzeWidget* vehicleAnalyzeWidget = new VehicleAnalyzeWidget(_application);
 			layout->addWidget(vehicleAnalyzeWidget);
+			mapControlWidget->setVehicles(vehicleAnalyzeWidget);
 
 			// Add widgets
 			QPushButton* button = new QPushButton("Quit");

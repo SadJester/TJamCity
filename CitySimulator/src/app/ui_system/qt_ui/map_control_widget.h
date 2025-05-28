@@ -15,12 +15,16 @@ namespace tjs {
 	} // namespace visualization
 
 	namespace ui {
+		class VehicleAnalyzeWidget;
+
 		class MapControlWidget : public QWidget {
 			// Q_OBJECT
 
 		public:
 			explicit MapControlWidget(Application& application, QWidget* parent = nullptr);
 			~MapControlWidget() override;
+
+			void setVehicles(VehicleAnalyzeWidget* vehiclesWidget) { _vehiclesWidget = vehiclesWidget; }
 
 		private:
 			void UpdateButtonsState();
@@ -62,6 +66,8 @@ namespace tjs {
 			QPushButton* _regenerateVehiclesButton;
 
 			QLabel* _zoomLevel;
+
+			VehicleAnalyzeWidget* _vehiclesWidget = nullptr;
 		};
 	} // namespace ui
 } // namespace tjs
