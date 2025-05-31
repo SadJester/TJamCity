@@ -27,10 +27,6 @@ namespace tjs::core::simulation {
 		int origin_y = static_cast<int>(coord.longitude / grid.cellSize);
 
 		// Step 2: Find another random cell within radius range
-
-		static std::random_device rd;
-		static std::mt19937 gen(rd());
-
 		// Convert radius to grid cells
 		int min_cell_radius = static_cast<int>(minRadius / grid.cellSize);
 		int max_cell_radius = static_cast<int>(maxRadius / grid.cellSize);
