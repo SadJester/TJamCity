@@ -13,7 +13,9 @@ namespace tjs::core {
 		BigTruck,
 		Ambulance,
 		PoliceCar,
-		FireTrack
+		FireTrack,
+
+		Count
 	};
 
 	struct Vehicle {

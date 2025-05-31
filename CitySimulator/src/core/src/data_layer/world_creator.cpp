@@ -4,6 +4,8 @@
 #include <core/data_layer/world_data.h>
 #include <core/map_math/contraction_builder.h>
 
+#include <core/random_generator.h>
+
 namespace tjs::core {
 	bool WorldCreator::loadOSMData(WorldData& data, std::string_view osmFilename) {
 		bool result = false;
@@ -55,17 +57,9 @@ namespace tjs::core {
 			}
 		}
 
-		// Random number generator
-		std::random_device rd;
-		std::mt19937 gen(rd());
-
 		if (!settings.randomSeed) {
-			gen.seed(settings.seedValue);
+			RandomGenerator::set_seed(settings.seedValue);
 		}
-
-		std::uniform_int_distribution<> uidDist(1, 10000000);     // Example range for UID
-		std::uniform_real_distribution<> speedDist(0.0f, 100.0f); // Example range for speed
-		std::uniform_int_distribution<> typeDist(static_cast<int>(VehicleType::SimpleCar), static_cast<int>(VehicleType::FireTrack));
 
 		auto find_way = [&](Node* node) -> core::WayInfo* {
 			auto it = std::ranges::find_if(ways, [&](const auto& way) {
@@ -80,15 +74,15 @@ namespace tjs::core {
 		// Generate vehicles
 		for (size_t i = 0; i < settings.vehiclesCount; ++i) {
 			// Randomly select a node for the vehicle's coordinates
-			auto nodeIt = std::next(allNodes.begin(), std::uniform_int_distribution<>(0, allNodes.size() - 1)(gen));
+			auto nodeIt = std::next(allNodes.begin(), RandomGenerator::get().next_int(0, allNodes.size() - 1));
 			const Coordinates& coordinates = (*nodeIt)->coordinates;
 
 			// Create a vehicle with random attributes and the selected node's coordinates
 			Vehicle vehicle;
-			vehicle.uid = uidDist(gen);
-			vehicle.type = static_cast<VehicleType>(typeDist(gen));
-			vehicle.currentSpeed = speedDist(gen);
-			vehicle.maxSpeed = speedDist(gen);
+			vehicle.uid = RandomGenerator::get().next_int(1, 10000000);
+			vehicle.type = RandomGenerator::get().next_enum<VehicleType>();
+			vehicle.currentSpeed = RandomGenerator::get().next_float(0.0f, 100.0f);
+			vehicle.maxSpeed = RandomGenerator::get().next_float(0.0f, 100.0f);
 			vehicle.coordinates = coordinates;
 			vehicle.currentSegmentIndex = 0;
 			vehicle.currentWay = find_way(*nodeIt);

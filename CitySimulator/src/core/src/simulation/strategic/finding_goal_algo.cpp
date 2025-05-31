@@ -7,6 +7,8 @@
 #include <core/data_layer/way_info.h>
 #include <core/math_constants.h>
 
+#include <core/random_generator.h>
+
 namespace tjs::core::simulation {
 
 	core::Node* find_random_goal(
@@ -25,6 +27,7 @@ namespace tjs::core::simulation {
 		int origin_y = static_cast<int>(coord.longitude / grid.cellSize);
 
 		// Step 2: Find another random cell within radius range
+
 		static std::random_device rd;
 		static std::mt19937 gen(rd());
 
@@ -39,12 +42,8 @@ namespace tjs::core::simulation {
 		// We'll try a few times to find a suitable cell
 		const int max_attempts = 100;
 		for (int attempt = 0; attempt < max_attempts; ++attempt) {
-			// Generate random radius and angle
-			std::uniform_int_distribution<> radius_dist(min_cell_radius, max_cell_radius);
-			std::uniform_real_distribution<> angle_dist(0.0, 2.0 * core::MathConstants::M_PI);
-
-			int radius = radius_dist(gen);
-			double angle = angle_dist(gen);
+			int radius = RandomGenerator::get().next_int(min_cell_radius, max_cell_radius);
+			double angle = RandomGenerator::get().next_double(0.0, 2.0 * core::MathConstants::M_PI);
 
 			// Calculate target cell coordinates
 			int target_x = origin_x + static_cast<int>(radius * std::cos(angle));
@@ -54,10 +53,7 @@ namespace tjs::core::simulation {
 			auto target_cell = grid.get_ways_in_cell(target_x, target_y);
 			if (target_cell.has_value() && !target_cell->get().empty()) {
 				const auto& ways = target_cell->get();
-
-				// Pick a random way
-				std::uniform_int_distribution<> way_dist(0, ways.size() - 1);
-				core::WayInfo* random_way = ways[way_dist(gen)];
+				core::WayInfo* random_way = ways[RandomGenerator::get().next_int(0, ways.size() - 1)];
 
 				// Return the first node of the way
 				if (!random_way->nodes.empty()) {

@@ -164,3 +164,25 @@ TEST_F(RandomGeneratorTest, DistributionQuality) {
 	EXPECT_GT(min_count, samples / (buckets * 2)); // At least half of expected
 	EXPECT_LT(max_count, samples * 2 / buckets);   // At most double expected
 }
+
+TEST(RandomGeneratorEnumTest, BasicEnumGeneration) {
+	enum class TestEnum {
+		One,
+		Two,
+		Three,
+		Count // Must be last
+	};
+
+	auto& rng = RandomGenerator::get();
+
+	// Test with enum that has Count
+	std::unordered_set<TestEnum> test_values;
+	for (int i = 0; i < 100; ++i) {
+		test_values.insert(rng.next_enum<TestEnum>());
+	}
+
+	EXPECT_TRUE(test_values.contains(TestEnum::One));
+	EXPECT_TRUE(test_values.contains(TestEnum::Two));
+	EXPECT_TRUE(test_values.contains(TestEnum::Three));
+	EXPECT_EQ(3, test_values.size()) << "Should not generate values outside enum range";
+}
