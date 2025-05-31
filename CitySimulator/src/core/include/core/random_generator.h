@@ -51,6 +51,8 @@ namespace tjs::core {
 		static std::atomic<int> seed_version;
 
 		int _local_seed_version;
+		// sonar-ignore-start:S2245 - in this place we treat that this is not sensitive context
 		std::mt19937_64 _engine;
+		// sonar-ignore-end:S2245
 	};
 } // namespace tjs::core
