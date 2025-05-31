@@ -5,7 +5,7 @@
 #include <core/math_constants.h>
 #include <core/map_math/earth_math.h>
 
-namespace tjs::simulation {
+namespace tjs::core::simulation {
 	VehicleMovementModule::VehicleMovementModule(TrafficSimulationSystem& system)
 		: _system(system) {
 	}
@@ -83,4 +83,4 @@ namespace tjs::simulation {
 		agent.vehicle->rotationAngle = atan2(dir.longitude, dir.latitude);
 	}
 
-} // namespace tjs::simulation
+} // namespace tjs::core::simulation

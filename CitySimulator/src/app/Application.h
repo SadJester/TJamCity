@@ -12,12 +12,11 @@ namespace tjs {
 		class SceneSystem;
 	} // namespace visualization
 
-	namespace simulation {
-		class TrafficSimulationSystem;
-	} // namespace simulation
-
 	namespace core {
 		class WorldData;
+		namespace simulation {
+			class TrafficSimulationSystem;
+		} // namespace simulation
 	} // namespace core
 
 	class CommandLine {
@@ -89,7 +88,7 @@ namespace tjs {
 			std::unique_ptr<UISystem>&& uiSystem,
 			std::unique_ptr<visualization::SceneSystem>&& sceneSystem,
 			std::unique_ptr<core::WorldData>&& worldData,
-			std::unique_ptr<simulation::TrafficSimulationSystem>&& simulationSystem);
+			std::unique_ptr<core::simulation::TrafficSimulationSystem>&& simulationSystem);
 		void initialize();
 		void run();
 
@@ -114,7 +113,7 @@ namespace tjs {
 			return *_sceneSystem;
 		}
 
-		simulation::TrafficSimulationSystem& simulationSystem() {
+		core::simulation::TrafficSimulationSystem& simulationSystem() {
 			return *_simulationSystem;
 		}
 
@@ -136,7 +135,7 @@ namespace tjs {
 		std::unique_ptr<UISystem> _uiSystem;
 		std::unique_ptr<visualization::SceneSystem> _sceneSystem;
 		std::unique_ptr<core::WorldData> _worldData;
-		std::unique_ptr<simulation::TrafficSimulationSystem> _simulationSystem;
+		std::unique_ptr<core::simulation::TrafficSimulationSystem> _simulationSystem;
 	};
 
 	void setup_models(Application& app);

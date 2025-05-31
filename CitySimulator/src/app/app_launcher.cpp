@@ -20,8 +20,8 @@
 namespace tjs {
 
 	void setup_store_models(Application& app) {
-        app.stores().add_model<core::model::VehicleAnalyzeData>();
-    }
+		app.stores().add_model<core::model::VehicleAnalyzeData>();
+	}
 
 	int launch(int argc, char* argv[]) {
 		tjs::Application application(
@@ -29,7 +29,7 @@ namespace tjs {
 			argv);
 
 		auto worldData = std::make_unique<tjs::core::WorldData>();
-		auto simulationSystem = std::make_unique<tjs::simulation::TrafficSimulationSystem>(*worldData, application.stores());
+		auto simulationSystem = std::make_unique<core::simulation::TrafficSimulationSystem>(*worldData, application.stores());
 
 		setup_store_models(application);
 

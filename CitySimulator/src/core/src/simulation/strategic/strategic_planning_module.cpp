@@ -8,7 +8,7 @@
 #include <core/data_layer/world_data.h>
 #include <core/map_math/earth_math.h>
 
-namespace tjs::simulation {
+namespace tjs::core::simulation {
 
 	StrategicPlanningModule::StrategicPlanningModule(TrafficSimulationSystem& system)
 		: _system(system) {}
@@ -16,11 +16,11 @@ namespace tjs::simulation {
 	void StrategicPlanningModule::update() {
 		auto& agents = _system.agents();
 		for (size_t i = 0; i < agents.size(); ++i) {
-			updateAgentStrategy(agents[i]);
+			update_agent_strategy(agents[i]);
 		}
 	}
 
-	void StrategicPlanningModule::updateAgentStrategy(AgentData& agent) {
+	void StrategicPlanningModule::update_agent_strategy(AgentData& agent) {
 		if (agent.vehicle == nullptr) {
 			return;
 		}
@@ -34,7 +34,7 @@ namespace tjs::simulation {
 		static constexpr double MIN_RADIUS = 0.0036;
 		static constexpr double MAX_RADIUS = 0.01;
 
-		auto node = findRandomGoal(
+		auto node = find_random_goal(
 			worldData.segments().front()->spatialGrid,
 			agent.vehicle->coordinates,
 			MIN_RADIUS,
@@ -45,4 +45,4 @@ namespace tjs::simulation {
 		}
 	}
 
-} // namespace tjs::simulation
+} // namespace tjs::core::simulation

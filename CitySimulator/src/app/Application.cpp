@@ -30,7 +30,7 @@ namespace tjs {
 		std::unique_ptr<UISystem>&& uiSystem,
 		std::unique_ptr<visualization::SceneSystem>&& sceneSystem,
 		std::unique_ptr<core::WorldData>&& worldData,
-		std::unique_ptr<simulation::TrafficSimulationSystem>&& simulationSystem) {
+		std::unique_ptr<core::simulation::TrafficSimulationSystem>&& simulationSystem) {
 		_renderer = std::move(renderer);
 		_uiSystem = std::move(uiSystem);
 		_sceneSystem = std::move(sceneSystem);

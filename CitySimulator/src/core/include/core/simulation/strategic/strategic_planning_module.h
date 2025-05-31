@@ -1,7 +1,7 @@
 #pragma once
 #include <core/simulation/agent/agent_data.h>
 
-namespace tjs::simulation {
+namespace tjs::core::simulation {
 	class TrafficSimulationSystem;
 
 	class StrategicPlanningModule {
@@ -10,9 +10,9 @@ namespace tjs::simulation {
 		void update();
 
 	private:
-		void updateAgentStrategy(AgentData& agent);
+		void update_agent_strategy(AgentData& agent);
 
 	private:
 		TrafficSimulationSystem& _system;
 	};
-} // namespace tjs::simulation
+} // namespace tjs::core::simulation

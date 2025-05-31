@@ -7,7 +7,7 @@
 #include <core/store_models/idata_model.h>
 #include <core/store_models/vehicle_analyze_data.h>
 
-namespace tjs::simulation {
+namespace tjs::core::simulation {
 
 	TrafficSimulationSystem::TrafficSimulationSystem(core::WorldData& data, core::model::DataModelStore& store)
 		: _worldData(data)
@@ -27,13 +27,11 @@ namespace tjs::simulation {
 		_agents.shrink_to_fit();
 		_agents.reserve(vehicles.size());
 		for (size_t i = 0; i < vehicles.size(); ++i) {
-			_agents.push_back({
-				vehicles[i].uid,
+			_agents.push_back({ vehicles[i].uid,
 				TacticalBehaviour::Normal,
 				nullptr,
 				core::Coordinates { 0.0, 0.0 },
-				&vehicles[i]
-			});
+				&vehicles[i] });
 		}
 
 		//_strategicModule.initialize();
@@ -53,4 +51,4 @@ namespace tjs::simulation {
 		_vehicleMovementModule.update();
 	}
 
-} // namespace tjs::simulation
+} // namespace tjs::core::simulation

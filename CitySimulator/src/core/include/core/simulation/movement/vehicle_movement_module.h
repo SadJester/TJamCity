@@ -2,12 +2,12 @@
 
 namespace tjs::core {
 	struct Coordinates;
+	struct AgentData;
 } // namespace tjs::core
 
-namespace tjs::simulation {
+namespace tjs::core::simulation {
 
 	class TrafficSimulationSystem;
-	struct AgentData;
 
 	class VehicleMovementModule {
 	public:
@@ -23,4 +23,4 @@ namespace tjs::simulation {
 	private:
 		TrafficSimulationSystem& _system;
 	};
-} // namespace tjs::simulation
+} // namespace tjs::core::simulation
