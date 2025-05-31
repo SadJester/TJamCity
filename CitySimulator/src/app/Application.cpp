@@ -30,7 +30,7 @@ namespace tjs {
 		std::unique_ptr<UISystem>&& uiSystem,
 		std::unique_ptr<visualization::SceneSystem>&& sceneSystem,
 		std::unique_ptr<core::WorldData>&& worldData,
-		std::unique_ptr<simulation::TrafficSimulationSystem>&& simulationSystem) {
+		std::unique_ptr<core::simulation::TrafficSimulationSystem>&& simulationSystem) {
 		_renderer = std::move(renderer);
 		_uiSystem = std::move(uiSystem);
 		_sceneSystem = std::move(sceneSystem);
@@ -57,14 +57,18 @@ namespace tjs {
 		auto lastFrameTime = std::chrono::high_resolution_clock::now();
 		int currentFPS = 0.0;
 
-		auto lastTimeSaveSettings = std::chrono::high_resolution_clock::now();
-
+		auto lastTimeSaveSettings = lastFrameTime;
+		auto prevFrameStart = lastFrameTime;
 		while (!isFinished()) {
 			// Record the start time of this frame
 			auto frameStart = std::chrono::high_resolution_clock::now();
 
-			auto fromLastUpdate = frameStart - lastFrameTime;
-			_simulationSystem->update(fromLastUpdate.count());
+			// Calculate time elapsed since last simulation update for simulation calculations
+			const double durationInSeconds = std::chrono::duration_cast<std::chrono::duration<double>>(
+				frameStart - prevFrameStart)
+												 .count();
+			_simulationSystem->update(durationInSeconds);
+			prevFrameStart = frameStart;
 
 			// Run the update and draw operations
 			_uiSystem->update();

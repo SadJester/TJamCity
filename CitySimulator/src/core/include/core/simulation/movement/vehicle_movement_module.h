@@ -1,18 +1,24 @@
 #pragma once
-#include <core/simulation/agent/agent_data.h>
+
+namespace tjs::core {
+	struct Coordinates;
+	struct AgentData;
+} // namespace tjs::core
 
 namespace tjs::core::simulation {
+
 	class TrafficSimulationSystem;
 
-	class StrategicPlanningModule {
+	class VehicleMovementModule {
 	public:
-		StrategicPlanningModule(TrafficSimulationSystem& system);
+		VehicleMovementModule(TrafficSimulationSystem& system);
+
 		void initialize();
 		void release();
 		void update();
 
 	private:
-		void update_agent_strategy(AgentData& agent);
+		void update_movement(AgentData& agent);
 
 	private:
 		TrafficSimulationSystem& _system;

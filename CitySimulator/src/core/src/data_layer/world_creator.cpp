@@ -1,7 +1,10 @@
-#include "core/stdafx.h"
+#include <core/stdafx.h>
 
-#include "core/data_layer/world_creator.h"
-#include "core/data_layer/world_data.h"
+#include <core/data_layer/world_creator.h>
+#include <core/data_layer/world_data.h>
+#include <core/map_math/contraction_builder.h>
+
+#include <core/random_generator.h>
 
 namespace tjs::core {
 	bool WorldCreator::loadOSMData(WorldData& data, std::string_view osmFilename) {
@@ -13,8 +16,19 @@ namespace tjs::core {
 		// Prepare data
 		for (auto& segment : data.segments()) {
 			segment->rebuild_grid();
+
+			auto& road_network = segment->road_network;
+			for (auto& [uid, way] : segment->ways) {
+				road_network->ways.emplace(uid, way.get());
+				for (auto node : way->nodes) {
+					road_network->nodes.emplace(node->uid, node);
+				}
+			}
+
+			algo::ContractionBuilder builder;
+			builder.build_contraction_hierarchy(*segment->road_network);
+			builder.build_graph(*segment->road_network);
 		}
-		// Create contraction road network
 
 		return result;
 	}
@@ -43,17 +57,10 @@ namespace tjs::core {
 			}
 		}
 
-		// Random number generator
-		std::random_device rd;
-		std::mt19937 gen(rd());
-
+		// TODO: RandomGenerator<Context>
 		if (!settings.randomSeed) {
-			gen.seed(settings.seedValue);
+			RandomGenerator::set_seed(settings.seedValue);
 		}
-
-		std::uniform_int_distribution<> uidDist(1, 10000000);     // Example range for UID
-		std::uniform_real_distribution<> speedDist(0.0f, 100.0f); // Example range for speed
-		std::uniform_int_distribution<> typeDist(static_cast<int>(VehicleType::SimpleCar), static_cast<int>(VehicleType::FireTrack));
 
 		auto find_way = [&](Node* node) -> core::WayInfo* {
 			auto it = std::ranges::find_if(ways, [&](const auto& way) {
@@ -68,15 +75,15 @@ namespace tjs::core {
 		// Generate vehicles
 		for (size_t i = 0; i < settings.vehiclesCount; ++i) {
 			// Randomly select a node for the vehicle's coordinates
-			auto nodeIt = std::next(allNodes.begin(), std::uniform_int_distribution<>(0, allNodes.size() - 1)(gen));
+			auto nodeIt = std::next(allNodes.begin(), RandomGenerator::get().next_int(0, allNodes.size() - 1));
 			const Coordinates& coordinates = (*nodeIt)->coordinates;
 
 			// Create a vehicle with random attributes and the selected node's coordinates
 			Vehicle vehicle;
-			vehicle.uid = uidDist(gen);
-			vehicle.type = static_cast<VehicleType>(typeDist(gen));
-			vehicle.currentSpeed = speedDist(gen);
-			vehicle.maxSpeed = speedDist(gen);
+			vehicle.uid = RandomGenerator::get().next_int(1, 10000000);
+			vehicle.type = RandomGenerator::get().next_enum<VehicleType>();
+			vehicle.currentSpeed = RandomGenerator::get().next_float(0.0f, 100.0f);
+			vehicle.maxSpeed = RandomGenerator::get().next_float(0.0f, 100.0f);
 			vehicle.coordinates = coordinates;
 			vehicle.currentSegmentIndex = 0;
 			vehicle.currentWay = find_way(*nodeIt);
@@ -180,6 +187,13 @@ namespace tjs::core {
 					}
 				}
 
+				// Only add ways that have been classified as roads
+				if (tags == WayTags::None) {
+					return;
+				}
+
+				auto way = WayInfo::create(id, lanes, maxSpeed, tags);
+
 				std::vector<Node*> nodes;
 				nodes.reserve(nodeRefs.size());
 				for (uint64_t nodeRef : nodeRefs) {
@@ -188,16 +202,12 @@ namespace tjs::core {
 						continue;
 					}
 					node->second->tags = node->second->tags | NodeTags::Way;
+					node->second->ways.emplace_back(way.get());
 					nodes.push_back(node->second.get());
 				}
-
-				// Only add ways that have been classified as roads
-				if (tags != WayTags::None) {
-					auto way = WayInfo::create(id, lanes, maxSpeed, tags);
-					way->nodeRefs = std::move(nodeRefs);
-					way->nodes = std::move(nodes);
-					world.ways[id] = std::move(way);
-				}
+				way->nodeRefs = std::move(nodeRefs);
+				way->nodes = std::move(nodes);
+				world.ways[id] = std::move(way);
 			}
 
 			static int parseSpeedValue(const std::string& speedStr) {

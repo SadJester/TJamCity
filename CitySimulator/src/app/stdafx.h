@@ -4,8 +4,10 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <deque>
 
 #include <thread>
+#include <typeindex>
 #include <algorithm>
 #include <iostream>
 #include <span>

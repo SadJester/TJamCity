@@ -2,7 +2,7 @@
 
 #include <core/simulation/time_module.h>
 
-namespace tjs::simulation {
+namespace tjs::core {
 
 	TimeModule::TimeModule(double stepDelta)
 		: _stepDelta(stepDelta) {
@@ -44,4 +44,4 @@ namespace tjs::simulation {
 		update(_stepDelta);
 	}
 
-} // namespace tjs::simulation
+} // namespace tjs::core

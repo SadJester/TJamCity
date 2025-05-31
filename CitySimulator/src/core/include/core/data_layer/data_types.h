@@ -13,11 +13,13 @@ namespace tjs::core {
 		BigTruck,
 		Ambulance,
 		PoliceCar,
-		FireTrack
+		FireTrack,
+
+		Count
 	};
 
 	struct Vehicle {
-		int uid;
+		uint64_t uid;
 		float currentSpeed;
 		float maxSpeed;
 		Coordinates coordinates;
@@ -73,11 +75,14 @@ namespace tjs::core {
 		SegmentBoundingBox boundingBox;
 		std::unordered_map<uint64_t, std::unique_ptr<Node>> nodes;
 		std::unordered_map<uint64_t, std::unique_ptr<WayInfo>> ways;
-		std::vector<std::unique_ptr<RoadNetwork>> roads;
+
+		std::unique_ptr<RoadNetwork> road_network;
 		SpatialGrid spatialGrid;
 
 		static std::unique_ptr<WorldSegment> create() {
-			return std::make_unique<WorldSegment>();
+			auto segment = std::make_unique<WorldSegment>();
+			segment->road_network = std::make_unique<RoadNetwork>();
+			return segment;
 		}
 
 		void rebuild_grid();

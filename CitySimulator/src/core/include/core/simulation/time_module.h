@@ -1,6 +1,6 @@
 #pragma once
 
-namespace tjs::simulation {
+namespace tjs::core {
 	struct TimeState {
 		double simulationTime = 0.0;
 		double unscaledsimulationTime = 0.0f;
@@ -38,4 +38,4 @@ namespace tjs::simulation {
 		TimeState _timeState;
 		double _stepDelta = 0.016;
 	};
-} // namespace tjs::simulation
+} // namespace tjs::core
