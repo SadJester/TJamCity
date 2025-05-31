@@ -7,6 +7,8 @@ namespace tjs::core::simulation {
 	class StrategicPlanningModule {
 	public:
 		StrategicPlanningModule(TrafficSimulationSystem& system);
+		void initialize();
+		void release();
 		void update();
 
 	private:

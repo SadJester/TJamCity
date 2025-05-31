@@ -34,8 +34,8 @@ namespace tjs::core::simulation {
 				&vehicles[i] });
 		}
 
-		//_strategicModule.initialize();
-		//_tacticalModule.initialize();
+		_strategicModule.initialize();
+		_tacticalModule.initialize();
 		_vehicleMovementModule.initialize();
 
 		if (_agents.size() == 1) {

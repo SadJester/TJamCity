@@ -63,8 +63,10 @@ namespace tjs {
 			// Record the start time of this frame
 			auto frameStart = std::chrono::high_resolution_clock::now();
 
-			auto fromLastUpdate = frameStart - prevFrameStart;
-			const double durationInSeconds = std::chrono::duration_cast<std::chrono::duration<double>>(fromLastUpdate).count();
+			// Calculate time elapsed since last simulation update for simulation calculations
+			const double durationInSeconds = std::chrono::duration_cast<std::chrono::duration<double>>(
+				frameStart - prevFrameStart)
+												 .count();
 			_simulationSystem->update(durationInSeconds);
 			prevFrameStart = frameStart;
 

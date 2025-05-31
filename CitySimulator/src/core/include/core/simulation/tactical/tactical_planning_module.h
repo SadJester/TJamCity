@@ -9,6 +9,8 @@ namespace tjs::core::simulation {
 	public:
 		TacticalPlanningModule(TrafficSimulationSystem& system);
 
+		void initialize();
+		void release();
 		void update();
 
 	private:

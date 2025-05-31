@@ -11,7 +11,14 @@
 namespace tjs::core::simulation {
 
 	StrategicPlanningModule::StrategicPlanningModule(TrafficSimulationSystem& system)
-		: _system(system) {}
+		: _system(system) {
+	}
+
+	void StrategicPlanningModule::initialize() {
+	}
+
+	void StrategicPlanningModule::release() {
+	}
 
 	void StrategicPlanningModule::update() {
 		auto& agents = _system.agents();

@@ -15,6 +15,12 @@ namespace tjs::core::simulation {
 		: _system(system) {
 	}
 
+	void TacticalPlanningModule::initialize() {
+	}
+
+	void TacticalPlanningModule::release() {
+	}
+
 	void TacticalPlanningModule::update() {
 		auto& agents = _system.agents();
 		for (size_t i = 0; i < agents.size(); ++i) {

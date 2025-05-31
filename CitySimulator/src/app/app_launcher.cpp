@@ -28,10 +28,10 @@ namespace tjs {
 			argc,
 			argv);
 
+		setup_store_models(application);
+
 		auto worldData = std::make_unique<tjs::core::WorldData>();
 		auto simulationSystem = std::make_unique<core::simulation::TrafficSimulationSystem>(*worldData, application.stores());
-
-		setup_store_models(application);
 
 		application.setup(
 			std::make_unique<tjs::render::SDLRenderer>(application),
