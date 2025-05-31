@@ -57,6 +57,7 @@ namespace tjs::core {
 			}
 		}
 
+		// TODO: RandomGenerator<Context>
 		if (!settings.randomSeed) {
 			RandomGenerator::set_seed(settings.seedValue);
 		}
