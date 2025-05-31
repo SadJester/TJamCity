@@ -89,6 +89,7 @@ namespace tjs {
 			std::unique_ptr<visualization::SceneSystem>&& sceneSystem,
 			std::unique_ptr<core::WorldData>&& worldData,
 			std::unique_ptr<core::simulation::TrafficSimulationSystem>&& simulationSystem);
+
 		void initialize();
 		void run();
 
