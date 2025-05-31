@@ -51,7 +51,7 @@ namespace tjs::core {
 		static std::atomic<int> seed_version;
 
 		int _local_seed_version;
-		[[gsl::suppress("cpp:S2245")]]
+		// suppress cpp:S2245
 		std::mt19937_64 _engine;
 	};
 } // namespace tjs::core
