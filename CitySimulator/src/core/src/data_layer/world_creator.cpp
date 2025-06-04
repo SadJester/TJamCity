@@ -19,6 +19,9 @@ namespace tjs::core {
 
 			auto& road_network = segment->road_network;
 			for (auto& [uid, way] : segment->ways) {
+				if (!way->is_car_accessible()) {
+					continue;
+				}
 				road_network->ways.emplace(uid, way.get());
 				for (auto node : way->nodes) {
 					road_network->nodes.emplace(node->uid, node);
@@ -137,7 +140,9 @@ namespace tjs::core {
 					// Add other node tag checks as needed
 				}
 
-				world.nodes[id] = Node::create(id, Coordinates { lat, lon }, tags);
+				if (!(std::abs(lat) > 90.0 || std::abs(lon) > 180.0)) {
+					world.nodes[id] = Node::create(id, Coordinates { lat, lon }, tags);
+				}
 			}
 
 			static void parseWay(const pugi::xml_node& xml_way, WorldSegment& world) {

@@ -45,6 +45,8 @@ namespace tjs::core {
 			way->type = type;
 			return way;
 		}
+
+		bool is_car_accessible() const;
 	};
 
 } // namespace tjs::core

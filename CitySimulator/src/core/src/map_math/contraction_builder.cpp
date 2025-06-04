@@ -9,7 +9,7 @@ namespace tjs::core::algo {
 
 		for (const auto& [way_id, way] : network.ways) {
 			// Skip ways that are not suitable for cars
-			if (way->type == WayType::Footway || way->type == WayType::Cycleway || way->type == WayType::Bridleway || way->type == WayType::Steps || way->type == WayType::Corridor || way->type == WayType::Platform || way->type == WayType::Construction || way->type == WayType::Proposed || way->type == WayType::Path || way->type == WayType::Pedestrian) {
+			if (!way->is_car_accessible()) {
 				continue;
 			}
 
