@@ -3,7 +3,8 @@
 #include <core/enum_flags.h>
 
 namespace tjs::core {
-	ENUM_FLAG(WayTags, None,
+	ENUM(WayType, char,
+		None = 0,
 		// Main road hierarchy
 		Motorway, Trunk, Primary, Secondary, Tertiary, Residential, Service,
 		// Link roads
@@ -29,11 +30,11 @@ namespace tjs::core {
 		int lanesBackward; // Number of lanes in backward direction
 		bool isOneway;     // Whether the way is one-way
 		int maxSpeed;
-		WayTags tags;
+		WayType type;
 		std::vector<uint64_t> nodeRefs;
 		std::vector<Node*> nodes;
 
-		static std::unique_ptr<WayInfo> create(uint64_t uid, int lanes, int maxSpeed, WayTags tags) {
+		static std::unique_ptr<WayInfo> create(uint64_t uid, int lanes, int maxSpeed, WayType type) {
 			auto way = std::make_unique<WayInfo>();
 			way->uid = uid;
 			way->lanes = lanes;
@@ -41,7 +42,7 @@ namespace tjs::core {
 			way->lanesBackward = 0;    // By default, no backward lanes
 			way->isOneway = false;     // By default, ways are bidirectional
 			way->maxSpeed = maxSpeed;
-			way->tags = tags;
+			way->type = type;
 			return way;
 		}
 	};

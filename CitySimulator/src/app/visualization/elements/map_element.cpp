@@ -151,26 +151,41 @@ namespace tjs::visualization {
 		projectionCenter.longitude = (minLon + maxLon) / 2.0f;
 	}
 
-	FColor MapElement::getWayColor(WayTags tags) const {
+	FColor MapElement::getWayColor(WayType type) const {
 		FColor roadColor = Constants::ROAD_COLOR;
-		if (hasFlag(tags, WayTags::Motorway)) {
-			roadColor = Constants::MOTORWAY_COLOR;
-		} else if (hasFlag(tags, WayTags::Primary)) {
-			roadColor = Constants::PRIMARY_COLOR;
-		} else if (hasFlag(tags, WayTags::Residential)) {
-			roadColor = Constants::RESIDENTIAL_COLOR;
-		} else if (hasFlag(tags, WayTags::Steps)) {
-			roadColor = Constants::STEPS_COLOR;
-		} else if (hasFlag(tags, WayTags::Construction)) {
-			roadColor = Constants::CONSTRUCTION_COLOR;
-		} else if (hasFlag(tags, WayTags::Raceway)) {
-			roadColor = Constants::RACEWAY_COLOR;
-		} else if (hasFlag(tags, WayTags::Emergency_Bay) || hasFlag(tags, WayTags::Emergency_Access)) {
-			roadColor = Constants::EMERGENCY_COLOR;
-		} else if (hasFlag(tags, WayTags::Rest_Area) || hasFlag(tags, WayTags::Services)) {
-			roadColor = Constants::SERVICE_AREA_COLOR;
-		} else if (hasFlag(tags, WayTags::Bus_Stop) || hasFlag(tags, WayTags::Bus_Guideway)) {
-			roadColor = Constants::BUS_STOP_COLOR;
+		switch (type) {
+			case WayType::Motorway:
+				roadColor = Constants::MOTORWAY_COLOR;
+				break;
+			case WayType::Primary:
+				roadColor = Constants::PRIMARY_COLOR;
+				break;
+			case WayType::Residential:
+				roadColor = Constants::RESIDENTIAL_COLOR;
+				break;
+			case WayType::Steps:
+				roadColor = Constants::STEPS_COLOR;
+				break;
+			case WayType::Construction:
+				roadColor = Constants::CONSTRUCTION_COLOR;
+				break;
+			case WayType::Raceway:
+				roadColor = Constants::RACEWAY_COLOR;
+				break;
+			case WayType::Emergency_Bay:
+			case WayType::Emergency_Access:
+				roadColor = Constants::EMERGENCY_COLOR;
+				break;
+			case WayType::Rest_Area:
+			case WayType::Services:
+				roadColor = Constants::SERVICE_AREA_COLOR;
+				break;
+			case WayType::Bus_Stop:
+			case WayType::Bus_Guideway:
+				roadColor = Constants::BUS_STOP_COLOR;
+				break;
+			default:
+				break;
 		}
 		return roadColor;
 	}
@@ -202,7 +217,7 @@ namespace tjs::visualization {
 			return 0;
 		}
 
-		const FColor color = getWayColor(way.tags);
+		const FColor color = getWayColor(way.type);
 		int segmentsRendered = drawThickLine(_application.renderer(), screenPoints, metersPerPixel, way.lanes * Constants::LANE_WIDTH, color);
 
 		if (way.lanes > 1) {

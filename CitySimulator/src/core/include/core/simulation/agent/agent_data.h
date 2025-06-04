@@ -7,7 +7,7 @@ namespace tjs::core {
 } // namespace tjs::core
 
 namespace tjs::core {
-	ENUM_FLAG(TacticalBehaviour,
+	ENUM_FLAG(TacticalBehaviour, char,
 		Normal,
 		Aggressive,
 		Defensive,

@@ -46,7 +46,7 @@ namespace tjs {
 			Position convertToScreen(const core::Coordinates& coord) const;
 			void calculateMapBounds(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
 
-			FColor getWayColor(core::WayTags tags) const;
+			FColor getWayColor(core::WayType type) const;
 
 			int renderWay(const core::WayInfo& way, const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
 			void renderBoundingBox() const;
@@ -72,7 +72,7 @@ namespace tjs {
 		private:
 			void drawLaneMarkers(const std::vector<Position>& nodes, int lanes, int laneWidthPixels);
 		};
-	
+
 		int drawThickLine(IRenderer& renderer, const std::vector<Position>& nodes, double metersPerPixel, float thickness, FColor color);
 	} // namespace visualization
 } // namespace tjs

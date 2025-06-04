@@ -8,6 +8,11 @@ namespace tjs::core::algo {
 		network.adjacency_list.clear();
 
 		for (const auto& [way_id, way] : network.ways) {
+			// Skip ways that are not suitable for cars
+			if (way->type == WayType::Footway || way->type == WayType::Cycleway || way->type == WayType::Bridleway || way->type == WayType::Steps || way->type == WayType::Corridor || way->type == WayType::Platform || way->type == WayType::Construction || way->type == WayType::Proposed || way->type == WayType::Path || way->type == WayType::Pedestrian) {
+				continue;
+			}
+
 			const auto& nodes = way->nodes;
 
 			// Connect sequential nodes in the way
@@ -17,8 +22,6 @@ namespace tjs::core::algo {
 
 				// Calculate distance between nodes
 				double dist = haversine_distance(current->coordinates, next->coordinates);
-				//network.adjacency_list[current].emplace_back(next, dist);
-				//network.adjacency_list[next].emplace_back(current, dist);
 
 				// Add edges based on way direction and lanes
 				if (way->isOneway) {

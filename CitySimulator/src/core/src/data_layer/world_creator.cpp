@@ -161,52 +161,52 @@ namespace tjs::core {
 				int lanesBackward = 0; // Will be calculated after parsing all tags
 				bool isOneway = false;
 				int maxSpeed = 50; // Default speed in km/h
-				WayTags tags = WayTags::None;
+				WayType type = WayType::None;
 
 				// Default speeds by road type (in km/h)
-				static const std::unordered_map<std::string, std::pair<WayTags, int>> roadDefaults = {
+				static const std::unordered_map<std::string, std::pair<WayType, int>> roadDefaults = {
 					// Main road hierarchy
-					{ "motorway", { WayTags::Motorway, 120 } },
-					{ "trunk", { WayTags::Trunk, 90 } },
-					{ "primary", { WayTags::Primary, 80 } },
-					{ "secondary", { WayTags::Secondary, 60 } },
-					{ "tertiary", { WayTags::Tertiary, 50 } },
-					{ "residential", { WayTags::Residential, 30 } },
-					{ "service", { WayTags::Service, 20 } },
+					{ "motorway", { WayType::Motorway, 120 } },
+					{ "trunk", { WayType::Trunk, 90 } },
+					{ "primary", { WayType::Primary, 80 } },
+					{ "secondary", { WayType::Secondary, 60 } },
+					{ "tertiary", { WayType::Tertiary, 50 } },
+					{ "residential", { WayType::Residential, 30 } },
+					{ "service", { WayType::Service, 20 } },
 					// Link roads
-					{ "motorway_link", { WayTags::MotorwayLink, 80 } },
-					{ "trunk_link", { WayTags::TrunkLink, 60 } },
-					{ "primary_link", { WayTags::PrimaryLink, 60 } },
-					{ "secondary_link", { WayTags::SecondaryLink, 50 } },
-					{ "tertiary_link", { WayTags::TertiaryLink, 40 } },
+					{ "motorway_link", { WayType::MotorwayLink, 80 } },
+					{ "trunk_link", { WayType::TrunkLink, 60 } },
+					{ "primary_link", { WayType::PrimaryLink, 60 } },
+					{ "secondary_link", { WayType::SecondaryLink, 50 } },
+					{ "tertiary_link", { WayType::TertiaryLink, 40 } },
 					// Special roads
-					{ "unclassified", { WayTags::Unclassified, 40 } },
-					{ "living_street", { WayTags::Living_Street, 15 } },
-					{ "pedestrian", { WayTags::Pedestrian, 5 } },
-					{ "track", { WayTags::Track, 20 } },
-					{ "path", { WayTags::Path, 5 } },
+					{ "unclassified", { WayType::Unclassified, 40 } },
+					{ "living_street", { WayType::Living_Street, 15 } },
+					{ "pedestrian", { WayType::Pedestrian, 5 } },
+					{ "track", { WayType::Track, 20 } },
+					{ "path", { WayType::Path, 5 } },
 					// Access roads
-					{ "footway", { WayTags::Footway, 5 } },
-					{ "cycleway", { WayTags::Cycleway, 15 } },
-					{ "bridleway", { WayTags::Bridleway, 10 } },
+					{ "footway", { WayType::Footway, 5 } },
+					{ "cycleway", { WayType::Cycleway, 15 } },
+					{ "bridleway", { WayType::Bridleway, 10 } },
 					// Amenities
-					{ "parking", { WayTags::Parking, 10 } },
+					{ "parking", { WayType::Parking, 10 } },
 					// Additional road types
-					{ "steps", { WayTags::Steps, 3 } },
-					{ "corridor", { WayTags::Corridor, 5 } },
-					{ "platform", { WayTags::Platform, 5 } },
-					{ "construction", { WayTags::Construction, 20 } },
-					{ "proposed", { WayTags::Proposed, 0 } },
-					{ "bus_guideway", { WayTags::Bus_Guideway, 50 } },
-					{ "raceway", { WayTags::Raceway, 200 } },
-					{ "escape", { WayTags::Escape, 30 } },
-					{ "emergency_bay", { WayTags::Emergency_Bay, 30 } },
-					{ "rest_area", { WayTags::Rest_Area, 20 } },
-					{ "services", { WayTags::Services, 20 } },
+					{ "steps", { WayType::Steps, 3 } },
+					{ "corridor", { WayType::Corridor, 5 } },
+					{ "platform", { WayType::Platform, 5 } },
+					{ "construction", { WayType::Construction, 20 } },
+					{ "proposed", { WayType::Proposed, 0 } },
+					{ "bus_guideway", { WayType::Bus_Guideway, 50 } },
+					{ "raceway", { WayType::Raceway, 200 } },
+					{ "escape", { WayType::Escape, 30 } },
+					{ "emergency_bay", { WayType::Emergency_Bay, 30 } },
+					{ "rest_area", { WayType::Rest_Area, 20 } },
+					{ "services", { WayType::Services, 20 } },
 					// Special access roads
-					{ "bus_stop", { WayTags::Bus_Stop, 20 } },
-					{ "emergency_access", { WayTags::Emergency_Access, 50 } },
-					{ "delivery_access", { WayTags::Delivery_Access, 20 } }
+					{ "bus_stop", { WayType::Bus_Stop, 20 } },
+					{ "emergency_access", { WayType::Emergency_Access, 50 } },
+					{ "delivery_access", { WayType::Delivery_Access, 20 } }
 				};
 
 				for (pugi::xml_node tag : xml_way.children("tag")) {
@@ -216,7 +216,7 @@ namespace tjs::core {
 					if (key == "highway") {
 						auto it = roadDefaults.find(value);
 						if (it != roadDefaults.end()) {
-							tags = tags | it->second.first;
+							type = it->second.first;
 							maxSpeed = it->second.second; // Set default speed for this road type
 
 							// Set default characteristics based on road type
@@ -233,7 +233,7 @@ namespace tjs::core {
 						}
 					} else if (key == "amenity") {
 						if (value == "parking") {
-							tags = tags | WayTags::Parking;
+							type = WayType::Parking;
 							maxSpeed = 10; // Very low speed for parking areas
 							lanes = 2;     // Default 2 lanes for parking areas (one each way)
 							isOneway = false;
@@ -258,8 +258,8 @@ namespace tjs::core {
 					}
 				}
 
-				// Only add ways that have been classified as roads or parking
-				if (tags == WayTags::None) {
+				// Only add ways that have been classified
+				if (type == WayType::None) {
 					return;
 				}
 
@@ -279,7 +279,7 @@ namespace tjs::core {
 					lanesBackward = lanes - lanesForward;
 				}
 
-				auto way = WayInfo::create(id, lanes, maxSpeed, tags);
+				auto way = WayInfo::create(id, lanes, maxSpeed, type);
 				way->isOneway = isOneway;
 				way->lanesForward = lanesForward;
 				way->lanesBackward = lanesBackward;

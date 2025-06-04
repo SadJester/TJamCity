@@ -12,7 +12,7 @@ namespace tjs::core {
 			longitude)
 	};
 
-	ENUM_FLAG(NodeTags, None, TrafficLight, StopSign, Crosswalk, Way);
+	ENUM_FLAG(NodeTags, char, None, TrafficLight, StopSign, Crosswalk, Way);
 
 	struct WayInfo;
 	struct Node {

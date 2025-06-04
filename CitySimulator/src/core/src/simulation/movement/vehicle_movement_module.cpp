@@ -48,6 +48,10 @@ namespace tjs::core::simulation {
 	}
 
 	void VehicleMovementModule::update_movement(AgentData& agent) {
+		if (agent.currentGoal == nullptr) {
+			return;
+		}
+
 		auto& worldData = _system.worldData();
 
 		agent.vehicle->currentSpeed = 60.0f;
