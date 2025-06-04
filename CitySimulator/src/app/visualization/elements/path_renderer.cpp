@@ -43,6 +43,12 @@ namespace tjs::visualization {
 			return;
 		}
 
+		if (model->agent->currentGoal != nullptr) {
+			renderer.setDrawColor(Constants::PATH_COLOR);
+			auto point = _mapElement->convertToScreen(model->agent->currentGoal->coordinates);
+			renderer.drawRect(Rectangle(point.x - 2.5f, point.y - 2.5f, 5.0f, 5.0f), true);
+		}
+
 		auto& path = model->agent->path;
 		auto& visited_path = model->agent->visitedNodes;
 		if (path.empty() && visited_path.empty()) {

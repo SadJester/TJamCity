@@ -24,6 +24,7 @@ namespace tjs {
 			virtual void drawLine(int x1, int y1, int x2, int y2) override;
 			virtual void drawGeometry(const Geometry& geometry) override;
 			virtual void drawCircle(int centerX, int centerY, int radius) override;
+			virtual void drawRect(const Rectangle& rect, bool fill = false) override;
 
 		private:
 			Application& _application;

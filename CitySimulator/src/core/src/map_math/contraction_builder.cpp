@@ -4,23 +4,40 @@
 
 namespace tjs::core::algo {
 	void ContractionBuilder::build_graph(core::RoadNetwork& network) {
-		// Очищаем предыдущие данные
+		// Clear previous data
 		network.adjacency_list.clear();
 
-		for (const auto& way_pair : network.ways) {
-			const auto& nodes = way_pair.second->nodes;
+		for (const auto& [way_id, way] : network.ways) {
+			const auto& nodes = way->nodes;
 
-			// Соединяем последовательные узлы в пути
+			// Connect sequential nodes in the way
 			for (size_t i = 0; i < nodes.size() - 1; ++i) {
 				Node* current = nodes[i];
 				Node* next = nodes[i + 1];
 
-				// Вычисляем расстояние между узлами
+				// Calculate distance between nodes
 				double dist = haversine_distance(current->coordinates, next->coordinates);
+				//network.adjacency_list[current].emplace_back(next, dist);
+				//network.adjacency_list[next].emplace_back(current, dist);
 
-				// Добавляем в обе стороны, так как граф ненаправленный
-				network.adjacency_list[current].emplace_back(next, dist);
-				network.adjacency_list[next].emplace_back(current, dist);
+				// Add edges based on way direction and lanes
+				if (way->isOneway) {
+					// For one-way roads, only add forward direction
+					if (way->lanesForward > 0) {
+						network.adjacency_list[current].emplace_back(next, dist);
+					}
+				} else {
+					bool added = false;
+					// For bidirectional roads, add edges based on lane count
+					if (way->lanesForward > 0) {
+						network.adjacency_list[current].emplace_back(next, dist);
+						added = true;
+					}
+					if (way->lanesBackward > 0) {
+						network.adjacency_list[next].emplace_back(current, dist);
+						added = true;
+					}
+				}
 			}
 		}
 	}

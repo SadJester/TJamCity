@@ -107,6 +107,11 @@ namespace tjs::core::simulation {
 					agent.visitedNodes.push_back(agent.path.front());
 					agent.path.pop_front();
 					agent.distanceTraveled = 0.0; // Reset distance for new path
+				} else {
+					// No path found to current goal, nullify it so strategic module will assign a new one
+					agent.currentGoal = nullptr;
+					agent.last_segment = false;
+					return;
 				}
 			}
 		}

@@ -156,43 +156,133 @@ namespace tjs::core {
 				}
 
 				// Parse way properties
-				int lanes = 1;
+				int lanes = 1;         // Default value
+				int lanesForward = 0;  // Will be calculated after parsing all tags
+				int lanesBackward = 0; // Will be calculated after parsing all tags
+				bool isOneway = false;
 				int maxSpeed = 50; // Default speed in km/h
 				WayTags tags = WayTags::None;
+
+				// Default speeds by road type (in km/h)
+				static const std::unordered_map<std::string, std::pair<WayTags, int>> roadDefaults = {
+					// Main road hierarchy
+					{ "motorway", { WayTags::Motorway, 120 } },
+					{ "trunk", { WayTags::Trunk, 90 } },
+					{ "primary", { WayTags::Primary, 80 } },
+					{ "secondary", { WayTags::Secondary, 60 } },
+					{ "tertiary", { WayTags::Tertiary, 50 } },
+					{ "residential", { WayTags::Residential, 30 } },
+					{ "service", { WayTags::Service, 20 } },
+					// Link roads
+					{ "motorway_link", { WayTags::MotorwayLink, 80 } },
+					{ "trunk_link", { WayTags::TrunkLink, 60 } },
+					{ "primary_link", { WayTags::PrimaryLink, 60 } },
+					{ "secondary_link", { WayTags::SecondaryLink, 50 } },
+					{ "tertiary_link", { WayTags::TertiaryLink, 40 } },
+					// Special roads
+					{ "unclassified", { WayTags::Unclassified, 40 } },
+					{ "living_street", { WayTags::Living_Street, 15 } },
+					{ "pedestrian", { WayTags::Pedestrian, 5 } },
+					{ "track", { WayTags::Track, 20 } },
+					{ "path", { WayTags::Path, 5 } },
+					// Access roads
+					{ "footway", { WayTags::Footway, 5 } },
+					{ "cycleway", { WayTags::Cycleway, 15 } },
+					{ "bridleway", { WayTags::Bridleway, 10 } },
+					// Amenities
+					{ "parking", { WayTags::Parking, 10 } },
+					// Additional road types
+					{ "steps", { WayTags::Steps, 3 } },
+					{ "corridor", { WayTags::Corridor, 5 } },
+					{ "platform", { WayTags::Platform, 5 } },
+					{ "construction", { WayTags::Construction, 20 } },
+					{ "proposed", { WayTags::Proposed, 0 } },
+					{ "bus_guideway", { WayTags::Bus_Guideway, 50 } },
+					{ "raceway", { WayTags::Raceway, 200 } },
+					{ "escape", { WayTags::Escape, 30 } },
+					{ "emergency_bay", { WayTags::Emergency_Bay, 30 } },
+					{ "rest_area", { WayTags::Rest_Area, 20 } },
+					{ "services", { WayTags::Services, 20 } },
+					// Special access roads
+					{ "bus_stop", { WayTags::Bus_Stop, 20 } },
+					{ "emergency_access", { WayTags::Emergency_Access, 50 } },
+					{ "delivery_access", { WayTags::Delivery_Access, 20 } }
+				};
 
 				for (pugi::xml_node tag : xml_way.children("tag")) {
 					std::string key = tag.attribute("k").as_string();
 					std::string value = tag.attribute("v").as_string();
 
 					if (key == "highway") {
-						if (value == "motorway") {
-							tags = tags | WayTags::Motorway;
-						} else if (value == "trunk") {
-							tags = tags | WayTags::Trunk;
-						} else if (value == "primary") {
-							tags = tags | WayTags::Primary;
-						} else if (value == "secondary") {
-							tags = tags | WayTags::Secondary;
-						} else if (value == "tertiary") {
-							tags = tags | WayTags::Tertiary;
-						} else if (value == "residential") {
-							tags = tags | WayTags::Residential;
-						} else if (value == "service") {
-							tags = tags | WayTags::Service;
+						auto it = roadDefaults.find(value);
+						if (it != roadDefaults.end()) {
+							tags = tags | it->second.first;
+							maxSpeed = it->second.second; // Set default speed for this road type
+
+							// Set default characteristics based on road type
+							if (value == "motorway" || value == "motorway_link") {
+								isOneway = true;                       // Motorways are always one-way
+								lanes = (value == "motorway") ? 3 : 1; // Default 3 lanes for motorway, 1 for link
+							} else if (value == "trunk" || value == "primary") {
+								lanes = 2; // Default 2 lanes for major roads
+							} else if (value == "footway" || value == "cycleway" || value == "path" || value == "bridleway" || value == "pedestrian") {
+								lanes = 1;
+								isOneway = false; // Always bidirectional
+								maxSpeed = 5;     // Very low speed for pedestrian paths
+							}
+						}
+					} else if (key == "amenity") {
+						if (value == "parking") {
+							tags = tags | WayTags::Parking;
+							maxSpeed = 10; // Very low speed for parking areas
+							lanes = 2;     // Default 2 lanes for parking areas (one each way)
+							isOneway = false;
 						}
 					} else if (key == "lanes") {
 						lanes = tag.attribute("v").as_int();
+					} else if (key == "lanes:forward") {
+						lanesForward = tag.attribute("v").as_int();
+					} else if (key == "lanes:backward") {
+						lanesBackward = tag.attribute("v").as_int();
+					} else if (key == "oneway") {
+						isOneway = (value == "yes" || value == "1" || value == "true");
 					} else if (key == "maxspeed") {
 						maxSpeed = parseSpeedValue(value);
+					} else if (key == "junction" && value == "roundabout") {
+						isOneway = true; // Roundabouts are always one-way
+					} else if (key == "access") {
+						// Handle access restrictions
+						if (value == "private" || value == "no") {
+							return; // Skip private or no-access ways
+						}
 					}
 				}
 
-				// Only add ways that have been classified as roads
+				// Only add ways that have been classified as roads or parking
 				if (tags == WayTags::None) {
 					return;
 				}
 
+				// Calculate lanes in each direction if not explicitly specified
+				if (lanesForward == 0 && lanesBackward == 0) {
+					if (isOneway) {
+						lanesForward = lanes;
+						lanesBackward = 0;
+					} else {
+						// For bidirectional roads, split lanes evenly if not specified
+						lanesForward = lanes / 2 + (lanes % 2); // Give extra lane to forward direction if odd
+						lanesBackward = lanes / 2;
+					}
+				} else if (lanesForward == 0) {
+					lanesForward = lanes - lanesBackward;
+				} else if (lanesBackward == 0) {
+					lanesBackward = lanes - lanesForward;
+				}
+
 				auto way = WayInfo::create(id, lanes, maxSpeed, tags);
+				way->isOneway = isOneway;
+				way->lanesForward = lanesForward;
+				way->lanesBackward = lanesBackward;
 
 				std::vector<Node*> nodes;
 				nodes.reserve(nodeRefs.size());

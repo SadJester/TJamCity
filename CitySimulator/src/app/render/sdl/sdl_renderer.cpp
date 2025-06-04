@@ -151,4 +151,19 @@ namespace tjs::render {
 		}
 	}
 
+	void SDLRenderer::drawRect(const Rectangle& rect, bool fill) {
+		SDL_FRect sdlRect = {
+			static_cast<float>(rect.x),
+			static_cast<float>(rect.y),
+			static_cast<float>(rect.width),
+			static_cast<float>(rect.height)
+		};
+
+		if (fill) {
+			SDL_RenderFillRect(_sdlRenderer, &sdlRect);
+		} else {
+			SDL_RenderRect(_sdlRenderer, &sdlRect);
+		}
+	}
+
 } // namespace tjs::render

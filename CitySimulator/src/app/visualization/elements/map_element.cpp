@@ -159,6 +159,18 @@ namespace tjs::visualization {
 			roadColor = Constants::PRIMARY_COLOR;
 		} else if (hasFlag(tags, WayTags::Residential)) {
 			roadColor = Constants::RESIDENTIAL_COLOR;
+		} else if (hasFlag(tags, WayTags::Steps)) {
+			roadColor = Constants::STEPS_COLOR;
+		} else if (hasFlag(tags, WayTags::Construction)) {
+			roadColor = Constants::CONSTRUCTION_COLOR;
+		} else if (hasFlag(tags, WayTags::Raceway)) {
+			roadColor = Constants::RACEWAY_COLOR;
+		} else if (hasFlag(tags, WayTags::Emergency_Bay) || hasFlag(tags, WayTags::Emergency_Access)) {
+			roadColor = Constants::EMERGENCY_COLOR;
+		} else if (hasFlag(tags, WayTags::Rest_Area) || hasFlag(tags, WayTags::Services)) {
+			roadColor = Constants::SERVICE_AREA_COLOR;
+		} else if (hasFlag(tags, WayTags::Bus_Stop) || hasFlag(tags, WayTags::Bus_Guideway)) {
+			roadColor = Constants::BUS_STOP_COLOR;
 		}
 		return roadColor;
 	}
@@ -246,7 +258,6 @@ namespace tjs::visualization {
 		}
 		return segmentsRendered;
 	}
-
 
 	void MapElement::renderBoundingBox() const {
 		// Convert all corners of the bounding box to screen coordinates

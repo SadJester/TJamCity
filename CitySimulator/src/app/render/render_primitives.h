@@ -22,6 +22,25 @@ namespace tjs {
 	static_assert(sizeof(FColor) == 16, "FColor should be 16 bytes");
 	static_assert(std::is_pod<FColor>::value, "FColor should be POD");
 
+	struct Rectangle {
+		int x;
+		int y;
+		int width;
+		int height;
+
+		Rectangle()
+			: x(0)
+			, y(0)
+			, width(0)
+			, height(0) {}
+		Rectangle(int x_, int y_, int width_, int height_)
+			: x(x_)
+			, y(y_)
+			, width(width_)
+			, height(height_) {}
+	};
+	static_assert(sizeof(Rectangle) == 16, "Rectangle should be 16 bytes");
+
 	struct Vertex {
 		FPoint position;  /**< Vertex position, in SDL_Renderer coordinates  */
 		FColor color;     /**< Vertex color */
