@@ -26,7 +26,7 @@ namespace tjs::core {
 	}
 
 	void TimeModule::slow_down() {
-		_timeState.timeDelta /= 1.1;
+		_timeState.timeMultiplier /= 1.1;
 	}
 
 	const TimeState& TimeModule::state() const {
@@ -35,6 +35,8 @@ namespace tjs::core {
 
 	void TimeModule::pause() {
 		_timeState.isPaused = true;
+		_timeState.timeDelta = 0;
+		_timeState.unscaledTimeDelta = 0;
 	}
 
 	void TimeModule::resume() {

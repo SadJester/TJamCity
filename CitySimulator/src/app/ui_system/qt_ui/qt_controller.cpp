@@ -13,6 +13,7 @@
 /// TODO: Place somwhere to be more pretty
 #include "ui_system/qt_ui/render_metrics_widget.h"
 #include "ui_system/qt_ui/map_control_widget.h"
+#include "ui_system/qt_ui/time_control_widget.h"
 #include "ui_system/debug_ui/vehicle_analyze_widget.h"
 
 namespace tjs {
@@ -51,6 +52,9 @@ namespace tjs {
 
 			RenderMetricsWidget* fpsLabel = new RenderMetricsWidget(_application, window);
 			layout->addWidget(fpsLabel);
+
+			TimeControlWidget* timeControlWidget = new TimeControlWidget(_application, window);
+			layout->addWidget(timeControlWidget);
 
 			MapControlWidget* mapControlWidget = new MapControlWidget(_application, window);
 			layout->addWidget(mapControlWidget);
