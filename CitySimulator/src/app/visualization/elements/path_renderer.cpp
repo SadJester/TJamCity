@@ -11,6 +11,7 @@
 #include <core/math_constants.h>
 #include <core/store_models/vehicle_analyze_data.h>
 #include <core/simulation/agent/agent_data.h>
+#include <data/map_renderer_data.h>
 
 #include <visualization/Scene.h>
 #include <visualization/scene_system.h>
@@ -21,16 +22,12 @@ namespace tjs::visualization {
 
 	PathRenderer::PathRenderer(Application& application)
 		: SceneNode("PathRenderer")
-		, _application(application) {
+		, _application(application)
+		, _mapRendererData(*application.stores().get_model<core::model::MapRendererData>()) {
 	}
 
 	void PathRenderer::init() {
-		auto scene = _application.sceneSystem().getScene("General");
-		if (scene == nullptr) {
-			return;
-		}
-
-		_mapElement = dynamic_cast<visualization::MapElement*>(scene->getNode("MapElement"));
+		_mapRendererData = *_application.stores().get_model<core::model::MapRendererData>();
 	}
 
 	void PathRenderer::update() {
@@ -45,7 +42,11 @@ namespace tjs::visualization {
 
 		if (model->agent->currentGoal != nullptr) {
 			renderer.setDrawColor(Constants::PATH_COLOR);
-			auto point = _mapElement->convert_to_screen(model->agent->currentGoal->coordinates);
+			auto point = tjs::visualization::convert_to_screen(
+				model->agent->currentGoal->coordinates,
+				_mapRendererData.projectionCenter,
+				_mapRendererData.screen_center,
+				_mapRendererData.metersPerPixel);
 			renderer.drawRect(Rectangle(point.x - 2.5f, point.y - 2.5f, 5.0f, 5.0f), true);
 		}
 
@@ -64,7 +65,11 @@ namespace tjs::visualization {
 		renderer.setDrawColor(Constants::PATH_MARK_COLOR);
 		for (size_t i = 0; i < visited_path.size(); ++i) {
 			auto node = visited_path[i];
-			auto point = _mapElement->convert_to_screen(node->coordinates);
+			auto point = tjs::visualization::convert_to_screen(
+				node->coordinates,
+				_mapRendererData.projectionCenter,
+				_mapRendererData.screen_center,
+				_mapRendererData.metersPerPixel);
 			visitedPoints.push_back(point);
 			renderer.drawCircle(
 				point.x,
@@ -76,7 +81,11 @@ namespace tjs::visualization {
 		bool markFirst = visited_path.size() == 0;
 		for (size_t i = 0; i < path.size(); ++i) {
 			auto node = path[i];
-			auto point = _mapElement->convert_to_screen(node->coordinates);
+			auto point = tjs::visualization::convert_to_screen(
+				node->coordinates,
+				_mapRendererData.projectionCenter,
+				_mapRendererData.screen_center,
+				_mapRendererData.metersPerPixel);
 			toVisitPoints.push_back(point);
 			renderer.drawCircle(
 				point.x,
@@ -86,11 +95,15 @@ namespace tjs::visualization {
 
 		// TODO: thickness of path in settings
 		static float thickness = 11.0f;
-		drawThickLine(renderer, visitedPoints, _mapElement->get_zoom_level(), thickness, FColor { 0.f, 0.f, 1.0f, 1.0f });
-		drawThickLine(renderer, toVisitPoints, _mapElement->get_zoom_level(), thickness, Constants::PATH_COLOR);
+		drawThickLine(renderer, visitedPoints, _mapRendererData.metersPerPixel, thickness, FColor { 0.f, 0.f, 1.0f, 1.0f });
+		drawThickLine(renderer, toVisitPoints, _mapRendererData.metersPerPixel, thickness, Constants::PATH_COLOR);
 
 		renderer.setDrawColor(FColor { 0.f, 0.f, 1.0f, 1.0f });
-		auto currentGoal = _mapElement->convert_to_screen(model->agent->currentStepGoal);
+		auto currentGoal = tjs::visualization::convert_to_screen(
+			model->agent->currentStepGoal,
+			_mapRendererData.projectionCenter,
+			_mapRendererData.screen_center,
+			_mapRendererData.metersPerPixel);
 		renderer.drawCircle(currentGoal.x, currentGoal.y, 4.0f);
 	}
 } // namespace tjs::visualization

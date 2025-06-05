@@ -153,8 +153,8 @@ namespace tjs::visualization {
 		set_zoom_level(std::min(zoomX, zoomY)); // Use min to ensure the entire map fits
 
 		// Recalculate screen center based on the new zoom level
-		screen_center_x = renderer.screenWidth() / 2.0;
-		screen_center_y = renderer.screenHeight() / 2.0;
+		_render_data.screen_center.x = renderer.screenWidth() / 2.0;
+		_render_data.screen_center.y = renderer.screenHeight() / 2.0;
 	}
 
 	void MapElement::calculate_map_bounds(const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {

@@ -288,7 +288,7 @@ namespace tjs {
 			}
 
 			double currentZoom = render_data->metersPerPixel;
-			render_data->metersPerPixel = currentZoom * 0.9; // Zoom in (decrease meters per pixel)
+			render_data->set_meters_per_pixel(currentZoom * 0.9); // Zoom in (decrease meters per pixel)
 			UpdateLabels();
 		}
 
@@ -299,7 +299,7 @@ namespace tjs {
 			}
 
 			double currentZoom = render_data->metersPerPixel;
-			render_data->metersPerPixel = currentZoom * 1.1; // Zoom out (increase meters per pixel)
+			render_data->set_meters_per_pixel(currentZoom * 1.1); // Zoom out (increase meters per pixel)
 			UpdateLabels();
 		}
 

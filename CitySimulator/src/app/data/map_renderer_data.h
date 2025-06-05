@@ -33,6 +33,8 @@ namespace tjs::core::model {
 		Position screen_center;
 
 		MapRendererData() = default;
+
+		void set_meters_per_pixel(double metersPerPixel);
 	};
 
 } // namespace tjs::core::model
