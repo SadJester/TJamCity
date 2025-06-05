@@ -36,10 +36,6 @@ namespace tjs::visualization {
 		float max_lat = 0.0f;
 		float min_lon = 0.0f;
 		float max_lon = 0.0f;
-
-		// Screen center coordinates
-		int screen_center_x = 512;
-		int screen_center_y = 512;
 	};
 
 	int drawThickLine(IRenderer& renderer, const std::vector<Position>& nodes, double metersPerPixel, float thickness, FColor color);
