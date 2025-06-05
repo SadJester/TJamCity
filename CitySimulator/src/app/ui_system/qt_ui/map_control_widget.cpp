@@ -235,6 +235,15 @@ namespace tjs {
 			QListWidgetItem* trafficItem = new QListWidgetItem("Traffic Lights", _layerList);
 			trafficItem->setData(Qt::UserRole, static_cast<uint32_t>(core::model::MapRendererLayer::TrafficLights));
 
+			// Set fixed height based on number of items
+			const int itemHeight = _layerList->sizeHintForRow(0);
+			const int totalItems = _layerList->count();
+			const int spacing = _layerList->spacing();
+			const int frameWidth = _layerList->frameWidth();
+			const int fixedHeight = (itemHeight * totalItems) + (spacing * (totalItems - 1)) + (frameWidth * 2);
+			_layerList->setFixedHeight(fixedHeight);
+			_layerList->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
 			layerLayout->addWidget(_layerList);
 			layout->addWidget(layerFrame);
 

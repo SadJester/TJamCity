@@ -29,16 +29,6 @@ namespace tjs::visualization {
 		}
 	}
 
-	void MapElement::set_projection_center(const Coordinates& center) {
-		_render_data.projectionCenter = center;
-	}
-
-	void MapElement::set_zoom_level(double metersPerPixel) {
-		_render_data.metersPerPixel = metersPerPixel;
-		double latRad = _render_data.projectionCenter.latitude * MathConstants::DEG_TO_RAD;
-		_render_data.metersPerPixel *= std::cos(latRad);
-	}
-
 	void MapElement::update() {
 	}
 
@@ -82,11 +72,6 @@ namespace tjs::visualization {
 				}
 			}
 		}
-	}
-
-	void MapElement::set_view(const Coordinates& center, double zoomMetersPerPixel) {
-		set_projection_center(center);
-		set_zoom_level(zoomMetersPerPixel);
 	}
 
 	Position convert_to_screen(
@@ -150,7 +135,7 @@ namespace tjs::visualization {
 		double zoomX = widthMeters / (renderer.screenWidth() * 0.9);
 		double zoomY = heightMeters / (renderer.screenHeight() * 0.9);
 
-		set_zoom_level(std::min(zoomX, zoomY)); // Use min to ensure the entire map fits
+		_render_data.set_meters_per_pixel(std::min(zoomX, zoomY));
 
 		// Recalculate screen center based on the new zoom level
 		_render_data.screen_center.x = renderer.screenWidth() / 2.0;

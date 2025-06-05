@@ -18,16 +18,8 @@ namespace tjs::visualization {
 		void update() override;
 		void render(IRenderer& renderer) override;
 
-		void set_view(const core::Coordinates& center, double zoom_meters_per_pixel);
-		void set_projection_center(const core::Coordinates& center);
-		void set_zoom_level(double meters_per_pixel);
-
-		double get_zoom_level() const { return _render_data.metersPerPixel; }
-		const core::Coordinates& get_projection_center() const { return _render_data.projectionCenter; }
-
-		Position convert_to_screen(const core::Coordinates& coord) const;
-
 	private:
+		Position convert_to_screen(const core::Coordinates& coord) const;
 		void auto_zoom(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
 		void calculate_map_bounds(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
 		int render_way(const core::WayInfo& way, const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
