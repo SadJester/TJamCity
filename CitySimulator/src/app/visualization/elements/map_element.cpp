@@ -72,6 +72,37 @@ namespace tjs::visualization {
 				}
 			}
 		}
+
+		// Render network graph if enabled
+		if (static_cast<uint32_t>(_render_data.visibleLayers & model::MapRendererLayer::NetworkGraph) != 0) {
+			if (segment->road_network) {
+				render_network_graph(renderer, *segment->road_network);
+			}
+		}
+	}
+
+	void MapElement::render_network_graph(IRenderer& renderer, const core::RoadNetwork& network) {
+		// Set color for network graph edges
+		renderer.setDrawColor({ 0.0f, 0.8f, 0.8f, 0.5f }); // Semi-transparent cyan
+
+		// Render edges from adjacency list
+		for (const auto& [node, neighbors] : network.adjacency_list) {
+			Position start = convert_to_screen(node->coordinates);
+
+			for (const auto& [neighbor, weight] : neighbors) {
+				Position end = convert_to_screen(neighbor->coordinates);
+
+				// Draw edge as a thin line
+				drawThickLine(renderer, { start, end }, _render_data.metersPerPixel, 1.0f, { 0.0f, 0.8f, 0.8f, 0.5f });
+			}
+		}
+
+		// Draw nodes as small circles
+		renderer.setDrawColor({ 1.0f, 0.0f, 0.0f, 0.8f }); // Brighter cyan for nodes
+		for (const auto& [id, node] : network.nodes) {
+			Position pos = convert_to_screen(node->coordinates);
+			renderer.drawCircle(pos.x, pos.y, 2, true);
+		}
 	}
 
 	Position convert_to_screen(
@@ -187,6 +218,7 @@ namespace tjs::visualization {
 				break;
 			case WayType::Emergency_Bay:
 			case WayType::Emergency_Access:
+			case WayType::Parking:
 				roadColor = Constants::EMERGENCY_COLOR;
 				break;
 			case WayType::Rest_Area:
@@ -232,13 +264,94 @@ namespace tjs::visualization {
 		}
 
 		const FColor color = get_way_color(way.type);
-		int segmentsRendered = drawThickLine(_application.renderer(), screenPoints, _render_data.metersPerPixel, way.lanes * Constants::LANE_WIDTH, color);
+		const float lane_width = way.is_car_accessible() ? way.lanes * Constants::LANE_WIDTH : Constants::LANE_WIDTH / 2;
+
+		int segmentsRendered = drawThickLine(_application.renderer(), screenPoints, _render_data.metersPerPixel, lane_width, color);
 
 		if (way.lanes > 1) {
 			draw_lane_markers(screenPoints, way.lanes, Constants::LANE_WIDTH);
 		}
 
+		// Draw direction arrows if it's a one-way road or has explicit lane directions
+		if (way.is_car_accessible() && (way.isOneway || (way.lanesForward > 0 && way.lanesBackward == 0) || (way.lanesForward == 0 && way.lanesBackward > 0))) {
+			draw_direction_arrows(screenPoints, way.isOneway && way.lanesBackward > 0);
+		}
+
 		return segmentsRendered;
+	}
+
+	void MapElement::draw_direction_arrows(const std::vector<Position>& nodes, bool reverse) {
+		if (_render_data.metersPerPixel > Constants::DRAW_LANE_MARKERS_MPP || nodes.size() < 2) {
+			return;
+		}
+
+		auto& renderer = _application.renderer();
+		renderer.setDrawColor(Constants::LANE_MARKER_COLOR);
+
+		for (size_t i = 0; i < nodes.size() - 1; i++) {
+			Position p1 = nodes[i];
+			Position p2 = nodes[i + 1];
+
+			// Calculate direction vector
+			float dx = p2.x - p1.x;
+			float dy = p2.y - p1.y;
+			float len = sqrtf(dx * dx + dy * dy);
+			if (len == 0) {
+				continue;
+			}
+
+			// Normalize direction vector
+			dx /= len;
+			dy /= len;
+
+			// Draw arrows along the segment
+			float arrow_spacing = 30.0f; // pixels
+			int num_arrows = static_cast<int>(len / arrow_spacing);
+
+			for (int j = 1; j < num_arrows; j++) {
+				// Calculate arrow center position
+				float t = j * arrow_spacing;
+				Position arrow_center;
+				if (!reverse) {
+					arrow_center = {
+						static_cast<int>(p1.x + t * dx),
+						static_cast<int>(p1.y + t * dy)
+					};
+				} else {
+					arrow_center = {
+						static_cast<int>(p2.x - t * dx),
+						static_cast<int>(p2.y - t * dy)
+					};
+				}
+
+				// Skip if arrow center is not visible
+				if (!_application.renderer().is_point_visible(arrow_center.x, arrow_center.y)) {
+					continue;
+				}
+
+				// Calculate arrow points
+				float arrow_size = 5.0f; // pixels
+				float arrow_angle = std::atan2(dy, dx);
+				if (reverse) {
+					arrow_angle += MathConstants::M_PI; // Reverse direction for backward lanes
+				}
+				float arrow_angle1 = arrow_angle - 0.5f; // 30 degrees
+				float arrow_angle2 = arrow_angle + 0.5f; // 30 degrees
+
+				Position arrow_p1 = {
+					static_cast<int>(arrow_center.x - arrow_size * std::cos(arrow_angle1)),
+					static_cast<int>(arrow_center.y - arrow_size * std::sin(arrow_angle1))
+				};
+				Position arrow_p2 = {
+					static_cast<int>(arrow_center.x - arrow_size * std::cos(arrow_angle2)),
+					static_cast<int>(arrow_center.y - arrow_size * std::sin(arrow_angle2))
+				};
+
+				// Draw arrow
+				renderer.drawLine(arrow_center.x, arrow_center.y, arrow_p1.x, arrow_p1.y);
+				renderer.drawLine(arrow_center.x, arrow_center.y, arrow_p2.x, arrow_p2.y);
+			}
+		}
 	}
 
 	int drawThickLine(IRenderer& renderer, const std::vector<Position>& nodes, double metersPerPixel, float thickness, FColor color) {
@@ -356,6 +469,34 @@ namespace tjs::visualization {
 					};
 
 					renderer.drawLine(sp1.x, sp1.y, sp2.x, sp2.y);
+
+					// Draw direction arrow at the middle of each dashed line
+					if (s % 12 == 0) { // Draw arrows less frequently than dashes
+						float tmid = (t1 + t2) / 2.0f;
+						Position arrow_center = {
+							static_cast<int>(p1.x + tmid * dx + perpx),
+							static_cast<int>(p1.y + tmid * dy + perpy)
+						};
+
+						// Calculate arrow points
+						float arrow_size = 3.0f; // pixels
+						float arrow_angle = std::atan2(dy, dx);
+						float arrow_angle1 = arrow_angle - 0.5f; // 30 degrees
+						float arrow_angle2 = arrow_angle + 0.5f; // 30 degrees
+
+						Position arrow_p1 = {
+							static_cast<int>(arrow_center.x - arrow_size * std::cos(arrow_angle1)),
+							static_cast<int>(arrow_center.y - arrow_size * std::sin(arrow_angle1))
+						};
+						Position arrow_p2 = {
+							static_cast<int>(arrow_center.x - arrow_size * std::cos(arrow_angle2)),
+							static_cast<int>(arrow_center.y - arrow_size * std::sin(arrow_angle2))
+						};
+
+						// Draw arrow
+						renderer.drawLine(arrow_center.x, arrow_center.y, arrow_p1.x, arrow_p1.y);
+						renderer.drawLine(arrow_center.x, arrow_center.y, arrow_p2.x, arrow_p2.y);
+					}
 				}
 			}
 		}

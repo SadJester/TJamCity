@@ -235,6 +235,9 @@ namespace tjs {
 			QListWidgetItem* trafficItem = new QListWidgetItem("Traffic Lights", _layerList);
 			trafficItem->setData(Qt::UserRole, static_cast<uint32_t>(core::model::MapRendererLayer::TrafficLights));
 
+			QListWidgetItem* networkItem = new QListWidgetItem("Network Graph", _layerList);
+			networkItem->setData(Qt::UserRole, static_cast<uint32_t>(core::model::MapRendererLayer::NetworkGraph));
+
 			// Set fixed height based on number of items
 			const int itemHeight = _layerList->sizeHintForRow(0);
 			const int totalItems = _layerList->count();

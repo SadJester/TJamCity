@@ -3,6 +3,7 @@
 #include <visualization/scene_node.h>
 #include <core/data_layer/data_types.h>
 #include <data/map_renderer_data.h>
+#include <core/data_layer/road_network.h>
 
 namespace tjs {
 	class Application;
@@ -26,6 +27,8 @@ namespace tjs::visualization {
 		void render_bounding_box() const;
 		void draw_lane_markers(const std::vector<Position>& nodes, int lanes, int lane_width_pixels);
 		void draw_path_nodes(const std::vector<Position>& nodes);
+		void render_network_graph(IRenderer& renderer, const core::RoadNetwork& network);
+		void draw_direction_arrows(const std::vector<Position>& nodes, bool reverse);
 		FColor get_way_color(core::WayType type) const;
 
 		Application& _application;

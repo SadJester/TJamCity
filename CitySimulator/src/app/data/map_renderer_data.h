@@ -11,7 +11,8 @@ namespace tjs::core::model {
 		Ways = 1 << 0,
 		Nodes = 1 << 1,
 		TrafficLights = 1 << 2,
-		All = Ways | Nodes | TrafficLights);
+		NetworkGraph = 1 << 3,
+		All = Ways | Nodes | TrafficLights | NetworkGraph);
 
 	struct MapRendererData : public IDataModel {
 		static std::type_index get_type() {
