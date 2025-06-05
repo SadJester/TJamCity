@@ -30,17 +30,16 @@ namespace tjs::core::algo {
 						network.adjacency_list[current].emplace_back(next, dist);
 					}
 				} else {
-					bool added = false;
 					// For bidirectional roads, add edges based on lane count
 					if (way->lanesForward > 0) {
 						network.adjacency_list[current].emplace_back(next, dist);
-						added = true;
 					}
 					if (way->lanesBackward > 0) {
 						network.adjacency_list[next].emplace_back(current, dist);
-						added = true;
 					}
 				}
+				current->tags = current->tags | NodeTags::Way;
+				next->tags = current->tags | NodeTags::Way;
 			}
 		}
 	}

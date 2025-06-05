@@ -4,6 +4,7 @@
 
 #include "Application.h"
 #include "settings/general_settings.h"
+#include "data/map_renderer_data.h"
 
 #include <QLabel>
 #include <QFileDialog>
@@ -19,7 +20,6 @@
 #include <core/data_layer/world_creator.h>
 #include <core/simulation/simulation_system.h>
 #include <core/store_models/vehicle_analyze_data.h>
-
 
 namespace tjs {
 	namespace ui {
@@ -98,14 +98,18 @@ namespace tjs {
 			coordsLayout->addWidget(lonLabel);
 			coordsLayout->addWidget(_longitude);
 
+			// Add layer selection
+			createLayerSelection(mainLayout);
+
+			// Add vehicle information
+			createVehicleInformation(mainLayout);
+
 			// Add all elements to main layout
 			mainLayout->addWidget(_openFileButton);
 			mainLayout->addWidget(infoFrame);
 			mainLayout->addLayout(zoomLayout);
 			mainLayout->addWidget(arrowsFrame);
 			mainLayout->addLayout(coordsLayout);
-
-			createVehicleInformation(mainLayout);
 
 			// Connections
 			connect(_zoomInButton, &QPushButton::clicked, this, &MapControlWidget::onZoomIn);
@@ -207,8 +211,53 @@ namespace tjs {
 			layout->addWidget(infoFrame);
 		}
 
+		void MapControlWidget::createLayerSelection(QVBoxLayout* layout) {
+			QFrame* layerFrame = new QFrame();
+			layerFrame->setFrameStyle(QFrame::Box | QFrame::Sunken);
+			layerFrame->setLineWidth(2);
+			layerFrame->setMidLineWidth(1);
+
+			QVBoxLayout* layerLayout = new QVBoxLayout(layerFrame);
+			QLabel* layerLabel = new QLabel("Map Layers:", this);
+			layerLayout->addWidget(layerLabel);
+
+			_layerList = new QListWidget(this);
+			_layerList->setSelectionMode(QAbstractItemView::MultiSelection);
+
+			// Add layer options
+			QListWidgetItem* waysItem = new QListWidgetItem("Roads", _layerList);
+			waysItem->setData(Qt::UserRole, static_cast<uint32_t>(core::model::MapRendererLayer::Ways));
+			waysItem->setSelected(true);
+
+			QListWidgetItem* nodesItem = new QListWidgetItem("Nodes", _layerList);
+			nodesItem->setData(Qt::UserRole, static_cast<uint32_t>(core::model::MapRendererLayer::Nodes));
+
+			QListWidgetItem* trafficItem = new QListWidgetItem("Traffic Lights", _layerList);
+			trafficItem->setData(Qt::UserRole, static_cast<uint32_t>(core::model::MapRendererLayer::TrafficLights));
+
+			layerLayout->addWidget(_layerList);
+			layout->addWidget(layerFrame);
+
+			connect(_layerList, &QListWidget::itemSelectionChanged, this, &MapControlWidget::onLayerSelectionChanged);
+		}
+
+		void MapControlWidget::onLayerSelectionChanged() {
+			core::model::MapRendererLayer layers = core::model::MapRendererLayer::None;
+			for (int i = 0; i < _layerList->count(); ++i) {
+				QListWidgetItem* item = _layerList->item(i);
+				if (item->isSelected()) {
+					layers = layers | static_cast<core::model::MapRendererLayer>(item->data(Qt::UserRole).toUInt());
+				}
+			}
+
+			auto renderData = _application.stores().get_model<core::model::MapRendererData>();
+			if (renderData) {
+				renderData->visibleLayers = layers;
+			}
+		}
+
 		void MapControlWidget::UpdateButtonsState() {
-			const bool value = _mapElement != nullptr;
+			const bool value = !_application.settings().general.selectedFile.empty();
 			_zoomInButton->setEnabled(value);
 			_zoomOutButton->setEnabled(value);
 			_northButton->setEnabled(value);
@@ -220,22 +269,37 @@ namespace tjs {
 		}
 
 		void MapControlWidget::UpdateLabels() {
-			_zoomLevel->setText(QString("Meters per pixel: %1").arg(_mapElement->getZoomLevel()));
-			_latitude->setValue(_mapElement->getProjectionCenter().latitude);
-			_longitude->setValue(_mapElement->getProjectionCenter().longitude);
+			auto render_data = _application.stores().get_model<core::model::MapRendererData>();
+			if (!render_data) {
+				return;
+			}
 
-			_application.settings().general.zoomLevel = _mapElement->getZoomLevel();
+			_zoomLevel->setText(QString("Meters per pixel: %1").arg(render_data->metersPerPixel));
+			_latitude->setValue(render_data->projectionCenter.latitude);
+			_longitude->setValue(render_data->projectionCenter.longitude);
+
+			_application.settings().general.zoomLevel = render_data->metersPerPixel;
 		}
 
 		void MapControlWidget::onZoomIn() {
-			double currentZoom = _mapElement->getZoomLevel();
-			_mapElement->setZoomLevel(currentZoom * 0.9); // Zoom in (decrease meters per pixel)
+			auto render_data = _application.stores().get_model<core::model::MapRendererData>();
+			if (!render_data) {
+				return;
+			}
+
+			double currentZoom = render_data->metersPerPixel;
+			render_data->metersPerPixel = currentZoom * 0.9; // Zoom in (decrease meters per pixel)
 			UpdateLabels();
 		}
 
 		void MapControlWidget::onZoomOut() {
-			double currentZoom = _mapElement->getZoomLevel();
-			_mapElement->setZoomLevel(currentZoom * 1.1); // Zoom out (increase meters per pixel)
+			auto render_data = _application.stores().get_model<core::model::MapRendererData>();
+			if (!render_data) {
+				return;
+			}
+
+			double currentZoom = render_data->metersPerPixel;
+			render_data->metersPerPixel = currentZoom * 1.1; // Zoom out (increase meters per pixel)
 			UpdateLabels();
 		}
 
@@ -257,64 +321,88 @@ namespace tjs {
 		}
 
 		void MapControlWidget::moveNorth() {
-			core::Coordinates current = _mapElement->getProjectionCenter();
+			auto render_data = _application.stores().get_model<core::model::MapRendererData>();
+			if (!render_data) {
+				return;
+			}
+
+			core::Coordinates current = render_data->projectionCenter;
 			if (current.latitude < 90.0) {
-				current.latitude += getChangedStep(_mapElement->getZoomLevel()); // Change step size as needed
+				current.latitude += getChangedStep(render_data->metersPerPixel);
 				_latitude->setValue(current.latitude);
-				_mapElement->setProjectionCenter(current);
+				render_data->projectionCenter = current;
 			}
 		}
 
 		void MapControlWidget::moveSouth() {
-			core::Coordinates current = _mapElement->getProjectionCenter();
+			auto render_data = _application.stores().get_model<core::model::MapRendererData>();
+			if (!render_data) {
+				return;
+			}
+
+			core::Coordinates current = render_data->projectionCenter;
 			if (current.latitude > -90.0) {
-				current.latitude -= getChangedStep(_mapElement->getZoomLevel()); // Change step size as needed
+				current.latitude -= getChangedStep(render_data->metersPerPixel);
 				_latitude->setValue(current.latitude);
-				_mapElement->setProjectionCenter(current);
+				render_data->projectionCenter = current;
 			}
 		}
 
 		void MapControlWidget::moveWest() {
-			core::Coordinates current = _mapElement->getProjectionCenter();
+			auto render_data = _application.stores().get_model<core::model::MapRendererData>();
+			if (!render_data) {
+				return;
+			}
+
+			core::Coordinates current = render_data->projectionCenter;
 			if (current.longitude > -180.0) {
-				current.longitude -= getChangedStep(_mapElement->getZoomLevel()); // Change step size as needed
+				current.longitude -= getChangedStep(render_data->metersPerPixel);
 				_longitude->setValue(current.longitude);
-				_mapElement->setProjectionCenter(current);
+				render_data->projectionCenter = current;
 			}
 		}
 
 		void MapControlWidget::moveEast() {
-			core::Coordinates current = _mapElement->getProjectionCenter();
+			auto render_data = _application.stores().get_model<core::model::MapRendererData>();
+			if (!render_data) {
+				return;
+			}
+
+			core::Coordinates current = render_data->projectionCenter;
 			if (current.longitude < 180.0) {
-				current.longitude += getChangedStep(_mapElement->getZoomLevel()); // Change step size as needed
+				current.longitude += getChangedStep(render_data->metersPerPixel);
 				_longitude->setValue(current.longitude);
-				_mapElement->setProjectionCenter(current);
+				render_data->projectionCenter = current;
 			}
 		}
 
 		void MapControlWidget::onUpdate() {
-			auto scene = _application.sceneSystem().getScene("General");
-			if (scene == nullptr) {
+			if (_layerList == nullptr) {
 				return;
 			}
 
-			_mapElement = dynamic_cast<visualization::MapElement*>(scene->getNode("MapElement"));
-			UpdateButtonsState();
-			if (_mapElement == nullptr) {
+			auto render_data = _application.stores().get_model<core::model::MapRendererData>();
+			if (!render_data) {
 				return;
+			}
+
+			// Update layer selection based on current state
+			for (int i = 0; i < _layerList->count(); ++i) {
+				QListWidgetItem* item = _layerList->item(i);
+				core::model::MapRendererLayer layer = static_cast<core::model::MapRendererLayer>(item->data(Qt::UserRole).toUInt());
+				item->setSelected(static_cast<uint32_t>(render_data->visibleLayers & layer) != 0);
 			}
 
 			if (const auto& projectionCenter = _application.settings().general.projectionCenter;
 				projectionCenter.latitude != 0.0 || projectionCenter.longitude != 0.0) {
-				_mapElement->setProjectionCenter(_application.settings().general.projectionCenter);
+				render_data->projectionCenter = _application.settings().general.projectionCenter;
 			}
-			_mapElement->setZoomLevel(_application.settings().general.zoomLevel);
+			render_data->metersPerPixel = _application.settings().general.zoomLevel;
 			UpdateLabels();
 
 			// Initialize spin boxes with current values
-			const auto& center = _mapElement->getProjectionCenter();
-			_latitude->setValue(center.latitude);
-			_longitude->setValue(center.longitude);
+			_latitude->setValue(render_data->projectionCenter.latitude);
+			_longitude->setValue(render_data->projectionCenter.longitude);
 		}
 
 		bool MapControlWidget::openFile(std::string_view fileName) {
@@ -325,8 +413,12 @@ namespace tjs {
 				tjs::core::WorldCreator::createRandomVehicles(_application.worldData(), _application.settings().simulationSettings);
 				_application.settings().general.selectedFile = fileName;
 				onUpdate();
-				if (_mapElement != nullptr) {
-					_mapElement->init();
+
+				// TODO: message system
+				if (auto scene = _application.sceneSystem().getScene("General"); scene) {
+					if (auto mapElement = dynamic_cast<visualization::MapElement*>(scene->getNode("MapElement")); mapElement) {
+						mapElement->init();
+					}
 				}
 				return true;
 			}

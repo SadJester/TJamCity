@@ -45,7 +45,7 @@ namespace tjs::visualization {
 
 		if (model->agent->currentGoal != nullptr) {
 			renderer.setDrawColor(Constants::PATH_COLOR);
-			auto point = _mapElement->convertToScreen(model->agent->currentGoal->coordinates);
+			auto point = _mapElement->convert_to_screen(model->agent->currentGoal->coordinates);
 			renderer.drawRect(Rectangle(point.x - 2.5f, point.y - 2.5f, 5.0f, 5.0f), true);
 		}
 
@@ -64,7 +64,7 @@ namespace tjs::visualization {
 		renderer.setDrawColor(Constants::PATH_MARK_COLOR);
 		for (size_t i = 0; i < visited_path.size(); ++i) {
 			auto node = visited_path[i];
-			auto point = _mapElement->convertToScreen(node->coordinates);
+			auto point = _mapElement->convert_to_screen(node->coordinates);
 			visitedPoints.push_back(point);
 			renderer.drawCircle(
 				point.x,
@@ -76,7 +76,7 @@ namespace tjs::visualization {
 		bool markFirst = visited_path.size() == 0;
 		for (size_t i = 0; i < path.size(); ++i) {
 			auto node = path[i];
-			auto point = _mapElement->convertToScreen(node->coordinates);
+			auto point = _mapElement->convert_to_screen(node->coordinates);
 			toVisitPoints.push_back(point);
 			renderer.drawCircle(
 				point.x,
@@ -86,11 +86,11 @@ namespace tjs::visualization {
 
 		// TODO: thickness of path in settings
 		static float thickness = 11.0f;
-		drawThickLine(renderer, visitedPoints, _mapElement->getZoomLevel(), thickness, FColor { 0.f, 0.f, 1.0f, 1.0f });
-		drawThickLine(renderer, toVisitPoints, _mapElement->getZoomLevel(), thickness, Constants::PATH_COLOR);
+		drawThickLine(renderer, visitedPoints, _mapElement->get_zoom_level(), thickness, FColor { 0.f, 0.f, 1.0f, 1.0f });
+		drawThickLine(renderer, toVisitPoints, _mapElement->get_zoom_level(), thickness, Constants::PATH_COLOR);
 
 		renderer.setDrawColor(FColor { 0.f, 0.f, 1.0f, 1.0f });
-		auto currentGoal = _mapElement->convertToScreen(model->agent->currentStepGoal);
+		auto currentGoal = _mapElement->convert_to_screen(model->agent->currentStepGoal);
 		renderer.drawCircle(currentGoal.x, currentGoal.y, 4.0f);
 	}
 } // namespace tjs::visualization

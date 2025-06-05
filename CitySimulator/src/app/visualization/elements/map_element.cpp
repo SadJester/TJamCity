@@ -2,9 +2,10 @@
 
 #include "visualization/elements/map_element.h"
 
-#include "render/render_base.h"
-#include "visualization/visualization_constants.h"
-#include "Application.h"
+#include <render/render_base.h>
+#include <visualization/visualization_constants.h>
+#include <data/map_renderer_data.h>
+#include <Application.h>
 
 #include <core/data_layer/world_data.h>
 #include <core/data_layer/data_types.h>
@@ -15,7 +16,8 @@ namespace tjs::visualization {
 
 	MapElement::MapElement(Application& application)
 		: SceneNode("MapElement")
-		, _application(application) {
+		, _application(application)
+		, _render_data(*application.stores().get_model<model::MapRendererData>()) {
 	}
 
 	void MapElement::init() {
@@ -23,18 +25,18 @@ namespace tjs::visualization {
 		auto& segments = world.segments();
 
 		if (!segments.empty()) {
-			autoZoom(segments.front()->nodes);
+			auto_zoom(segments.front()->nodes);
 		}
 	}
 
-	void MapElement::setProjectionCenter(const Coordinates& center) {
-		projectionCenter = center;
+	void MapElement::set_projection_center(const Coordinates& center) {
+		_render_data.projectionCenter = center;
 	}
 
-	void MapElement::setZoomLevel(double metersPerPixel) {
-		this->metersPerPixel = metersPerPixel;
-		double latRad = projectionCenter.latitude * core::MathConstants::DEG_TO_RAD;
-		metersPerPixel *= std::cos(latRad);
+	void MapElement::set_zoom_level(double metersPerPixel) {
+		_render_data.metersPerPixel = metersPerPixel;
+		double latRad = _render_data.projectionCenter.latitude * MathConstants::DEG_TO_RAD;
+		_render_data.metersPerPixel *= std::cos(latRad);
 	}
 
 	void MapElement::update() {
@@ -50,49 +52,75 @@ namespace tjs::visualization {
 
 		auto& segment = segments.front();
 
-		renderBoundingBox();
-		// Render all ways
-		int waysRendered = 0;
-		int totalNodesRendered = 0;
-		int realNodeSegments = 0;
-		for (const auto& wayPair : segment->ways) {
-			int nodesRendered = renderWay(*wayPair.second, segment->nodes);
-			realNodeSegments += wayPair.second->nodes.size() / 2;
-			if (nodesRendered > 0) {
-				waysRendered++;
+		if (_render_data.showBoundingBox) {
+			render_bounding_box();
+		}
+
+		// Render all ways if enabled
+		if (static_cast<uint32_t>(_render_data.visibleLayers & model::MapRendererLayer::Ways) != 0) {
+			int ways_rendered = 0;
+			int total_nodes_rendered = 0;
+			int real_node_segments = 0;
+			for (const auto& way_pair : segment->ways) {
+				std::vector<Position> screen_points;
+				screen_points.reserve(way_pair.second->nodes.size());
+
+				for (Node* node : way_pair.second->nodes) {
+					screen_points.push_back(convert_to_screen(node->coordinates));
+				}
+
+				int nodes_rendered = render_way(*way_pair.second, segment->nodes);
+				real_node_segments += way_pair.second->nodes.size() / 2;
+				if (nodes_rendered > 0) {
+					ways_rendered++;
+				}
+				total_nodes_rendered += nodes_rendered;
+
+				// Draw nodes if enabled
+				if (static_cast<uint32_t>(_render_data.visibleLayers & model::MapRendererLayer::Nodes) != 0) {
+					draw_path_nodes(screen_points);
+				}
 			}
-			totalNodesRendered += nodesRendered;
 		}
 	}
 
-	void MapElement::setView(const Coordinates& center, double zoomMetersPerPixel) {
-		projectionCenter = center;
-		setZoomLevel(zoomMetersPerPixel);
+	void MapElement::set_view(const Coordinates& center, double zoomMetersPerPixel) {
+		set_projection_center(center);
+		set_zoom_level(zoomMetersPerPixel);
 	}
 
-	Position MapElement::convertToScreen(const Coordinates& coord) const {
+	Position convert_to_screen(
+		const Coordinates& coord,
+		const Coordinates& projection_center,
+		const Position& screen_center,
+		double meters_per_pixel) {
 		// Convert geographic coordinates to meters using Mercator projection
-		double x = (coord.longitude - projectionCenter.longitude) * core::MathConstants::DEG_TO_RAD * core::MathConstants::EARTH_RADIUS;
-		double y = -std::log(std::tan((90.0 + coord.latitude) * core::MathConstants::DEG_TO_RAD / 2.0)) * core::MathConstants::EARTH_RADIUS;
-		double yCenter = -std::log(std::tan((90.0 + projectionCenter.latitude) * core::MathConstants::DEG_TO_RAD / 2.0)) * core::MathConstants::EARTH_RADIUS;
+		double x = (coord.longitude - projection_center.longitude) * MathConstants::DEG_TO_RAD * MathConstants::EARTH_RADIUS;
+		double y = -std::log(std::tan((90.0 + coord.latitude) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS;
+		double yCenter = -std::log(std::tan((90.0 + projection_center.latitude) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS;
 		y -= yCenter;
 
 		// Scale to screen coordinates
-		int screenX = static_cast<int>(screenCenterX + x / metersPerPixel);
-		int screenY = static_cast<int>(screenCenterY + y / metersPerPixel);
+		int screenX = static_cast<int>(screen_center.x + x / meters_per_pixel);
+		int screenY = static_cast<int>(screen_center.y + y / meters_per_pixel);
 
 		return { screenX, screenY };
 	}
 
-	void MapElement::autoZoom(const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {
+	Position MapElement::convert_to_screen(const Coordinates& coord) const {
+		return tjs::visualization::convert_to_screen(
+			coord,
+			_render_data.projectionCenter,
+			_render_data.screen_center,
+			_render_data.metersPerPixel);
+	}
+
+	void MapElement::auto_zoom(const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {
 		if (nodes.empty()) {
 			return;
 		}
 
-		calculateMapBounds(nodes);
-
-		//projectionCenter.latitude = 45.117755;
-		//projectionCenter.longitude = 38.981595;
+		calculate_map_bounds(nodes);
 
 		// Calculate bounds in meters
 		double minX = std::numeric_limits<double>::max();
@@ -100,12 +128,12 @@ namespace tjs::visualization {
 		double minY = std::numeric_limits<double>::max();
 		double maxY = std::numeric_limits<double>::lowest();
 
-		double yCenter = -std::log(std::tan((90.0 + projectionCenter.latitude) * core::MathConstants::DEG_TO_RAD / 2.0)) * core::MathConstants::EARTH_RADIUS;
+		double yCenter = -std::log(std::tan((90.0 + _render_data.projectionCenter.latitude) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS;
 
 		for (const auto& pair : nodes) {
 			const auto& node = pair.second;
-			double x = (node->coordinates.longitude - projectionCenter.longitude) * core::MathConstants::DEG_TO_RAD * core::MathConstants::EARTH_RADIUS;
-			double y = -std::log(std::tan((90.0 + node->coordinates.latitude) * core::MathConstants::DEG_TO_RAD / 2.0)) * core::MathConstants::EARTH_RADIUS - yCenter;
+			double x = (node->coordinates.longitude - _render_data.projectionCenter.longitude) * MathConstants::DEG_TO_RAD * MathConstants::EARTH_RADIUS;
+			double y = -std::log(std::tan((90.0 + node->coordinates.latitude) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS - yCenter;
 
 			minX = std::min(minX, x);
 			maxX = std::max(maxX, x);
@@ -122,36 +150,36 @@ namespace tjs::visualization {
 		double zoomX = widthMeters / (renderer.screenWidth() * 0.9);
 		double zoomY = heightMeters / (renderer.screenHeight() * 0.9);
 
-		setZoomLevel(std::min(zoomX, zoomY)); // Use min to ensure the entire map fits
+		set_zoom_level(std::min(zoomX, zoomY)); // Use min to ensure the entire map fits
 
 		// Recalculate screen center based on the new zoom level
-		screenCenterX = renderer.screenWidth() / 2.0;
-		screenCenterY = renderer.screenHeight() / 2.0;
+		screen_center_x = renderer.screenWidth() / 2.0;
+		screen_center_y = renderer.screenHeight() / 2.0;
 	}
 
-	void MapElement::calculateMapBounds(const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {
+	void MapElement::calculate_map_bounds(const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {
 		// Initialize bounding box with extreme values
-		minLat = std::numeric_limits<float>::max();
-		maxLat = std::numeric_limits<float>::lowest();
-		minLon = std::numeric_limits<float>::max();
-		maxLon = std::numeric_limits<float>::lowest();
+		min_lat = std::numeric_limits<float>::max();
+		max_lat = std::numeric_limits<float>::lowest();
+		min_lon = std::numeric_limits<float>::max();
+		max_lon = std::numeric_limits<float>::lowest();
 
 		// Iterate through all nodes to find min/max coordinates
 		for (const auto& pair : nodes) {
 			const auto& node = pair.second;
 
-			minLat = std::min(minLat, static_cast<float>(node->coordinates.latitude));
-			maxLat = std::max(maxLat, static_cast<float>(node->coordinates.latitude));
-			minLon = std::min(minLon, static_cast<float>(node->coordinates.longitude));
-			maxLon = std::max(maxLon, static_cast<float>(node->coordinates.longitude));
+			min_lat = std::min(min_lat, static_cast<float>(node->coordinates.latitude));
+			max_lat = std::max(max_lat, static_cast<float>(node->coordinates.latitude));
+			min_lon = std::min(min_lon, static_cast<float>(node->coordinates.longitude));
+			max_lon = std::max(max_lon, static_cast<float>(node->coordinates.longitude));
 		}
 
 		// Calculate the center of the bounding box
-		projectionCenter.latitude = (minLat + maxLat) / 2.0f;
-		projectionCenter.longitude = (minLon + maxLon) / 2.0f;
+		_render_data.projectionCenter.latitude = (min_lat + max_lat) / 2.0f;
+		_render_data.projectionCenter.longitude = (min_lon + max_lon) / 2.0f;
 	}
 
-	FColor MapElement::getWayColor(WayType type) const {
+	FColor MapElement::get_way_color(WayType type) const {
 		FColor roadColor = Constants::ROAD_COLOR;
 		switch (type) {
 			case WayType::Motorway:
@@ -190,15 +218,16 @@ namespace tjs::visualization {
 		return roadColor;
 	}
 
-	int MapElement::renderWay(const WayInfo& way, const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {
+	int MapElement::render_way(const WayInfo& way, const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {
 		if (way.nodeRefs.size() < 2) {
 			return 0;
 		}
 
 		std::vector<Position> screenPoints;
 		screenPoints.reserve(way.nodes.size());
+
 		for (Node* node : way.nodes) {
-			screenPoints.push_back(convertToScreen(node->coordinates));
+			screenPoints.push_back(convert_to_screen(node->coordinates));
 		}
 
 		// Draw the way
@@ -217,11 +246,11 @@ namespace tjs::visualization {
 			return 0;
 		}
 
-		const FColor color = getWayColor(way.type);
-		int segmentsRendered = drawThickLine(_application.renderer(), screenPoints, metersPerPixel, way.lanes * Constants::LANE_WIDTH, color);
+		const FColor color = get_way_color(way.type);
+		int segmentsRendered = drawThickLine(_application.renderer(), screenPoints, _render_data.metersPerPixel, way.lanes * Constants::LANE_WIDTH, color);
 
 		if (way.lanes > 1) {
-			drawLaneMarkers(screenPoints, way.lanes, Constants::LANE_WIDTH);
+			draw_lane_markers(screenPoints, way.lanes, Constants::LANE_WIDTH);
 		}
 
 		return segmentsRendered;
@@ -274,12 +303,12 @@ namespace tjs::visualization {
 		return segmentsRendered;
 	}
 
-	void MapElement::renderBoundingBox() const {
+	void MapElement::render_bounding_box() const {
 		// Convert all corners of the bounding box to screen coordinates
-		Position topLeft = convertToScreen({ minLat, minLon });
-		Position topRight = convertToScreen({ minLat, maxLon });
-		Position bottomLeft = convertToScreen({ maxLat, minLon });
-		Position bottomRight = convertToScreen({ maxLat, maxLon });
+		Position topLeft = convert_to_screen({ min_lat, min_lon });
+		Position topRight = convert_to_screen({ min_lat, max_lon });
+		Position bottomLeft = convert_to_screen({ max_lat, min_lon });
+		Position bottomRight = convert_to_screen({ max_lat, max_lon });
 
 		auto& renderer = _application.renderer();
 
@@ -291,8 +320,8 @@ namespace tjs::visualization {
 		renderer.drawLine(bottomLeft.x, bottomLeft.y, topLeft.x, topLeft.y);
 	}
 
-	void MapElement::drawLaneMarkers(const std::vector<Position>& nodes, int lanes, int laneWidthPixels) {
-		if (metersPerPixel > Constants::DRAW_LANE_MARKERS_MPP) {
+	void MapElement::draw_lane_markers(const std::vector<Position>& nodes, int lanes, int laneWidthPixels) {
+		if (_render_data.metersPerPixel > Constants::DRAW_LANE_MARKERS_MPP) {
 			return;
 		}
 
@@ -303,7 +332,7 @@ namespace tjs::visualization {
 		auto& renderer = _application.renderer();
 		renderer.setDrawColor(Constants::LANE_MARKER_COLOR);
 
-		float totalWidth = lanes * Constants::LANE_WIDTH * metersPerPixel;
+		float totalWidth = lanes * Constants::LANE_WIDTH * _render_data.metersPerPixel;
 		float laneWidth = totalWidth / lanes;
 
 		for (int lane = 1; lane < lanes; lane++) {
@@ -326,7 +355,7 @@ namespace tjs::visualization {
 
 				// Draw dashed lane markers
 				float segmentLength = 5.0f; // meters
-				int segments = static_cast<int>(len / (segmentLength * metersPerPixel));
+				int segments = static_cast<int>(len / (segmentLength * _render_data.metersPerPixel));
 
 				for (int s = 0; s < segments; s += 2) {
 					float t1 = s / static_cast<float>(segments);
@@ -344,6 +373,15 @@ namespace tjs::visualization {
 					renderer.drawLine(sp1.x, sp1.y, sp2.x, sp2.y);
 				}
 			}
+		}
+	}
+
+	void MapElement::draw_path_nodes(const std::vector<Position>& nodes) {
+		auto& renderer = _application.renderer();
+		renderer.setDrawColor({ 1.0f, 0.0f, 0.0f, 1.0f });
+
+		for (const auto& pos : nodes) {
+			renderer.drawCircle(pos.x, pos.y, 3, true);
 		}
 	}
 

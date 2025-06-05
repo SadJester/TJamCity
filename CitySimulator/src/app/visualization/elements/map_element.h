@@ -1,78 +1,59 @@
 #pragma once
 
+#include <visualization/scene_node.h>
 #include <core/data_layer/data_types.h>
-
-#include "render/render_primitives.h"
-#include "render/IRenderable.h"
-
-#include "visualization/scene_node.h"
+#include <data/map_renderer_data.h>
 
 namespace tjs {
 	class Application;
 	class IRenderer;
-
-	namespace visualization {
-		class MapElement : public SceneNode {
-		private:
-			Application& _application;
-
-			// Map bounds for coordinate conversion
-			float minLat = 90.0f, maxLat = -90.0f;
-			float minLon = 180.0f, maxLon = -180.0f;
-
-			double _laneWidth = 0.0;
-
-			// Projection state
-			core::Coordinates projectionCenter { 0, 0 };
-			double metersPerPixel = 1.0;
-			double screenCenterX = 512.0f;
-			double screenCenterY = 512.0f;
-
-		public:
-			MapElement(Application& application);
-			~MapElement() = default;
-
-			void autoZoom(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
-			void setView(const core::Coordinates& center, double zoomMetersPerPixel);
-
-			const core::Coordinates GetCurrentView() const {
-				return projectionCenter;
-			}
-
-			virtual void init() override;
-			virtual void update() override;
-			virtual void render(IRenderer& renderer) override;
-
-			Position convertToScreen(const core::Coordinates& coord) const;
-			void calculateMapBounds(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
-
-			FColor getWayColor(core::WayType type) const;
-
-			int renderWay(const core::WayInfo& way, const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
-			void renderBoundingBox() const;
-
-			void setZoomLevel(double newZoom);
-			double getZoomLevel() const {
-				return metersPerPixel;
-			}
-
-			void setProjectionCenter(const core::Coordinates& newCenter);
-			const core::Coordinates& getProjectionCenter() const {
-				return projectionCenter;
-			}
-
-			double getLaneWidth() const {
-				return _laneWidth;
-			}
-
-			void setLaneWidthPerPixel(double lW) {
-				_laneWidth = lW;
-			}
-
-		private:
-			void drawLaneMarkers(const std::vector<Position>& nodes, int lanes, int laneWidthPixels);
-		};
-
-		int drawThickLine(IRenderer& renderer, const std::vector<Position>& nodes, double metersPerPixel, float thickness, FColor color);
-	} // namespace visualization
 } // namespace tjs
+
+namespace tjs::visualization {
+	class MapElement : public SceneNode {
+	public:
+		explicit MapElement(Application& application);
+
+		void init() override;
+		void update() override;
+		void render(IRenderer& renderer) override;
+
+		void set_view(const core::Coordinates& center, double zoom_meters_per_pixel);
+		void set_projection_center(const core::Coordinates& center);
+		void set_zoom_level(double meters_per_pixel);
+
+		double get_zoom_level() const { return _render_data.metersPerPixel; }
+		const core::Coordinates& get_projection_center() const { return _render_data.projectionCenter; }
+
+		Position convert_to_screen(const core::Coordinates& coord) const;
+
+	private:
+		void auto_zoom(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
+		void calculate_map_bounds(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
+		int render_way(const core::WayInfo& way, const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
+		void render_bounding_box() const;
+		void draw_lane_markers(const std::vector<Position>& nodes, int lanes, int lane_width_pixels);
+		void draw_path_nodes(const std::vector<Position>& nodes);
+		FColor get_way_color(core::WayType type) const;
+
+		Application& _application;
+		core::model::MapRendererData& _render_data;
+
+		// Bounding box coordinates
+		float min_lat = 0.0f;
+		float max_lat = 0.0f;
+		float min_lon = 0.0f;
+		float max_lon = 0.0f;
+
+		// Screen center coordinates
+		int screen_center_x = 512;
+		int screen_center_y = 512;
+	};
+
+	int drawThickLine(IRenderer& renderer, const std::vector<Position>& nodes, double metersPerPixel, float thickness, FColor color);
+	Position convert_to_screen(
+		const core::Coordinates& coord,
+		const core::Coordinates& projection_center,
+		const Position& screen_center,
+		double meters_per_pixel);
+} // namespace tjs::visualization

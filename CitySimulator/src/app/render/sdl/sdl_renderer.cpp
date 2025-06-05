@@ -124,29 +124,53 @@ namespace tjs::render {
 			geometry.indices.size());
 	}
 
-	void SDLRenderer::drawCircle(int centerX, int centerY, int radius) {
-		// Midpoint circle algorithm
-		int x = radius;
-		int y = 0;
-		int err = 0;
+	void SDLRenderer::drawCircle(int centerX, int centerY, int radius, bool fill) {
+		if (fill) {
+			// Draw filled circle using scanlines
+			int x = radius;
+			int y = 0;
+			int err = 0;
 
-		while (x >= y) {
-			SDL_RenderPoint(_sdlRenderer, centerX + x, centerY + y);
-			SDL_RenderPoint(_sdlRenderer, centerX + y, centerY + x);
-			SDL_RenderPoint(_sdlRenderer, centerX - y, centerY + x);
-			SDL_RenderPoint(_sdlRenderer, centerX - x, centerY + y);
-			SDL_RenderPoint(_sdlRenderer, centerX - x, centerY - y);
-			SDL_RenderPoint(_sdlRenderer, centerX - y, centerY - x);
-			SDL_RenderPoint(_sdlRenderer, centerX + y, centerY - x);
-			SDL_RenderPoint(_sdlRenderer, centerX + x, centerY - y);
+			while (x >= y) {
+				// Draw horizontal lines between points on the circle
+				SDL_RenderLine(_sdlRenderer, centerX - x, centerY + y, centerX + x, centerY + y);
+				SDL_RenderLine(_sdlRenderer, centerX - x, centerY - y, centerX + x, centerY - y);
+				SDL_RenderLine(_sdlRenderer, centerX - y, centerY + x, centerX + y, centerY + x);
+				SDL_RenderLine(_sdlRenderer, centerX - y, centerY - x, centerX + y, centerY - x);
 
-			if (err <= 0) {
-				y += 1;
-				err += 2 * y + 1;
+				if (err <= 0) {
+					y += 1;
+					err += 2 * y + 1;
+				}
+				if (err > 0) {
+					x -= 1;
+					err -= 2 * x + 1;
+				}
 			}
-			if (err > 0) {
-				x -= 1;
-				err -= 2 * x + 1;
+		} else {
+			// Draw circle outline using points
+			int x = radius;
+			int y = 0;
+			int err = 0;
+
+			while (x >= y) {
+				SDL_RenderPoint(_sdlRenderer, centerX + x, centerY + y);
+				SDL_RenderPoint(_sdlRenderer, centerX + y, centerY + x);
+				SDL_RenderPoint(_sdlRenderer, centerX - y, centerY + x);
+				SDL_RenderPoint(_sdlRenderer, centerX - x, centerY + y);
+				SDL_RenderPoint(_sdlRenderer, centerX - x, centerY - y);
+				SDL_RenderPoint(_sdlRenderer, centerX - y, centerY - x);
+				SDL_RenderPoint(_sdlRenderer, centerX + y, centerY - x);
+				SDL_RenderPoint(_sdlRenderer, centerX + x, centerY - y);
+
+				if (err <= 0) {
+					y += 1;
+					err += 2 * y + 1;
+				}
+				if (err > 0) {
+					x -= 1;
+					err -= 2 * x + 1;
+				}
 			}
 		}
 	}

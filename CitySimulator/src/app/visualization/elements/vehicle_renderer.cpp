@@ -1,40 +1,37 @@
 #include <stdafx.h>
 
 #include <visualization/elements/vehicle_renderer.h>
-#include <visualization/elements/map_element.h>
 
 #include <Application.h>
 #include <visualization/Scene.h>
 #include <visualization/scene_system.h>
+#include <data/map_renderer_data.h>
+
 #include <core/data_layer/data_types.h>
+#include <core/store_models/idata_model.h>
 #include <core/data_layer/world_data.h>
+
+#include <visualization/elements/map_element.h>
 
 namespace tjs::visualization {
 
 	VehicleRenderer::VehicleRenderer(Application& application)
 		: SceneNode("VehicleRenderer")
-		, _application(application) {}
+		, _application(application)
+		, _mapRendererData(*application.stores().get_model<core::model::MapRendererData>()) {
+	}
 
 	VehicleRenderer::~VehicleRenderer() {
 	}
 
 	void VehicleRenderer::init() {
-		auto scene = _application.sceneSystem().getScene("General");
-		if (scene == nullptr) {
-			return;
-		}
-
-		_mapElement = dynamic_cast<visualization::MapElement*>(scene->getNode("MapElement"));
+		_mapRendererData = *_application.stores().get_model<core::model::MapRendererData>();
 	}
 
 	void VehicleRenderer::update() {
 	}
 
 	void VehicleRenderer::render(IRenderer& renderer) {
-		if (!_mapElement) {
-			return;
-		}
-
 		auto& vehicles = _application.worldData().vehicles();
 		for (auto& vehicle : vehicles) {
 			render(renderer, vehicle);
@@ -64,7 +61,7 @@ namespace tjs::visualization {
 	};
 
 	void VehicleRenderer::render(IRenderer& renderer, const core::Vehicle& vehicle) {
-		const float metersPerPixel = _mapElement->getZoomLevel();
+		const float metersPerPixel = _mapRendererData.metersPerPixel;
 
 		// Get the settings for the vehicle based on its type
 		const VehicleRenderSettings& settings = vehicleSettings.renderSettings[static_cast<int>(vehicle.type)];
@@ -73,7 +70,11 @@ namespace tjs::visualization {
 		renderer.setDrawColor(settings.color);
 
 		// Convert coordinates to screen coordinates
-		auto [screenX, screenY] = _mapElement->convertToScreen(vehicle.coordinates);
+		auto [screenX, screenY] = tjs::visualization::convert_to_screen(
+			vehicle.coordinates,
+			_mapRendererData.projectionCenter,
+			_mapRendererData.screen_center,
+			_mapRendererData.metersPerPixel);
 
 		if (!_application.renderer().is_point_visible(screenX, screenY)) {
 			return;

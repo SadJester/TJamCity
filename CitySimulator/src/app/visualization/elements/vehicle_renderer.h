@@ -1,6 +1,6 @@
 #pragma once
 
-#include "visualization/scene_node.h"
+#include <visualization/scene_node.h>
 
 namespace tjs {
 	class Application;
@@ -8,7 +8,13 @@ namespace tjs {
 
 	namespace core {
 		struct Vehicle;
+
+		namespace model {
+			struct MapRendererData;
+		} // namespace model
+
 	} // namespace core
+
 } // namespace tjs
 
 namespace tjs::visualization {
@@ -27,7 +33,7 @@ namespace tjs::visualization {
 		void render(IRenderer& renderer, const core::Vehicle& vehicle);
 
 	private:
-		MapElement* _mapElement;
+		core::model::MapRendererData& _mapRendererData;
 		Application& _application;
 	};
 } // namespace tjs::visualization

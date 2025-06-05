@@ -17,7 +17,7 @@ namespace tjs {
 		virtual void setDrawColor(FColor color) = 0;
 		virtual void drawLine(int x1, int y1, int x2, int y2) = 0;
 		virtual void drawGeometry(const Geometry& polygon) = 0;
-		virtual void drawCircle(int centerX, int centerY, int radius) = 0;
+		virtual void drawCircle(int centerX, int centerY, int radius, bool fill = false) = 0;
 		virtual void drawRect(const Rectangle& rect, bool fill = false) = 0;
 
 		int screenWidth() const { return _screenWidth; }

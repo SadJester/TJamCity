@@ -6,6 +6,7 @@
 #include <QSpinBox>
 #include <QLabel>
 #include <QCheckBox>
+#include <QListWidget>
 
 namespace tjs {
 	class Application;
@@ -18,7 +19,7 @@ namespace tjs {
 		class VehicleAnalyzeWidget;
 
 		class MapControlWidget : public QWidget {
-			// Q_OBJECT
+			//Q_OBJECT
 
 		public:
 			explicit MapControlWidget(Application& application, QWidget* parent = nullptr);
@@ -32,6 +33,7 @@ namespace tjs {
 			bool openFile(std::string_view fileName);
 
 			void createVehicleInformation(QVBoxLayout* layout);
+			void createLayerSelection(QVBoxLayout* layout);
 
 		private slots:
 			void onZoomIn();
@@ -42,10 +44,11 @@ namespace tjs {
 			void moveEast();
 			void onUpdate();
 			void openOSMFile();
+			void onLayerSelectionChanged();
 
 		private:
 			Application& _application;
-			visualization::MapElement* _mapElement = nullptr;
+
 			// Temporary button, will erase it after refactoring
 			QPushButton* _updateButton;
 
@@ -66,6 +69,7 @@ namespace tjs {
 			QPushButton* _regenerateVehiclesButton;
 
 			QLabel* _zoomLevel;
+			QListWidget* _layerList;
 
 			VehicleAnalyzeWidget* _vehiclesWidget = nullptr;
 		};
