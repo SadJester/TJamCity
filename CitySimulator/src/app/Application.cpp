@@ -76,9 +76,9 @@ namespace tjs {
 			_sceneSystem->update();
 
 			// Rendering
-			_renderer->beginFrame();
+			_renderer->begin_frame();
 			_sceneSystem->render(*_renderer);
-			_renderer->endFrame();
+			_renderer->end_frame();
 
 			// Calculate actual frame time
 			auto frameEnd = std::chrono::high_resolution_clock::now();

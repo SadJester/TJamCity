@@ -83,7 +83,7 @@ namespace tjs::visualization {
 
 	void MapElement::render_network_graph(IRenderer& renderer, const core::RoadNetwork& network) {
 		// Set color for network graph edges
-		renderer.setDrawColor({ 0.0f, 0.8f, 0.8f, 0.5f }); // Semi-transparent cyan
+		renderer.set_draw_color({ 0.0f, 0.8f, 0.8f, 0.5f }); // Semi-transparent cyan
 
 		// Render edges from adjacency list
 		for (const auto& [node, neighbors] : network.adjacency_list) {
@@ -98,10 +98,10 @@ namespace tjs::visualization {
 		}
 
 		// Draw nodes as small circles
-		renderer.setDrawColor({ 1.0f, 0.0f, 0.0f, 0.8f }); // Brighter cyan for nodes
+		renderer.set_draw_color({ 1.0f, 0.0f, 0.0f, 0.8f }); // Brighter cyan for nodes
 		for (const auto& [id, node] : network.nodes) {
 			Position pos = convert_to_screen(node->coordinates);
-			renderer.drawCircle(pos.x, pos.y, 2, true);
+			renderer.draw_circle(pos.x, pos.y, 2, true);
 		}
 	}
 
@@ -163,14 +163,14 @@ namespace tjs::visualization {
 
 		auto& renderer = _application.renderer();
 
-		double zoomX = widthMeters / (renderer.screenWidth() * 0.9);
-		double zoomY = heightMeters / (renderer.screenHeight() * 0.9);
+		double zoomX = widthMeters / (renderer.screen_width() * 0.9);
+		double zoomY = heightMeters / (renderer.screen_height() * 0.9);
 
 		_render_data.set_meters_per_pixel(std::min(zoomX, zoomY));
 
 		// Recalculate screen center based on the new zoom level
-		_render_data.screen_center.x = renderer.screenWidth() / 2.0;
-		_render_data.screen_center.y = renderer.screenHeight() / 2.0;
+		_render_data.screen_center.x = renderer.screen_width() / 2.0;
+		_render_data.screen_center.y = renderer.screen_height() / 2.0;
 	}
 
 	void MapElement::calculate_map_bounds(const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {
@@ -286,7 +286,7 @@ namespace tjs::visualization {
 		}
 
 		auto& renderer = _application.renderer();
-		renderer.setDrawColor(Constants::LANE_MARKER_COLOR);
+		renderer.set_draw_color(Constants::LANE_MARKER_COLOR);
 
 		for (size_t i = 0; i < nodes.size() - 1; i++) {
 			Position p1 = nodes[i];
@@ -348,8 +348,8 @@ namespace tjs::visualization {
 				};
 
 				// Draw arrow
-				renderer.drawLine(arrow_center.x, arrow_center.y, arrow_p1.x, arrow_p1.y);
-				renderer.drawLine(arrow_center.x, arrow_center.y, arrow_p2.x, arrow_p2.y);
+				renderer.draw_line(arrow_center.x, arrow_center.y, arrow_p1.x, arrow_p1.y);
+				renderer.draw_line(arrow_center.x, arrow_center.y, arrow_p2.x, arrow_p2.y);
 			}
 		}
 	}
@@ -362,7 +362,7 @@ namespace tjs::visualization {
 		thickness /= metersPerPixel;
 
 		int segmentsRendered = 0;
-		renderer.setDrawColor(color);
+		renderer.set_draw_color(color);
 
 		for (size_t i = 0; i < nodes.size() - 1; i++) {
 			auto p1 = nodes[i];
@@ -396,7 +396,7 @@ namespace tjs::visualization {
 				std::span(squareIndices)
 			};
 
-			renderer.drawGeometry(geometry);
+			renderer.draw_geometry(geometry);
 		}
 		return segmentsRendered;
 	}
@@ -410,12 +410,12 @@ namespace tjs::visualization {
 
 		auto& renderer = _application.renderer();
 
-		renderer.setDrawColor({ 1.f, 0.f, 0.f, 1.f });
+		renderer.set_draw_color({ 1.f, 0.f, 0.f, 1.f });
 
-		renderer.drawLine(topLeft.x, topLeft.y, topRight.x, topRight.y);
-		renderer.drawLine(topRight.x, topRight.y, bottomRight.x, bottomRight.y);
-		renderer.drawLine(bottomRight.x, bottomRight.y, bottomLeft.x, bottomLeft.y);
-		renderer.drawLine(bottomLeft.x, bottomLeft.y, topLeft.x, topLeft.y);
+		renderer.draw_line(topLeft.x, topLeft.y, topRight.x, topRight.y);
+		renderer.draw_line(topRight.x, topRight.y, bottomRight.x, bottomRight.y);
+		renderer.draw_line(bottomRight.x, bottomRight.y, bottomLeft.x, bottomLeft.y);
+		renderer.draw_line(bottomLeft.x, bottomLeft.y, topLeft.x, topLeft.y);
 	}
 
 	void MapElement::draw_lane_markers(const std::vector<Position>& nodes, int lanes, int laneWidthPixels) {
@@ -428,7 +428,7 @@ namespace tjs::visualization {
 		}
 
 		auto& renderer = _application.renderer();
-		renderer.setDrawColor(Constants::LANE_MARKER_COLOR);
+		renderer.set_draw_color(Constants::LANE_MARKER_COLOR);
 
 		float totalWidth = lanes * Constants::LANE_WIDTH * _render_data.metersPerPixel;
 		float laneWidth = totalWidth / lanes;
@@ -468,7 +468,7 @@ namespace tjs::visualization {
 						static_cast<int>(p1.y + t2 * dy + perpy)
 					};
 
-					renderer.drawLine(sp1.x, sp1.y, sp2.x, sp2.y);
+					renderer.draw_line(sp1.x, sp1.y, sp2.x, sp2.y);
 
 					// Draw direction arrow at the middle of each dashed line
 					if (s % 12 == 0) { // Draw arrows less frequently than dashes
@@ -494,8 +494,8 @@ namespace tjs::visualization {
 						};
 
 						// Draw arrow
-						renderer.drawLine(arrow_center.x, arrow_center.y, arrow_p1.x, arrow_p1.y);
-						renderer.drawLine(arrow_center.x, arrow_center.y, arrow_p2.x, arrow_p2.y);
+						renderer.draw_line(arrow_center.x, arrow_center.y, arrow_p1.x, arrow_p1.y);
+						renderer.draw_line(arrow_center.x, arrow_center.y, arrow_p2.x, arrow_p2.y);
 					}
 				}
 			}
@@ -504,10 +504,10 @@ namespace tjs::visualization {
 
 	void MapElement::draw_path_nodes(const std::vector<Position>& nodes) {
 		auto& renderer = _application.renderer();
-		renderer.setDrawColor({ 1.0f, 0.0f, 0.0f, 1.0f });
+		renderer.set_draw_color({ 1.0f, 0.0f, 0.0f, 1.0f });
 
 		for (const auto& pos : nodes) {
-			renderer.drawCircle(pos.x, pos.y, 3, true);
+			renderer.draw_circle(pos.x, pos.y, 3, true);
 		}
 	}
 

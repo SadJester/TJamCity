@@ -45,7 +45,7 @@ namespace tjs {
 		application.initialize();
 
 		// TODO: Will move to user settings in some time
-		application.renderer().setClearColor(tjs::render::RenderConstants::BASE_CLEAR_COLOR);
+		application.renderer().set_clear_color(tjs::render::RenderConstants::BASE_CLEAR_COLOR);
 		tjs::visualization::prepareScene(application);
 
 		application.run();

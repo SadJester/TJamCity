@@ -41,13 +41,13 @@ namespace tjs::visualization {
 		}
 
 		if (model->agent->currentGoal != nullptr) {
-			renderer.setDrawColor(Constants::PATH_COLOR);
+			renderer.set_draw_color(Constants::PATH_COLOR);
 			auto point = tjs::visualization::convert_to_screen(
 				model->agent->currentGoal->coordinates,
 				_mapRendererData.projectionCenter,
 				_mapRendererData.screen_center,
 				_mapRendererData.metersPerPixel);
-			renderer.drawRect(Rectangle(point.x - 2.5f, point.y - 2.5f, 5.0f, 5.0f), true);
+			renderer.draw_rect(Rectangle(point.x - 2.5f, point.y - 2.5f, 5.0f, 5.0f), true);
 		}
 
 		auto& path = model->agent->path;
@@ -62,7 +62,7 @@ namespace tjs::visualization {
 		std::vector<Position> visitedPoints;
 		visitedPoints.reserve(visited_path.size());
 
-		renderer.setDrawColor(Constants::PATH_MARK_COLOR);
+		renderer.set_draw_color(Constants::PATH_MARK_COLOR);
 		for (size_t i = 0; i < visited_path.size(); ++i) {
 			auto node = visited_path[i];
 			auto point = tjs::visualization::convert_to_screen(
@@ -71,7 +71,7 @@ namespace tjs::visualization {
 				_mapRendererData.screen_center,
 				_mapRendererData.metersPerPixel);
 			visitedPoints.push_back(point);
-			renderer.drawCircle(
+			renderer.draw_circle(
 				point.x,
 				point.y,
 				i == 0 ? 5.0f : 3.0f);
@@ -87,7 +87,7 @@ namespace tjs::visualization {
 				_mapRendererData.screen_center,
 				_mapRendererData.metersPerPixel);
 			toVisitPoints.push_back(point);
-			renderer.drawCircle(
+			renderer.draw_circle(
 				point.x,
 				point.y,
 				(i == 0 && markFirst) ? 5.0f : 3.0f);
@@ -98,12 +98,12 @@ namespace tjs::visualization {
 		drawThickLine(renderer, visitedPoints, _mapRendererData.metersPerPixel, thickness, FColor { 0.f, 0.f, 1.0f, 1.0f });
 		drawThickLine(renderer, toVisitPoints, _mapRendererData.metersPerPixel, thickness, Constants::PATH_COLOR);
 
-		renderer.setDrawColor(FColor { 0.f, 0.f, 1.0f, 1.0f });
+		renderer.set_draw_color(FColor { 0.f, 0.f, 1.0f, 1.0f });
 		auto currentGoal = tjs::visualization::convert_to_screen(
 			model->agent->currentStepGoal,
 			_mapRendererData.projectionCenter,
 			_mapRendererData.screen_center,
 			_mapRendererData.metersPerPixel);
-		renderer.drawCircle(currentGoal.x, currentGoal.y, 4.0f);
+		renderer.draw_circle(currentGoal.x, currentGoal.y, 4.0f);
 	}
 } // namespace tjs::visualization

@@ -67,7 +67,7 @@ namespace tjs::visualization {
 		const VehicleRenderSettings& settings = vehicleSettings.renderSettings[static_cast<int>(vehicle.type)];
 
 		// Set the color for the vehicle
-		renderer.setDrawColor(settings.color);
+		renderer.set_draw_color(settings.color);
 
 		// Convert coordinates to screen coordinates
 		auto [screenX, screenY] = tjs::visualization::convert_to_screen(
@@ -115,7 +115,7 @@ namespace tjs::visualization {
 		};
 
 		// Draw the vehicle as a rectangle
-		renderer.drawGeometry(geometry);
+		renderer.draw_geometry(geometry);
 	}
 
 } // namespace tjs::visualization
