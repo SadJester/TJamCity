@@ -10,11 +10,11 @@
 namespace tjs {
 	namespace ui {
 		RenderMetricsWidget::RenderMetricsWidget(Application& app, MainWindow* parent)
-			: QWidget(static_cast<QWidget*>(parent))
+			: QWidget() // Don't set parent in constructor
 			, _app(app) {
-			// Create a central widget and layout
-			QWidget* centralWidget = new QWidget(this);
-			QVBoxLayout* layout = new QVBoxLayout(centralWidget);
+			// Create FPS label directly on this widget
+			QVBoxLayout* layout = new QVBoxLayout(this);
+			layout->setContentsMargins(0, 0, 0, 0);
 
 			// Create FPS label
 			fpsLabel = new QLabel("FPS: 00 | Frame time: 00 ms", this);
@@ -23,7 +23,11 @@ namespace tjs {
 			fpsLabel->setStyleSheet("font-size: 24px; font-weight: bold;");
 
 			layout->addWidget(fpsLabel);
-			connect(parent->timer(), &QTimer::timeout, this, &RenderMetricsWidget::updateFrame);
+
+			// Connect to parent's timer
+			if (parent && parent->timer()) {
+				connect(parent->timer(), &QTimer::timeout, this, &RenderMetricsWidget::updateFrame);
+			}
 		}
 
 		void RenderMetricsWidget::updateFrame() {

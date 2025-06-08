@@ -1,14 +1,14 @@
 #include "stdafx.h"
 
 #include "ui_system/qt_ui/qt_controller.h"
-
 #include "ui_system/qt_ui/main_window.h"
-
 #include "Application.h"
 
 #include <QApplication>
 #include <QPushButton>
 #include <QVBoxLayout>
+#include <QScrollArea>
+#include <QFrame>
 
 /// TODO: Place somwhere to be more pretty
 #include "ui_system/qt_ui/render_metrics_widget.h"
@@ -46,31 +46,67 @@ namespace tjs {
 			window->setWindowTitle("TJS");
 			window->resize(400, 800);
 
-			// Create central widget and layout
-			QWidget* centralWidget = new QWidget(window);
-			QVBoxLayout* layout = new QVBoxLayout(centralWidget);
+			// Create main widget to hold everything
+			QWidget* mainWidget = new QWidget(window);
+			QVBoxLayout* mainLayout = new QVBoxLayout(mainWidget);
+			mainLayout->setSpacing(0);
+			mainLayout->setContentsMargins(0, 0, 0, 0);
 
+			// Create scroll area and its content widget
+			QScrollArea* scrollArea = new QScrollArea(mainWidget);
+			scrollArea->setWidgetResizable(true);
+			scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+			scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+
+			// Create content widget for scroll area
+			QWidget* scrollContent = new QWidget(scrollArea);
+			QVBoxLayout* scrollLayout = new QVBoxLayout(scrollContent);
+
+			// Add all widgets to the scroll content
 			RenderMetricsWidget* fpsLabel = new RenderMetricsWidget(_application, window);
-			layout->addWidget(fpsLabel);
+			fpsLabel->setParent(scrollContent); // Explicitly set the parent
+			scrollLayout->addWidget(fpsLabel);
 
-			TimeControlWidget* timeControlWidget = new TimeControlWidget(_application, window);
-			layout->addWidget(timeControlWidget);
+			TimeControlWidget* timeControlWidget = new TimeControlWidget(_application, scrollContent);
+			scrollLayout->addWidget(timeControlWidget);
 
-			MapControlWidget* mapControlWidget = new MapControlWidget(_application, window);
-			layout->addWidget(mapControlWidget);
+			MapControlWidget* mapControlWidget = new MapControlWidget(_application, scrollContent);
+			scrollLayout->addWidget(mapControlWidget);
 
 			VehicleAnalyzeWidget* vehicleAnalyzeWidget = new VehicleAnalyzeWidget(_application);
-			layout->addWidget(vehicleAnalyzeWidget);
+			vehicleAnalyzeWidget->setParent(scrollContent);
+			scrollLayout->addWidget(vehicleAnalyzeWidget);
 			mapControlWidget->setVehicles(vehicleAnalyzeWidget);
 
-			// Add widgets
-			QPushButton* button = new QPushButton("Quit");
+			// Set the scroll content to the scroll area
+			scrollArea->setWidget(scrollContent);
+
+			// Add scroll area to main layout
+			mainLayout->addWidget(scrollArea);
+
+			// Create a container for the Quit button with a line above it
+			QWidget* quitContainer = new QWidget(mainWidget);
+			QVBoxLayout* quitLayout = new QVBoxLayout(quitContainer);
+			quitLayout->setSpacing(0);
+			quitLayout->setContentsMargins(10, 0, 10, 10);
+
+			// Add a horizontal line
+			QFrame* line = new QFrame(quitContainer);
+			line->setFrameShape(QFrame::HLine);
+			line->setFrameShadow(QFrame::Sunken);
+			quitLayout->addWidget(line);
+
+			// Add Quit button
+			QPushButton* button = new QPushButton("Quit", quitContainer);
 			QObject::connect(button, &QPushButton::clicked, [this]() {
 				_application.setFinished();
 			});
-			layout->addWidget(button);
+			quitLayout->addWidget(button);
 
-			window->setCentralWidget(centralWidget);
+			// Add quit container to main layout
+			mainLayout->addWidget(quitContainer);
+
+			window->setCentralWidget(mainWidget);
 			window->show();
 		}
 	} // namespace ui
