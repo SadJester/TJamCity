@@ -3,7 +3,9 @@
 #include <visualization/scene_node.h>
 #include <core/data_layer/data_types.h>
 #include <data/map_renderer_data.h>
+#include <data/persistent_render_data.h>
 #include <core/data_layer/road_network.h>
+#include <visualization/map_render_events_listener.h>
 
 namespace tjs {
 	class Application;
@@ -14,6 +16,7 @@ namespace tjs::visualization {
 	class MapElement : public SceneNode {
 	public:
 		explicit MapElement(Application& application);
+		~MapElement();
 
 		void init() override;
 		void update() override;
@@ -23,7 +26,7 @@ namespace tjs::visualization {
 		Position convert_to_screen(const core::Coordinates& coord) const;
 		void auto_zoom(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
 		void calculate_map_bounds(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
-		int render_way(const core::WayInfo& way, const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
+		int render_way(const core::model::WayRenderInfo& way);
 		void render_bounding_box() const;
 		void draw_lane_markers(const std::vector<Position>& nodes, int lanes, int lane_width_pixels);
 		void draw_path_nodes(const std::vector<Position>& nodes);
@@ -33,6 +36,8 @@ namespace tjs::visualization {
 
 		Application& _application;
 		core::model::MapRendererData& _render_data;
+		core::model::PersistentRenderData& _cache;
+		MapRenderEventsListener _listener;
 
 		// Bounding box coordinates
 		float min_lat = 0.0f;

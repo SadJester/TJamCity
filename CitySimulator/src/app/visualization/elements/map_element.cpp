@@ -2,6 +2,9 @@
 
 #include "visualization/elements/map_element.h"
 
+#include "data/persistent_render_data.h"
+#include "visualization/map_render_events_listener.h"
+
 #include <render/render_base.h>
 #include <visualization/visualization_constants.h>
 #include <data/map_renderer_data.h>
@@ -17,7 +20,13 @@ namespace tjs::visualization {
 	MapElement::MapElement(Application& application)
 		: SceneNode("MapElement")
 		, _application(application)
-		, _render_data(*application.stores().get_model<model::MapRendererData>()) {
+		, _render_data(*application.stores().get_model<model::MapRendererData>())
+		, _cache(*application.stores().get_model<core::model::PersistentRenderData>())
+		, _listener(application) {
+	}
+
+	MapElement::~MapElement() {
+		_application.renderer().unregister_event_listener(&_listener);
 	}
 
 	void MapElement::init() {
@@ -27,6 +36,9 @@ namespace tjs::visualization {
 		if (!segments.empty()) {
 			auto_zoom(segments.front()->nodes);
 		}
+
+		visualization::recalculate_map_data(_application);
+		_application.renderer().register_event_listener(&_listener);
 	}
 
 	void MapElement::update() {
@@ -48,27 +60,11 @@ namespace tjs::visualization {
 
 		// Render all ways if enabled
 		if (static_cast<uint32_t>(_render_data.visibleLayers & model::MapRendererLayer::Ways) != 0) {
-			int ways_rendered = 0;
-			int total_nodes_rendered = 0;
-			int real_node_segments = 0;
-			for (const auto& way_pair : segment->ways) {
-				std::vector<Position> screen_points;
-				screen_points.reserve(way_pair.second->nodes.size());
+			for (auto& [id, way] : _cache.ways) {
+				int nodes_rendered = render_way(way);
 
-				for (Node* node : way_pair.second->nodes) {
-					screen_points.push_back(convert_to_screen(node->coordinates));
-				}
-
-				int nodes_rendered = render_way(*way_pair.second, segment->nodes);
-				real_node_segments += way_pair.second->nodes.size() / 2;
-				if (nodes_rendered > 0) {
-					ways_rendered++;
-				}
-				total_nodes_rendered += nodes_rendered;
-
-				// Draw nodes if enabled
 				if (static_cast<uint32_t>(_render_data.visibleLayers & model::MapRendererLayer::Nodes) != 0) {
-					draw_path_nodes(screen_points);
+					draw_path_nodes(way.screenPoints);
 				}
 			}
 		}
@@ -235,22 +231,12 @@ namespace tjs::visualization {
 		return roadColor;
 	}
 
-	int MapElement::render_way(const WayInfo& way, const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {
-		if (way.nodeRefs.size() < 2) {
+	int MapElement::render_way(const core::model::WayRenderInfo& way) {
+		if (way.screenPoints.size() < 2) {
 			return 0;
 		}
 
-		std::vector<Position> screenPoints;
-		screenPoints.reserve(way.nodes.size());
-
-		for (Node* node : way.nodes) {
-			screenPoints.push_back(convert_to_screen(node->coordinates));
-		}
-
-		// Draw the way
-		if (screenPoints.size() < 2) {
-			return 0;
-		}
+		const auto& screenPoints = way.screenPoints;
 
 		bool hasVisiblePoints = false;
 		for (const auto& point : screenPoints) {
@@ -263,18 +249,18 @@ namespace tjs::visualization {
 			return 0;
 		}
 
-		const FColor color = get_way_color(way.type);
-		const float lane_width = way.is_car_accessible() ? way.lanes * Constants::LANE_WIDTH : Constants::LANE_WIDTH / 2;
+		const FColor color = get_way_color(way.way->type);
+		const float lane_width = way.way->is_car_accessible() ? way.way->lanes * Constants::LANE_WIDTH : Constants::LANE_WIDTH / 2;
 
 		int segmentsRendered = drawThickLine(_application.renderer(), screenPoints, _render_data.metersPerPixel, lane_width, color);
 
-		if (way.lanes > 1) {
-			draw_lane_markers(screenPoints, way.lanes, Constants::LANE_WIDTH);
+		if (way.way->lanes > 1) {
+			draw_lane_markers(screenPoints, way.way->lanes, Constants::LANE_WIDTH);
 		}
 
 		// Draw direction arrows if it's a one-way road or has explicit lane directions
-		if (way.is_car_accessible() && (way.isOneway || (way.lanesForward > 0 && way.lanesBackward == 0) || (way.lanesForward == 0 && way.lanesBackward > 0))) {
-			draw_direction_arrows(screenPoints, way.isOneway && way.lanesBackward > 0);
+		if (way.way->is_car_accessible() && (way.way->isOneway || (way.way->lanesForward > 0 && way.way->lanesBackward == 0) || (way.way->lanesForward == 0 && way.way->lanesBackward > 0))) {
+			draw_direction_arrows(screenPoints, way.way->isOneway && way.way->lanesBackward > 0);
 		}
 
 		return segmentsRendered;

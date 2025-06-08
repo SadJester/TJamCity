@@ -17,12 +17,14 @@
 // Store models
 #include <core/store_models/vehicle_analyze_data.h>
 #include <data/map_renderer_data.h>
+#include <data/persistent_render_data.h>
 
 namespace tjs {
 
 	void setup_store_models(Application& app) {
 		app.stores().add_model<core::model::VehicleAnalyzeData>();
 		app.stores().add_model<core::model::MapRendererData>();
+		app.stores().add_model<core::model::PersistentRenderData>();
 	}
 
 	int launch(int argc, char* argv[]) {

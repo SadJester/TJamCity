@@ -15,6 +15,7 @@
 #include "ui_system/qt_ui/map_control_widget.h"
 #include "ui_system/qt_ui/time_control_widget.h"
 #include "ui_system/debug_ui/vehicle_analyze_widget.h"
+#include "ui_system/debug_ui/map_analyzer_widget.h"
 
 namespace tjs {
 	namespace ui {
@@ -72,6 +73,10 @@ namespace tjs {
 
 			MapControlWidget* mapControlWidget = new MapControlWidget(_application, scrollContent);
 			scrollLayout->addWidget(mapControlWidget);
+
+			MapAnalyzerWidget* analyzerWidget = new MapAnalyzerWidget(_application);
+			analyzerWidget->setParent(scrollContent);
+			scrollLayout->addWidget(analyzerWidget);
 
 			VehicleAnalyzeWidget* vehicleAnalyzeWidget = new VehicleAnalyzeWidget(_application);
 			vehicleAnalyzeWidget->setParent(scrollContent);
