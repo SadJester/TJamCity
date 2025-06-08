@@ -17,6 +17,7 @@ namespace tjs::core::model {
 	struct WayRenderInfo {
 		core::WayInfo* way = nullptr;
 		std::vector<tjs::Position> screenPoints;
+		std::vector<NodeRenderInfo*> nodes;
 		bool selected = false;
 	};
 

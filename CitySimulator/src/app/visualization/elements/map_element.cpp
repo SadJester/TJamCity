@@ -236,7 +236,12 @@ namespace tjs::visualization {
 			return 0;
 		}
 
-		const auto& screenPoints = way.screenPoints;
+		//const auto& screenPoints = way.screenPoints;
+		std::vector<Position> screenPoints;
+		screenPoints.reserve(way.nodes.size());
+		for (auto node : way.nodes) {
+			screenPoints.emplace_back(node->screenPos);
+		}
 
 		bool hasVisiblePoints = false;
 		for (const auto& point : screenPoints) {
