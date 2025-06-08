@@ -3,11 +3,14 @@
 #include <nlohmann/json.hpp>
 
 #include <core/simulation_constants.h>
+#include <visualization/visualization_constants.h>
 
 namespace tjs::settings {
 
 	struct MapSettings {
-		// Colors
+		float selectionDistance = visualization::Constants::DEFAULT_SELECTION_DISTANCE;
+
+		NLOHMANN_DEFINE_TYPE_INTRUSIVE(MapSettings, selectionDistance)
 	};
 
 	struct RenderSettings {
@@ -17,6 +20,7 @@ namespace tjs::settings {
 		int screenHeight = 720;
 		float targetFPS = DEFAULT_FPS;
 		float vehicleScaler = core::SimulationConstants::VEHICLE_SCALER;
+		MapSettings map;
 
 		static constexpr const char* NAME = "render";
 
@@ -24,7 +28,8 @@ namespace tjs::settings {
 			screenWidth,
 			screenHeight,
 			targetFPS,
-			vehicleScaler)
+			vehicleScaler,
+			map)
 	};
 
 } // namespace tjs::settings

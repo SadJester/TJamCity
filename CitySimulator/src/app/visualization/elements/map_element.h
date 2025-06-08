@@ -13,7 +13,7 @@ namespace tjs {
 } // namespace tjs
 
 namespace tjs::visualization {
-	class MapElement : public SceneNode {
+	class MapElement final : public SceneNode {
 	public:
 		explicit MapElement(Application& application);
 		~MapElement();

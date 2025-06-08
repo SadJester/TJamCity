@@ -10,7 +10,7 @@ namespace tjs::visualization {
 
 	class MapRenderEventsListener : public render::IRenderEventListener {
 	public:
-		MapRenderEventsListener(Application& app, float maxDistance = 10.0f);
+		explicit MapRenderEventsListener(Application& app);
 		void on_mouse_event(const render::RendererMouseEvent& event) override;
 
 	private:

@@ -7,9 +7,9 @@
 
 namespace tjs::visualization {
 
-	MapRenderEventsListener::MapRenderEventsListener(Application& app, float maxDistance)
+	MapRenderEventsListener::MapRenderEventsListener(Application& app)
 		: _application(app)
-		, _maxDistance(maxDistance) {}
+		, _maxDistance(app.settings().render.map.selectionDistance) {}
 
 	void MapRenderEventsListener::on_mouse_event(const render::RendererMouseEvent& event) {
 		if (event.button != render::RendererMouseEvent::ButtonType::Left || event.state != render::RendererMouseEvent::ButtonState::Pressed) {
