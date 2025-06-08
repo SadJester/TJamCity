@@ -214,6 +214,8 @@ namespace tjs::core {
 					{ "delivery_access", { WayType::Delivery_Access, 20 } }
 				};
 
+				bool lanes_found = false;
+
 				for (pugi::xml_node tag : xml_way.children("tag")) {
 					std::string key = tag.attribute("k").as_string();
 					std::string value = tag.attribute("v").as_string();
@@ -235,6 +237,12 @@ namespace tjs::core {
 								isOneway = false; // Always bidirectional
 								maxSpeed = 5;     // Very low speed for pedestrian paths
 							}
+							else if (value == "service") {
+								if (!lanes_found) {
+									lanes = 2;
+								}
+								isOneway = false;
+							}
 						}
 					} else if (key == "amenity") {
 						if (value == "parking") {
@@ -245,10 +253,13 @@ namespace tjs::core {
 						}
 					} else if (key == "lanes") {
 						lanes = tag.attribute("v").as_int();
+						lanes_found = true;
 					} else if (key == "lanes:forward") {
 						lanesForward = tag.attribute("v").as_int();
+						lanes_found = true;
 					} else if (key == "lanes:backward") {
 						lanesBackward = tag.attribute("v").as_int();
+						lanes_found = true;
 					} else if (key == "oneway") {
 						isOneway = (value == "yes" || value == "1" || value == "true");
 					} else if (key == "maxspeed") {
