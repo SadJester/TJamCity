@@ -12,13 +12,15 @@
 #include <core/data_layer/world_data.h>
 
 #include <visualization/elements/map_element.h>
+#include <data/persistent_render_data.h>
 
 namespace tjs::visualization {
 
 	VehicleRenderer::VehicleRenderer(Application& application)
 		: SceneNode("VehicleRenderer")
 		, _application(application)
-		, _mapRendererData(*application.stores().get_model<core::model::MapRendererData>()) {
+		, _mapRendererData(*application.stores().get_model<core::model::MapRendererData>())
+		, _cache(*application.stores().get_model<core::model::PersistentRenderData>()) {
 	}
 
 	VehicleRenderer::~VehicleRenderer() {
@@ -29,12 +31,22 @@ namespace tjs::visualization {
 	}
 
 	void VehicleRenderer::update() {
+		_cache.vehicles.clear();
+		for (auto& vehicle : _application.worldData().vehicles()) {
+			core::model::VehicleRenderInfo info;
+			info.vehicle = &vehicle;
+			info.screenPos = tjs::visualization::convert_to_screen(
+				vehicle.coordinates,
+				_mapRendererData.projectionCenter,
+				_mapRendererData.screen_center,
+				_mapRendererData.metersPerPixel);
+			_cache.vehicles.push_back(info);
+		}
 	}
 
 	void VehicleRenderer::render(IRenderer& renderer) {
-		auto& vehicles = _application.worldData().vehicles();
-		for (auto& vehicle : vehicles) {
-			render(renderer, vehicle);
+		for (auto& info : _cache.vehicles) {
+			render(renderer, *info.vehicle, info.screenPos);
 		}
 	}
 
@@ -60,7 +72,7 @@ namespace tjs::visualization {
 		}
 	};
 
-	void VehicleRenderer::render(IRenderer& renderer, const core::Vehicle& vehicle) {
+	void VehicleRenderer::render(IRenderer& renderer, const core::Vehicle& vehicle, const tjs::Position& cachedPos) {
 		const float metersPerPixel = _mapRendererData.metersPerPixel;
 
 		// Get the settings for the vehicle based on its type
@@ -70,11 +82,8 @@ namespace tjs::visualization {
 		renderer.set_draw_color(settings.color);
 
 		// Convert coordinates to screen coordinates
-		auto [screenX, screenY] = tjs::visualization::convert_to_screen(
-			vehicle.coordinates,
-			_mapRendererData.projectionCenter,
-			_mapRendererData.screen_center,
-			_mapRendererData.metersPerPixel);
+		int screenX = cachedPos.x;
+		int screenY = cachedPos.y;
 
 		if (!_application.renderer().is_point_visible(screenX, screenY)) {
 			return;

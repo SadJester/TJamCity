@@ -16,6 +16,7 @@
 #include "visualization/Scene.h"
 #include "visualization/scene_system.h"
 #include "visualization/elements/map_element.h"
+#include "data/persistent_render_data.h"
 
 #include <core/data_layer/world_creator.h>
 #include <core/simulation/simulation_system.h>
@@ -302,6 +303,7 @@ namespace tjs {
 			double currentZoom = render_data->metersPerPixel;
 			render_data->set_meters_per_pixel(currentZoom * 0.9); // Zoom in (decrease meters per pixel)
 			UpdateLabels();
+			visualization::recalculate_map_data(_application);
 		}
 
 		void MapControlWidget::onZoomOut() {
@@ -313,6 +315,7 @@ namespace tjs {
 			double currentZoom = render_data->metersPerPixel;
 			render_data->set_meters_per_pixel(currentZoom * 1.1); // Zoom out (increase meters per pixel)
 			UpdateLabels();
+			visualization::recalculate_map_data(_application);
 		}
 
 		double getChangedStep(double metersPerPixel) {
@@ -343,6 +346,7 @@ namespace tjs {
 				current.latitude += getChangedStep(render_data->metersPerPixel);
 				_latitude->setValue(current.latitude);
 				render_data->projectionCenter = current;
+				visualization::recalculate_map_data(_application);
 			}
 		}
 
@@ -357,6 +361,7 @@ namespace tjs {
 				current.latitude -= getChangedStep(render_data->metersPerPixel);
 				_latitude->setValue(current.latitude);
 				render_data->projectionCenter = current;
+				visualization::recalculate_map_data(_application);
 			}
 		}
 
@@ -371,6 +376,7 @@ namespace tjs {
 				current.longitude -= getChangedStep(render_data->metersPerPixel);
 				_longitude->setValue(current.longitude);
 				render_data->projectionCenter = current;
+				visualization::recalculate_map_data(_application);
 			}
 		}
 
@@ -385,6 +391,7 @@ namespace tjs {
 				current.longitude += getChangedStep(render_data->metersPerPixel);
 				_longitude->setValue(current.longitude);
 				render_data->projectionCenter = current;
+				visualization::recalculate_map_data(_application);
 			}
 		}
 
@@ -411,6 +418,7 @@ namespace tjs {
 			}
 			render_data->metersPerPixel = _application.settings().general.zoomLevel;
 			UpdateLabels();
+			visualization::recalculate_map_data(_application);
 
 			// Initialize spin boxes with current values
 			_latitude->setValue(render_data->projectionCenter.latitude);
@@ -432,6 +440,7 @@ namespace tjs {
 						mapElement->init();
 					}
 				}
+				visualization::recalculate_map_data(_application);
 				return true;
 			}
 			return false;
