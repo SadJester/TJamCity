@@ -58,19 +58,21 @@ namespace tjs::visualization {
 			render_bounding_box();
 		}
 
+		bool draw_network = static_cast<uint32_t>(_render_data.visibleLayers & model::MapRendererLayer::NetworkGraph) != 0;
 		// Render all ways if enabled
 		if (static_cast<uint32_t>(_render_data.visibleLayers & model::MapRendererLayer::Ways) != 0) {
+			const bool draw_nodes = static_cast<uint32_t>(_render_data.visibleLayers & model::MapRendererLayer::Nodes) != 0;
+
 			for (auto& [id, way] : _cache.ways) {
 				int nodes_rendered = render_way(way);
-
-				if (static_cast<uint32_t>(_render_data.visibleLayers & model::MapRendererLayer::Nodes) != 0) {
-					draw_path_nodes(way.screenPoints);
+				if (!draw_network && draw_nodes) {
+					draw_path_nodes(way);
 				}
 			}
 		}
 
 		// Render network graph if enabled
-		if (static_cast<uint32_t>(_render_data.visibleLayers & model::MapRendererLayer::NetworkGraph) != 0) {
+		if (draw_network) {
 			if (segment->road_network) {
 				render_network_graph(renderer, *segment->road_network);
 			}
@@ -81,24 +83,26 @@ namespace tjs::visualization {
 		// Set color for network graph edges
 		renderer.set_draw_color({ 0.0f, 0.8f, 0.8f, 0.5f }); // Semi-transparent cyan
 
+		const auto& nodes = _cache.nodes;
+
 		// Render edges from adjacency list
 		for (const auto& [node, neighbors] : network.adjacency_list) {
-			Position start = convert_to_screen(node->coordinates);
+			auto it = nodes.find(node->uid);
+			if (it == nodes.end()) {
+				continue;
+			}
 
+			const Position& start = it->second.screenPos;
 			for (const auto& [neighbor, weight] : neighbors) {
-				Position end = convert_to_screen(neighbor->coordinates);
+				auto itNeighbor = nodes.find(neighbor->uid);
+				const Position& end = itNeighbor->second.screenPos;
 
 				// Draw edge as a thin line
 				drawThickLine(renderer, { start, end }, _render_data.metersPerPixel, 1.0f, { 0.0f, 0.8f, 0.8f, 0.5f });
 			}
 		}
 
-		// Draw nodes as small circles
-		renderer.set_draw_color({ 1.0f, 0.0f, 0.0f, 0.8f }); // Brighter cyan for nodes
-		for (const auto& [id, node] : network.nodes) {
-			Position pos = convert_to_screen(node->coordinates);
-			renderer.draw_circle(pos.x, pos.y, 2, true);
-		}
+		draw_network_nodes(network);
 	}
 
 	Position convert_to_screen(
@@ -231,25 +235,22 @@ namespace tjs::visualization {
 		return roadColor;
 	}
 
-	int MapElement::render_way(const core::model::WayRenderInfo& way) {
+	int MapElement::render_way(const WayRenderInfo& way) {
 		if (way.screenPoints.size() < 2) {
 			return 0;
 		}
 
-		//const auto& screenPoints = way.screenPoints;
+		bool hasVisiblePoints = false;
 		std::vector<Position> screenPoints;
 		screenPoints.reserve(way.nodes.size());
 		for (auto node : way.nodes) {
 			screenPoints.emplace_back(node->screenPos);
-		}
 
-		bool hasVisiblePoints = false;
-		for (const auto& point : screenPoints) {
-			if (_application.renderer().is_point_visible(point.x, point.y)) {
+			if (_application.renderer().is_point_visible(node->screenPos.x, node->screenPos.y)) {
 				hasVisiblePoints = true;
-				break;
 			}
 		}
+
 		if (!hasVisiblePoints) {
 			return 0;
 		}
@@ -493,12 +494,28 @@ namespace tjs::visualization {
 		}
 	}
 
-	void MapElement::draw_path_nodes(const std::vector<Position>& nodes) {
+	void draw_node(IRenderer& renderer, const NodeRenderInfo& node) {
+		const float circle_size = node.selected ? 5.0f : 3.0f;
+		renderer.draw_circle(node.screenPos.x, node.screenPos.y, circle_size, true);
+	}
+
+	void MapElement::draw_path_nodes(const WayRenderInfo& way) {
 		auto& renderer = _application.renderer();
 		renderer.set_draw_color({ 1.0f, 0.0f, 0.0f, 1.0f });
 
-		for (const auto& pos : nodes) {
-			renderer.draw_circle(pos.x, pos.y, 3, true);
+		for (const auto node : way.nodes) {
+			draw_node(renderer, *node);
+		}
+	}
+
+	void MapElement::draw_network_nodes(const core::RoadNetwork& network) {
+		auto& renderer = _application.renderer();
+		renderer.set_draw_color({ 1.0f, 0.0f, 0.0f, 1.0f });
+
+		for (const auto& [uid, node] : network.nodes) {
+			if (auto it = _cache.nodes.find(uid); it != _cache.nodes.end()) {
+				draw_node(renderer, it->second);
+			}
 		}
 	}
 

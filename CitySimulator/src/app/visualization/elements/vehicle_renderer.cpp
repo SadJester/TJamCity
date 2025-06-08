@@ -33,7 +33,7 @@ namespace tjs::visualization {
 	void VehicleRenderer::update() {
 		_cache.vehicles.clear();
 		for (auto& vehicle : _application.worldData().vehicles()) {
-			core::model::VehicleRenderInfo info;
+			VehicleRenderInfo info;
 			info.vehicle = &vehicle;
 			info.screenPos = tjs::visualization::convert_to_screen(
 				vehicle.coordinates,

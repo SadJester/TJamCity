@@ -21,7 +21,7 @@ namespace tjs::visualization {
 			return;
 		}
 
-		core::model::NodeRenderInfo* nearest = nullptr;
+		NodeRenderInfo* nearest = nullptr;
 		float bestDist = _maxDistance;
 		for (auto& [id, info] : cache->nodes) {
 			float dx = static_cast<float>(info.screenPos.x - event.x);

@@ -26,10 +26,11 @@ namespace tjs::visualization {
 		Position convert_to_screen(const core::Coordinates& coord) const;
 		void auto_zoom(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
 		void calculate_map_bounds(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
-		int render_way(const core::model::WayRenderInfo& way);
+		int render_way(const WayRenderInfo& way);
 		void render_bounding_box() const;
 		void draw_lane_markers(const std::vector<Position>& nodes, int lanes, int lane_width_pixels);
-		void draw_path_nodes(const std::vector<Position>& nodes);
+		void draw_path_nodes(const WayRenderInfo& way);
+		void draw_network_nodes(const core::RoadNetwork& network);
 		void render_network_graph(IRenderer& renderer, const core::RoadNetwork& network);
 		void draw_direction_arrows(const std::vector<Position>& nodes, bool reverse);
 		FColor get_way_color(core::WayType type) const;
