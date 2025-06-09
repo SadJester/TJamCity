@@ -150,7 +150,7 @@ namespace tjs::core {
 
 				// Collect node references
 				std::vector<uint64_t> nodeRefs;
-				nodeRefs.resize(10);
+				nodeRefs.reserve(10);
 				for (pugi::xml_node nd : xml_way.children("nd")) {
 					nodeRefs.push_back(nd.attribute("ref").as_ullong());
 				}
