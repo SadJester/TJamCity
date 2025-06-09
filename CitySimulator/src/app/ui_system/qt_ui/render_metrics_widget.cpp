@@ -18,9 +18,9 @@ namespace tjs {
 
 			// Create FPS label
 			fpsLabel = new QLabel("FPS: 00 | Frame time: 00 ms", this);
-			fpsLabel->setAlignment(Qt::AlignCenter);
+			fpsLabel->setAlignment(Qt::AlignLeft);
 			fpsLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-			fpsLabel->setStyleSheet("font-size: 24px; font-weight: bold;");
+			fpsLabel->setStyleSheet("font-size: 14px; font-weight: bold;");
 
 			layout->addWidget(fpsLabel);
 
@@ -39,11 +39,11 @@ namespace tjs {
 					.arg(std::chrono::duration_cast<std::chrono::milliseconds>(stats.frameTime()).count()));
 
 			if (stats.currentFPS() < 30.f) {
-				fpsLabel->setStyleSheet("font-size: 24px; font-weight: bold; color: red;");
+				fpsLabel->setStyleSheet("font-size: 14px; font-weight: bold; color: red;");
 			} else if (stats.currentFPS() < 50.0f) {
-				fpsLabel->setStyleSheet("font-size: 24px; font-weight: bold; color: orange;");
+				fpsLabel->setStyleSheet("font-size: 14px; font-weight: bold; color: orange;");
 			} else {
-				fpsLabel->setStyleSheet("font-size: 24px; font-weight: bold; color: green;");
+				fpsLabel->setStyleSheet("font-size: 14px; font-weight: bold; color: green;");
 			}
 
 			update();
