@@ -13,6 +13,7 @@
 #include <ui_system/debug_ui/vehicle_analyze_widget.h>
 
 /// TODO: Place somwhere to be more pretty
+#include "app_launcher.h"
 #include "visualization/Scene.h"
 #include "visualization/scene_system.h"
 #include "visualization/elements/map_element.h"
@@ -32,7 +33,6 @@ namespace tjs {
 
 			// File button
 			_openFileButton = new QPushButton("Open OSMX File");
-			openFile(_application.settings().general.selectedFile);
 
 			// Update button
 			_updateButton = new QPushButton("Update");
@@ -246,7 +246,6 @@ namespace tjs {
 				core::model::MapRendererLayer layer = static_cast<core::model::MapRendererLayer>(item->data(Qt::UserRole).toUInt());
 				item->setSelected(static_cast<uint32_t>(render_data->visibleLayers & layer) != 0);
 			}
-
 			UpdateLabels();
 		}
 
@@ -254,18 +253,10 @@ namespace tjs {
 			if (fileName.empty()) {
 				return false;
 			}
-			if (tjs::core::WorldCreator::loadOSMData(_application.worldData(), fileName)) {
-				tjs::core::WorldCreator::createRandomVehicles(_application.worldData(), _application.settings().simulationSettings);
+
+			if (tjs::open_map(fileName, _application)) {
 				_application.settings().general.selectedFile = fileName;
 				onUpdate();
-
-				// TODO: message system
-				if (auto scene = _application.sceneSystem().getScene("General"); scene) {
-					if (auto mapElement = dynamic_cast<visualization::MapElement*>(scene->getNode("MapElement")); mapElement) {
-						mapElement->init();
-					}
-				}
-				visualization::recalculate_map_data(_application);
 				return true;
 			}
 			return false;

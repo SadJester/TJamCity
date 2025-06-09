@@ -23,6 +23,8 @@ namespace tjs::visualization {
 		void update() override;
 		void render(IRenderer& renderer) override;
 
+		void on_map_updated();
+
 	private:
 		Position convert_to_screen(const core::Coordinates& coord) const;
 		void auto_zoom(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
@@ -47,6 +49,8 @@ namespace tjs::visualization {
 		float max_lat = 0.0f;
 		float min_lon = 0.0f;
 		float max_lon = 0.0f;
+
+		std::string _current_file;
 	};
 
 	int drawThickLine(IRenderer& renderer, const std::vector<Position>& nodes, double metersPerPixel, float thickness, FColor color);

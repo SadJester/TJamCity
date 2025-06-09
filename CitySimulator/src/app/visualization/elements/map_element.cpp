@@ -31,7 +31,7 @@ namespace tjs::visualization {
 		_application.renderer().unregister_event_listener(&_listener);
 	}
 
-	void MapElement::init() {
+	void MapElement::on_map_updated() {
 		auto& world = _application.worldData();
 		auto& segments = world.segments();
 
@@ -39,7 +39,23 @@ namespace tjs::visualization {
 			auto_zoom(segments.front()->nodes);
 		}
 
+		if (_current_file.empty()) {
+			_current_file = _application.settings().general.selectedFile;
+
+			auto render_data = _application.stores().get_model<core::model::MapRendererData>();
+			if (render_data) {
+				if (const auto& projectionCenter = _application.settings().general.projectionCenter;
+					projectionCenter.latitude != 0.0 || projectionCenter.longitude != 0.0) {
+					render_data->projectionCenter = _application.settings().general.projectionCenter;
+				}	
+				render_data->metersPerPixel = _application.settings().general.zoomLevel;
+			}
+		}
+
 		visualization::recalculate_map_data(_application);
+	}
+
+	void MapElement::init() {
 		_application.renderer().register_event_listener(&_listener);
 	}
 
