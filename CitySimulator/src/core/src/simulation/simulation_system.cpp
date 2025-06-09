@@ -26,13 +26,19 @@ namespace tjs::core::simulation {
 		_agents.clear();
 		_agents.shrink_to_fit();
 		_agents.reserve(vehicles.size());
-		for (size_t i = 0; i < vehicles.size(); ++i) {
-			_agents.push_back({ vehicles[i].uid,
-				TacticalBehaviour::Normal,
-				nullptr,
-				core::Coordinates { 0.0, 0.0 },
-				&vehicles[i] });
-		}
+                for (size_t i = 0; i < vehicles.size(); ++i) {
+                        _agents.push_back({ vehicles[i].uid,
+                                TacticalBehaviour::Normal,
+                                nullptr,
+                                core::Coordinates { 0.0, 0.0 },
+                                &vehicles[i],
+                                {},
+                                {},
+                                false,
+                                0.0,
+                                false,
+                                0 });
+                }
 
 		_strategicModule.initialize();
 		_tacticalModule.initialize();

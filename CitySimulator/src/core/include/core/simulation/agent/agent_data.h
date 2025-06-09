@@ -23,6 +23,8 @@ namespace tjs::core {
 		std::vector<core::Node*> visitedNodes;
 		bool last_segment = false;
 		double distanceTraveled = 0.0; // Total distance traveled
+		bool stucked = false;
+		int goalFailCount = 0;
 	};
 	//static_assert(std::is_pod<AgentData>::value, "AgentData must be POD");
 } // namespace tjs::core

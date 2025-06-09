@@ -18,6 +18,7 @@
 #include <core/store_models/vehicle_analyze_data.h>
 #include <data/map_renderer_data.h>
 #include <data/persistent_render_data.h>
+#include <data/simulation_debug_data.h>
 
 namespace tjs {
 
@@ -25,6 +26,7 @@ namespace tjs {
 		app.stores().add_model<core::model::VehicleAnalyzeData>();
 		app.stores().add_model<core::model::MapRendererData>();
 		app.stores().add_model<core::model::PersistentRenderData>();
+		app.stores().add_model<core::model::SimulationDebugData>();
 	}
 
 	int launch(int argc, char* argv[]) {

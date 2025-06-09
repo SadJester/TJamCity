@@ -95,26 +95,38 @@ namespace tjs::core::simulation {
 		}
 
 		// Step 2: If we don't have a path to the goal, find one
-		if (!agent.last_segment && agent.path.empty()) {
-			Node* start_node = find_nearest_node(vehicle.coordinates, road_network);
-			Node* goal_node = agent.currentGoal;
+                if (!agent.last_segment && agent.path.empty()) {
+                        Node* start_node = find_nearest_node(vehicle.coordinates, road_network);
+                        Node* goal_node = agent.currentGoal;
 
-			if (start_node && goal_node) {
-				agent.path = findPath(start_node, goal_node, road_network);
-				agent.visitedNodes.clear();
-				if (!agent.path.empty()) {
-					agent.currentStepGoal = agent.path.front()->coordinates;
-					agent.visitedNodes.push_back(agent.path.front());
-					agent.path.pop_front();
-					agent.distanceTraveled = 0.0; // Reset distance for new path
-				} else {
-					// No path found to current goal, nullify it so strategic module will assign a new one
-					agent.currentGoal = nullptr;
-					agent.last_segment = false;
-					return;
-				}
-			}
-		}
+                        if (start_node && goal_node) {
+                                agent.path = findPath(start_node, goal_node, road_network);
+                                agent.visitedNodes.clear();
+                                if (!agent.path.empty()) {
+                                        agent.currentStepGoal = agent.path.front()->coordinates;
+                                        agent.visitedNodes.push_back(agent.path.front());
+                                        agent.path.pop_front();
+                                        agent.distanceTraveled = 0.0; // Reset distance for new path
+                                        agent.goalFailCount = 0;
+                                } else {
+                                        agent.currentGoal = nullptr;
+                                        agent.last_segment = false;
+                                        agent.goalFailCount++;
+                                        if (agent.goalFailCount >= 5) {
+                                                agent.stucked = true;
+                                        }
+                                        return;
+                                }
+                        } else {
+                                agent.currentGoal = nullptr;
+                                agent.last_segment = false;
+                                agent.goalFailCount++;
+                                if (agent.goalFailCount >= 5) {
+                                        agent.stucked = true;
+                                }
+                                return;
+                        }
+                }
 
 		// Step 3: Check if vehicle reached current step goal using haversine distance
 		const double distance_to_target = core::algo::haversine_distance(vehicle.coordinates, agent.currentStepGoal);
@@ -136,9 +148,10 @@ namespace tjs::core::simulation {
 				agent.distanceTraveled += core::algo::haversine_distance(vehicle.coordinates, agent.currentStepGoal);
 
 				// Reached final destination
-				agent.currentGoal = nullptr;
-				agent.last_segment = false;
-				return;
+                                agent.currentGoal = nullptr;
+                                agent.last_segment = false;
+                                agent.goalFailCount = 0;
+                                return;
 			}
 		}
 	}

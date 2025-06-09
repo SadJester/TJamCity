@@ -7,6 +7,7 @@
 #include <QApplication>
 #include <QPushButton>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QScrollArea>
 #include <QFrame>
 
@@ -16,6 +17,7 @@
 #include "ui_system/qt_ui/time_control_widget.h"
 #include "ui_system/debug_ui/vehicle_analyze_widget.h"
 #include "ui_system/debug_ui/map_analyzer_widget.h"
+#include "ui_system/debug_ui/strategic_analyzer_widget.h"
 
 namespace tjs {
 	namespace ui {
@@ -53,37 +55,44 @@ namespace tjs {
 			mainLayout->setSpacing(0);
 			mainLayout->setContentsMargins(0, 0, 0, 0);
 
-			// Create scroll area and its content widget
+			// Top widgets
+			RenderMetricsWidget* fpsLabel = new RenderMetricsWidget(_application, window);
+			mainLayout->addWidget(fpsLabel);
+
+			TimeControlWidget* timeControlWidget = new TimeControlWidget(_application, mainWidget);
+			mainLayout->addWidget(timeControlWidget);
+
+			// Create scroll area for the rest
 			QScrollArea* scrollArea = new QScrollArea(mainWidget);
 			scrollArea->setWidgetResizable(true);
 			scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 			scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 
-			// Create content widget for scroll area
 			QWidget* scrollContent = new QWidget(scrollArea);
-			QVBoxLayout* scrollLayout = new QVBoxLayout(scrollContent);
-
-			// Add all widgets to the scroll content
-			RenderMetricsWidget* fpsLabel = new RenderMetricsWidget(_application, window);
-			fpsLabel->setParent(scrollContent); // Explicitly set the parent
-			scrollLayout->addWidget(fpsLabel);
-
-			TimeControlWidget* timeControlWidget = new TimeControlWidget(_application, scrollContent);
-			scrollLayout->addWidget(timeControlWidget);
+			QHBoxLayout* columnsLayout = new QHBoxLayout(scrollContent);
+			QVBoxLayout* mapColumn = new QVBoxLayout();
+			QVBoxLayout* debugColumn = new QVBoxLayout();
+			columnsLayout->addLayout(mapColumn);
+			columnsLayout->addLayout(debugColumn);
 
 			MapControlWidget* mapControlWidget = new MapControlWidget(_application, scrollContent);
-			scrollLayout->addWidget(mapControlWidget);
+			mapColumn->addWidget(mapControlWidget);
 
 			MapAnalyzerWidget* analyzerWidget = new MapAnalyzerWidget(_application);
 			analyzerWidget->setParent(scrollContent);
-			scrollLayout->addWidget(analyzerWidget);
+			debugColumn->addWidget(analyzerWidget);
 
 			VehicleAnalyzeWidget* vehicleAnalyzeWidget = new VehicleAnalyzeWidget(_application);
 			vehicleAnalyzeWidget->setParent(scrollContent);
-			scrollLayout->addWidget(vehicleAnalyzeWidget);
+			debugColumn->addWidget(vehicleAnalyzeWidget);
+
+			StrategicAnalyzerWidget* strategicWidget = new StrategicAnalyzerWidget(_application);
+			strategicWidget->setParent(scrollContent);
+			debugColumn->addWidget(strategicWidget);
+
 			mapControlWidget->setVehicles(vehicleAnalyzeWidget);
 
-			// Set the scroll content to the scroll area
+			scrollContent->setLayout(columnsLayout);
 			scrollArea->setWidget(scrollContent);
 
 			// Add scroll area to main layout

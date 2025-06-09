@@ -28,9 +28,9 @@ namespace tjs::core::simulation {
 	}
 
 	void StrategicPlanningModule::update_agent_strategy(AgentData& agent) {
-		if (agent.vehicle == nullptr) {
-			return;
-		}
+                if (agent.vehicle == nullptr || agent.stucked) {
+                        return;
+                }
 
 		if (agent.currentGoal != nullptr) {
 			return;

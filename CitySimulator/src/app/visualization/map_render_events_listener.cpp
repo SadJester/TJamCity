@@ -2,6 +2,7 @@
 #include "visualization/map_render_events_listener.h"
 #include "Application.h"
 #include "data/persistent_render_data.h"
+#include "data/simulation_debug_data.h"
 #include "data/map_renderer_data.h"
 
 #include <cmath>
@@ -18,7 +19,8 @@ namespace tjs::visualization {
 		}
 
 		auto* cache = _application.stores().get_model<core::model::PersistentRenderData>();
-		if (!cache) {
+		auto* debug = _application.stores().get_model<core::model::SimulationDebugData>();
+		if (!cache || !debug) {
 			return;
 		}
 
@@ -34,21 +36,21 @@ namespace tjs::visualization {
 			}
 		}
 
-		if (cache->selectedNode) {
-			cache->selectedNode->selected = false;
+		if (debug->selectedNode) {
+			debug->selectedNode->selected = false;
 		}
 
-                if (nearest) {
-                        nearest->selected = true;
-                        cache->selectedNode = nearest;
-                } else {
-                        cache->selectedNode = nullptr;
-                }
+		if (nearest) {
+			nearest->selected = true;
+			debug->selectedNode = nearest;
+		} else {
+			debug->selectedNode = nullptr;
+		}
 
-                auto* render = _application.stores().get_model<core::model::MapRendererData>();
-                if (render && render->networkOnlyForSelected) {
-                        visualization::recalculate_map_data(_application);
-                }
+		auto* render = _application.stores().get_model<core::model::MapRendererData>();
+		if (render && render->networkOnlyForSelected) {
+			visualization::recalculate_map_data(_application);
+		}
 	}
 
 } // namespace tjs::visualization

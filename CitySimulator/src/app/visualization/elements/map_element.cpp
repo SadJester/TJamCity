@@ -4,6 +4,7 @@
 
 #include "data/persistent_render_data.h"
 #include "visualization/map_render_events_listener.h"
+#include "data/simulation_debug_data.h"
 
 #include <render/render_base.h>
 #include <visualization/visualization_constants.h>
@@ -22,6 +23,7 @@ namespace tjs::visualization {
 		, _application(application)
 		, _render_data(*application.stores().get_model<model::MapRendererData>())
 		, _cache(*application.stores().get_model<core::model::PersistentRenderData>())
+		, _debugData(*application.stores().get_model<core::model::SimulationDebugData>())
 		, _listener(application) {
 	}
 
@@ -81,38 +83,38 @@ namespace tjs::visualization {
 
 	void MapElement::render_network_graph(IRenderer& renderer, const core::RoadNetwork& network) {
 		// Set color for network graph edges
-                renderer.set_draw_color({ 0.0f, 0.8f, 0.8f, 0.5f }); // Semi-transparent cyan
+		renderer.set_draw_color({ 0.0f, 0.8f, 0.8f, 0.5f }); // Semi-transparent cyan
 
-                const auto& nodes = _cache.nodes;
-                bool filter = _render_data.networkOnlyForSelected && !_cache.reachableNodes.empty();
+		const auto& nodes = _cache.nodes;
+		bool filter = _render_data.networkOnlyForSelected && !_debugData.reachableNodes.empty();
 
-                // Render edges from adjacency list
-                for (const auto& [node, neighbors] : network.adjacency_list) {
-					const bool is_node_filtered = filter && !_cache.reachableNodes.contains(node->uid);
+		// Render edges from adjacency list
+		for (const auto& [node, neighbors] : network.adjacency_list) {
+			const bool is_node_filtered = filter && !_debugData.reachableNodes.contains(node->uid);
 
-					auto it = nodes.find(node->uid);
-					if (it == nodes.end()) {
-						continue;
-					}
+			auto it = nodes.find(node->uid);
+			if (it == nodes.end()) {
+				continue;
+			}
 
-					const Position& start = it->second.screenPos;
-					for (const auto& [neighbor, weight] : neighbors) {
-						const bool is_neighbor_filtered = filter && !_cache.reachableNodes.contains(neighbor->uid);
+			const Position& start = it->second.screenPos;
+			for (const auto& [neighbor, weight] : neighbors) {
+				const bool is_neighbor_filtered = filter && !_debugData.reachableNodes.contains(neighbor->uid);
 
-						auto itNeighbor = nodes.find(neighbor->uid);
-						if (itNeighbor == nodes.end()) {
-								continue;
-						}
-						const Position& end = itNeighbor->second.screenPos;
+				auto itNeighbor = nodes.find(neighbor->uid);
+				if (itNeighbor == nodes.end()) {
+					continue;
+				}
+				const Position& end = itNeighbor->second.screenPos;
 
-						// Draw edge as a thin line
-						const FColor color = (is_node_filtered || is_neighbor_filtered) ?  FColor{ 0.8f, 0.0f, 0.0f, 0.5f } : FColor{ 0.0f, 0.8f, 0.8f, 0.5f };
+				// Draw edge as a thin line
+				const FColor color = (is_node_filtered || is_neighbor_filtered) ? FColor { 0.8f, 0.0f, 0.0f, 0.5f } : FColor { 0.0f, 0.8f, 0.8f, 0.5f };
 
-						drawThickLine(renderer, { start, end }, _render_data.metersPerPixel, 0.8f, color);
-					}
-                }
+				drawThickLine(renderer, { start, end }, _render_data.metersPerPixel, 0.8f, color);
+			}
+		}
 
-                draw_network_nodes(network);
+		draw_network_nodes(network);
 	}
 
 	Position convert_to_screen(
@@ -518,18 +520,18 @@ namespace tjs::visualization {
 		}
 	}
 
-        void MapElement::draw_network_nodes(const core::RoadNetwork& network) {
-                auto& renderer = _application.renderer();
+	void MapElement::draw_network_nodes(const core::RoadNetwork& network) {
+		auto& renderer = _application.renderer();
 
-                bool filter = _render_data.networkOnlyForSelected && !_cache.reachableNodes.empty();
-                for (const auto& [uid, node] : network.nodes) {
-					const bool is_filtered = filter && !_cache.reachableNodes.contains(uid);
-					if (auto it = _cache.nodes.find(uid); it != _cache.nodes.end()) {
-						const FColor color = is_filtered ? FColor{ 1.0f, 0.0f, 0.0f, 1.0f } : FColor{ 0.0f, 1.0f, 0.0f, 1.0f };
-						renderer.set_draw_color(color);
-						draw_node(renderer, it->second);
-					}
-                }
-        }
+		bool filter = _render_data.networkOnlyForSelected && !_debugData.reachableNodes.empty();
+		for (const auto& [uid, node] : network.nodes) {
+			const bool is_filtered = filter && !_debugData.reachableNodes.contains(uid);
+			if (auto it = _cache.nodes.find(uid); it != _cache.nodes.end()) {
+				const FColor color = is_filtered ? FColor { 1.0f, 0.0f, 0.0f, 1.0f } : FColor { 0.0f, 1.0f, 0.0f, 1.0f };
+				renderer.set_draw_color(color);
+				draw_node(renderer, it->second);
+			}
+		}
+	}
 
 } // namespace tjs::visualization

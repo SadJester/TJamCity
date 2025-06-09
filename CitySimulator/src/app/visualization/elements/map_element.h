@@ -4,6 +4,7 @@
 #include <core/data_layer/data_types.h>
 #include <data/map_renderer_data.h>
 #include <data/persistent_render_data.h>
+#include <data/simulation_debug_data.h>
 #include <core/data_layer/road_network.h>
 #include <visualization/map_render_events_listener.h>
 
@@ -38,6 +39,7 @@ namespace tjs::visualization {
 		Application& _application;
 		core::model::MapRendererData& _render_data;
 		core::model::PersistentRenderData& _cache;
+		core::model::SimulationDebugData& _debugData;
 		MapRenderEventsListener _listener;
 
 		// Bounding box coordinates
