@@ -12,15 +12,6 @@
 #include <core/simulation/simulation_system.h>
 
 namespace tjs {
-
-	void FrameStats::setFPS(float fps, FrameStats::duration frameTime) {
-		static constexpr float smoothingFactor = 0.005f;
-		_fps = fps;
-		_frameTime = frameTime;
-
-		_smoothedFPS = _smoothedFPS * (1.0 - smoothingFactor) + _fps * smoothingFactor;
-	}
-
 	Application::Application(int& argc, char** argv)
 		: _commandLine(argc, argv) {
 	}
@@ -68,20 +59,36 @@ namespace tjs {
 				frameStart - prevFrameStart)
 												 .count();
 			_simulationSystem->update(durationInSeconds);
+			auto simulation_end = std::chrono::high_resolution_clock::now();
+
 			prevFrameStart = frameStart;
+			
+			_frameStats.simulation_update().update(
+				std::chrono::duration_cast<std::chrono::duration<double>>(simulation_end - frameStart).count()
+			);
 
 			// Run the update and draw operations
 			_uiSystem->update();
 			_renderer->update();
 			_sceneSystem->update();
 
+			auto systems_end = std::chrono::high_resolution_clock::now();
+			_frameStats.systems_update().update(
+				std::chrono::duration_cast<std::chrono::duration<double>>(systems_end - simulation_end).count()
+			);
+
 			// Rendering
-			_renderer->beginFrame();
+			_renderer->begin_frame();
 			_sceneSystem->render(*_renderer);
-			_renderer->endFrame();
+			_renderer->end_frame();
+
+			auto rendering_end = std::chrono::high_resolution_clock::now();
+			_frameStats.render_time().update(
+				std::chrono::duration_cast<std::chrono::duration<double>>(rendering_end - systems_end).count()
+			);
 
 			// Calculate actual frame time
-			auto frameEnd = std::chrono::high_resolution_clock::now();
+			auto frameEnd = rendering_end;
 
 			// check for saving settings
 			duration saveDuration = frameEnd - lastTimeSaveSettings;
@@ -100,7 +107,8 @@ namespace tjs {
 			if (totalFrameTime.count() > 0) {
 				fps = 1.0f / totalFrameTime.count();
 			}
-			_frameStats.setFPS(fps, frameDuration);
+			_frameStats.fps().update(fps);
+			_frameStats.set_frame_time(frameDuration);
 
 			// Calculate how long to sleep to maintain target FPS
 			duration sleepTime = targetFrameTime - frameDuration;

@@ -2,6 +2,7 @@
 
 #include <settings/user_settings.h>
 #include <core/store_models/idata_model.h>
+#include <core/utils/smoothed_value.h>
 
 namespace tjs {
 
@@ -42,25 +43,55 @@ namespace tjs {
 		using duration = std::chrono::duration<float>;
 
 		void init(float fps) {
-			_smoothedFPS = fps;
-			_fps = fps;
+			_fps.set(fps);
 		}
 
-		void setFPS(float fps, duration frameTime);
-		float smoothedFPS() const {
-			return _smoothedFPS;
+		void set_frame_time(duration frame_time) {
+			_frame_time = frame_time;
 		}
-		float currentFPS() const {
+
+		SmoothedValue& fps() {
 			return _fps;
 		}
-		duration frameTime() const {
-			return _frameTime;
+
+		SmoothedValue& systems_update() {
+			return _systems_update;
+		}
+
+		SmoothedValue& simulation_update() {
+			return _simulation_update;
+		}
+
+		SmoothedValue& render_time() {
+			return _render_time;
+		}
+
+		const SmoothedValue& fps() const  {
+			return _fps;
+		}
+
+		const SmoothedValue& systems_update() const  {
+			return _systems_update;
+		}
+
+		const SmoothedValue& simulation_update() const  {
+			return _simulation_update;
+		}
+
+		const SmoothedValue& render_time() const  {
+			return _render_time;
+		}
+
+		duration frame_time() const {
+			return _frame_time;
 		}
 
 	private:
-		float _smoothedFPS = 60.0;
-		float _fps = 0.f;
-		duration _frameTime { 0 };
+		SmoothedValue _fps { 60.f, 0.05f };
+		SmoothedValue _systems_update { 0.f, 0.05f };
+		SmoothedValue _simulation_update { 0.f, 0.05f };
+		SmoothedValue _render_time { 0.f, 0.05f };
+		duration _frame_time { 0 };
 	};
 
 	class Application {

@@ -1,43 +1,52 @@
 #include <stdafx.h>
 
 #include <visualization/elements/vehicle_renderer.h>
-#include <visualization/elements/map_element.h>
 
 #include <Application.h>
 #include <visualization/Scene.h>
 #include <visualization/scene_system.h>
+#include <data/map_renderer_data.h>
+
 #include <core/data_layer/data_types.h>
+#include <core/store_models/idata_model.h>
 #include <core/data_layer/world_data.h>
+
+#include <visualization/elements/map_element.h>
+#include <data/persistent_render_data.h>
 
 namespace tjs::visualization {
 
 	VehicleRenderer::VehicleRenderer(Application& application)
 		: SceneNode("VehicleRenderer")
-		, _application(application) {}
+		, _application(application)
+		, _mapRendererData(*application.stores().get_model<core::model::MapRendererData>())
+		, _cache(*application.stores().get_model<core::model::PersistentRenderData>()) {
+	}
 
 	VehicleRenderer::~VehicleRenderer() {
 	}
 
 	void VehicleRenderer::init() {
-		auto scene = _application.sceneSystem().getScene("General");
-		if (scene == nullptr) {
-			return;
-		}
-
-		_mapElement = dynamic_cast<visualization::MapElement*>(scene->getNode("MapElement"));
+		_mapRendererData = *_application.stores().get_model<core::model::MapRendererData>();
 	}
 
 	void VehicleRenderer::update() {
+		_cache.vehicles.clear();
+		for (auto& vehicle : _application.worldData().vehicles()) {
+			VehicleRenderInfo info;
+			info.vehicle = &vehicle;
+			info.screenPos = tjs::visualization::convert_to_screen(
+				vehicle.coordinates,
+				_mapRendererData.projectionCenter,
+				_mapRendererData.screen_center,
+				_mapRendererData.metersPerPixel);
+			_cache.vehicles.push_back(info);
+		}
 	}
 
 	void VehicleRenderer::render(IRenderer& renderer) {
-		if (!_mapElement) {
-			return;
-		}
-
-		auto& vehicles = _application.worldData().vehicles();
-		for (auto& vehicle : vehicles) {
-			render(renderer, vehicle);
+		for (auto& info : _cache.vehicles) {
+			render(renderer, *info.vehicle, info.screenPos);
 		}
 	}
 
@@ -63,17 +72,18 @@ namespace tjs::visualization {
 		}
 	};
 
-	void VehicleRenderer::render(IRenderer& renderer, const core::Vehicle& vehicle) {
-		const float metersPerPixel = _mapElement->getZoomLevel();
+	void VehicleRenderer::render(IRenderer& renderer, const core::Vehicle& vehicle, const tjs::Position& cachedPos) {
+		const float metersPerPixel = _mapRendererData.metersPerPixel;
 
 		// Get the settings for the vehicle based on its type
 		const VehicleRenderSettings& settings = vehicleSettings.renderSettings[static_cast<int>(vehicle.type)];
 
 		// Set the color for the vehicle
-		renderer.setDrawColor(settings.color);
+		renderer.set_draw_color(settings.color);
 
 		// Convert coordinates to screen coordinates
-		auto [screenX, screenY] = _mapElement->convertToScreen(vehicle.coordinates);
+		int screenX = cachedPos.x;
+		int screenY = cachedPos.y;
 
 		if (!_application.renderer().is_point_visible(screenX, screenY)) {
 			return;
@@ -114,7 +124,7 @@ namespace tjs::visualization {
 		};
 
 		// Draw the vehicle as a rectangle
-		renderer.drawGeometry(geometry);
+		renderer.draw_geometry(geometry);
 	}
 
 } // namespace tjs::visualization

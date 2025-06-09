@@ -50,7 +50,9 @@ namespace tjs::core::simulation {
 			if (target_cell.has_value() && !target_cell->get().empty()) {
 				const auto& ways = target_cell->get();
 				core::WayInfo* random_way = ways[RandomGenerator::get().next_int(0, ways.size() - 1)];
-
+				if (!random_way->is_car_accessible()) {
+					continue;
+				}
 				// Return the first node of the way
 				if (!random_way->nodes.empty()) {
 					return random_way->nodes[0];

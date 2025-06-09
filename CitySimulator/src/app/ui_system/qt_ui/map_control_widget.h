@@ -6,6 +6,7 @@
 #include <QSpinBox>
 #include <QLabel>
 #include <QCheckBox>
+#include <QListWidget>
 
 namespace tjs {
 	class Application;
@@ -18,7 +19,7 @@ namespace tjs {
 		class VehicleAnalyzeWidget;
 
 		class MapControlWidget : public QWidget {
-			// Q_OBJECT
+			//Q_OBJECT
 
 		public:
 			explicit MapControlWidget(Application& application, QWidget* parent = nullptr);
@@ -32,40 +33,31 @@ namespace tjs {
 			bool openFile(std::string_view fileName);
 
 			void createVehicleInformation(QVBoxLayout* layout);
+			void createLayerSelection(QVBoxLayout* layout);
 
 		private slots:
-			void onZoomIn();
-			void onZoomOut();
-			void moveNorth();
-			void moveSouth();
-			void moveWest();
-			void moveEast();
 			void onUpdate();
 			void openOSMFile();
+			void onLayerSelectionChanged();
 
 		private:
 			Application& _application;
-			visualization::MapElement* _mapElement = nullptr;
+
 			// Temporary button, will erase it after refactoring
-			QPushButton* _updateButton;
+			QPushButton* _updateButton = nullptr;
 
-			QPushButton* _zoomInButton;
-			QPushButton* _zoomOutButton;
-			QDoubleSpinBox* _latitude;
-			QDoubleSpinBox* _longitude;
-			QPushButton* _northButton;
-			QPushButton* _southButton;
-			QPushButton* _westButton;
-			QPushButton* _eastButton;
-			QPushButton* _openFileButton;
+			QPushButton* _openFileButton = nullptr;
 
-			QSpinBox* vehicleCount;
-			QDoubleSpinBox* vehicleSizeMultipler;
-			QCheckBox* randomSeed;
-			QSpinBox* seedValue;
-			QPushButton* _regenerateVehiclesButton;
+			QSpinBox* vehicleCount = nullptr;
+			QDoubleSpinBox* vehicleSizeMultipler = nullptr;
+			QCheckBox* randomSeed = nullptr;
+			QSpinBox* seedValue = nullptr;
+			QPushButton* _regenerateVehiclesButton = nullptr;
 
-			QLabel* _zoomLevel;
+			QLabel* _zoomLevel = nullptr;
+			QLabel* _projectCenter = nullptr;
+			QLabel* _longtitude = nullptr;
+			QListWidget* _layerList = nullptr;
 
 			VehicleAnalyzeWidget* _vehiclesWidget = nullptr;
 		};

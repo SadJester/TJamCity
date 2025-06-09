@@ -1,14 +1,25 @@
 #pragma once
 
-#define ENUM_FLAG(EnumName, ...)                                                 \
-	enum class EnumName { __VA_ARGS__,                                           \
-		Count };                                                                 \
-	inline EnumName operator|(EnumName a, EnumName b) {                          \
-		return static_cast<EnumName>(static_cast<int>(a) | static_cast<int>(b)); \
-	}                                                                            \
-	inline EnumName operator&(EnumName a, EnumName b) {                          \
-		return static_cast<EnumName>(static_cast<int>(a) & static_cast<int>(b)); \
-	}                                                                            \
-	inline bool hasFlag(EnumName a, EnumName b) {                                \
-		return (static_cast<int>(a) & static_cast<int>(b)) != 0;                 \
+#include <cstdint>
+
+#define ENUM_FLAG(EnumName, Type, ...)                                             \
+	enum class EnumName : Type { __VA_ARGS__ };                                    \
+	inline EnumName operator|(EnumName a, EnumName b) {                            \
+		return static_cast<EnumName>(static_cast<Type>(a) | static_cast<Type>(b)); \
+	}                                                                              \
+	inline EnumName operator&(EnumName a, EnumName b) {                            \
+		return static_cast<EnumName>(static_cast<Type>(a) & static_cast<Type>(b)); \
+	}                                                                              \
+	inline Type operator&(EnumName a, Type b) {                                    \
+		return static_cast<Type>(a) & b;                                           \
+	}                                                                              \
+	inline Type operator&(Type a, EnumName b) {                                    \
+		return a & static_cast<Type>(b);                                           \
+	}                                                                              \
+	inline bool hasFlag(EnumName a, EnumName b) {                                  \
+		return (static_cast<Type>(a) & static_cast<Type>(b)) != 0;                 \
 	}
+
+#define ENUM(EnumName, Type, ...)             \
+	enum class EnumName : Type { __VA_ARGS__, \
+		Count };

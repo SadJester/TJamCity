@@ -3,10 +3,6 @@
 #include <core/store_models/idata_model.h>
 
 namespace tjs::core {
-
-} // namespace tjs::core
-
-namespace tjs::core {
 	struct AgentData;
 } // namespace tjs::core
 

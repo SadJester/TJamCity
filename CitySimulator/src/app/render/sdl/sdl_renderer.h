@@ -17,13 +17,14 @@ namespace tjs {
 			virtual void release() override;
 
 			virtual void update() override;
-			virtual void beginFrame() override;
-			virtual void endFrame() override;
+			virtual void begin_frame() override;
+			virtual void end_frame() override;
 
-			virtual void setDrawColor(FColor color) override;
-			virtual void drawLine(int x1, int y1, int x2, int y2) override;
-			virtual void drawGeometry(const Geometry& geometry) override;
-			virtual void drawCircle(int centerX, int centerY, int radius) override;
+			virtual void set_draw_color(FColor color) override;
+			virtual void draw_line(int x1, int y1, int x2, int y2) override;
+			virtual void draw_geometry(const Geometry& geometry) override;
+			virtual void draw_circle(int center_x, int center_y, int radius, bool fill = false) override;
+			virtual void draw_rect(const Rectangle& rect, bool fill = false) override;
 
 		private:
 			Application& _application;

@@ -16,11 +16,42 @@
 
 // Store models
 #include <core/store_models/vehicle_analyze_data.h>
+#include <data/map_renderer_data.h>
+#include <data/persistent_render_data.h>
+#include <data/simulation_debug_data.h>
+
+// TODO: Place somwhere to be more pretty
+#include "visualization/Scene.h"
+#include "visualization/scene_system.h"
+#include "visualization/elements/map_element.h"
+#include "data/persistent_render_data.h"
+#include <core/simulation/simulation_system.h>
+
 
 namespace tjs {
 
+	bool open_map(std::string_view fileName, Application& application) {
+		if (tjs::core::WorldCreator::loadOSMData(application.worldData(), fileName)) {
+			tjs::core::WorldCreator::createRandomVehicles(application.worldData(), application.settings().simulationSettings);
+			application.settings().general.selectedFile = fileName;
+
+			// TODO: message system
+			if (auto scene = application.sceneSystem().getScene("General"); scene) {
+				if (auto mapElement = dynamic_cast<visualization::MapElement*>(scene->getNode("MapElement")); mapElement) {
+					mapElement->on_map_updated();
+				}
+			}
+			application.simulationSystem().initialize();
+			return true;
+		}
+		return false;
+	}
+
 	void setup_store_models(Application& app) {
 		app.stores().add_model<core::model::VehicleAnalyzeData>();
+		app.stores().add_model<core::model::MapRendererData>();
+		app.stores().add_model<core::model::PersistentRenderData>();
+		app.stores().add_model<core::model::SimulationDebugData>();
 	}
 
 	int launch(int argc, char* argv[]) {
@@ -43,8 +74,11 @@ namespace tjs {
 		application.initialize();
 
 		// TODO: Will move to user settings in some time
-		application.renderer().setClearColor(tjs::render::RenderConstants::BASE_CLEAR_COLOR);
+		application.renderer().set_clear_color(tjs::render::RenderConstants::BASE_CLEAR_COLOR);
 		tjs::visualization::prepareScene(application);
+
+		// Open first map that was opened earlier
+		open_map(application.settings().general.selectedFile, application);
 
 		application.run();
 
