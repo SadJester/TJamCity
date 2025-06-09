@@ -14,6 +14,9 @@ namespace tjs {
 
 		private:
 			QLabel* fpsLabel;
+			QLabel* simulationUpdateLabel;
+			QLabel* systemsUpdateLabel;
+			QLabel* renderTimeLabel;
 			Application& _app;
 
 		public:
