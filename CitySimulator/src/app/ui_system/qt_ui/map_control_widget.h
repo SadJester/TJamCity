@@ -36,12 +36,6 @@ namespace tjs {
 			void createLayerSelection(QVBoxLayout* layout);
 
 		private slots:
-			void onZoomIn();
-			void onZoomOut();
-			void moveNorth();
-			void moveSouth();
-			void moveWest();
-			void moveEast();
 			void onUpdate();
 			void openOSMFile();
 			void onLayerSelectionChanged();
@@ -52,14 +46,6 @@ namespace tjs {
 			// Temporary button, will erase it after refactoring
 			QPushButton* _updateButton = nullptr;
 
-			QPushButton* _zoomInButton = nullptr;
-			QPushButton* _zoomOutButton = nullptr;
-			QDoubleSpinBox* _latitude = nullptr;
-			QDoubleSpinBox* _longitude = nullptr;
-			QPushButton* _northButton = nullptr;
-			QPushButton* _southButton = nullptr;
-			QPushButton* _westButton = nullptr;
-			QPushButton* _eastButton = nullptr;
 			QPushButton* _openFileButton = nullptr;
 
 			QSpinBox* vehicleCount = nullptr;
@@ -69,6 +55,8 @@ namespace tjs {
 			QPushButton* _regenerateVehiclesButton = nullptr;
 
 			QLabel* _zoomLevel = nullptr;
+			QLabel* _projectCenter = nullptr;
+			QLabel* _longtitude = nullptr;
 			QListWidget* _layerList = nullptr;
 
 			VehicleAnalyzeWidget* _vehiclesWidget = nullptr;

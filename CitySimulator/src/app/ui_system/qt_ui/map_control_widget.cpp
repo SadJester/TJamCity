@@ -49,55 +49,17 @@ namespace tjs {
 			_zoomLevel = new QLabel("Meters per pixel: 000", this);
 			_zoomLevel->setAlignment(Qt::AlignCenter);
 			_zoomLevel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-			_zoomLevel->setStyleSheet("font-size: 14px; font-weight: bold;");
+			_zoomLevel->setStyleSheet("font-size: 12px; font-weight: bold;");
 			infoLayout->addWidget(_zoomLevel, 0, 0);
 
-			// Create zoom buttons layout
-			QHBoxLayout* zoomLayout = new QHBoxLayout();
-			_zoomInButton = new QPushButton("Zoom In", this);
-			_zoomOutButton = new QPushButton("Zoom Out", this);
-			zoomLayout->addWidget(_zoomInButton);
-			zoomLayout->addWidget(_zoomOutButton);
-
-			// Create arrows layout
-			QFrame* arrowsFrame = new QFrame();
-			arrowsFrame->setFrameStyle(QFrame::Box | QFrame::Sunken);
-			arrowsFrame->setLineWidth(2);
-			arrowsFrame->setMidLineWidth(1);
-
-			QGridLayout* arrowsLayout = new QGridLayout(arrowsFrame);
-
-			_northButton = new QPushButton("▲");
-			_westButton = new QPushButton("◀");
-			_eastButton = new QPushButton("▶");
-			_southButton = new QPushButton("▼");
-
-			arrowsLayout->addWidget(_northButton, 0, 1);
-			arrowsLayout->addWidget(_westButton, 1, 0);
-			arrowsLayout->addWidget(_eastButton, 1, 2);
-			arrowsLayout->addWidget(_southButton, 2, 1);
-
 			// Create coordinates layout
-			QHBoxLayout* coordsLayout = new QHBoxLayout();
-			QLabel* latLabel = new QLabel("Latitude:");
-			QLabel* lonLabel = new QLabel("Longitude:");
+			QHBoxLayout* coordsLayout = new QHBoxLayout(infoFrame);
+			_projectCenter = new QLabel("Center: 000, 000", this);
+			_projectCenter->setAlignment(Qt::AlignCenter);
+			_projectCenter->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+			_projectCenter->setStyleSheet("font-size: 12px; font-weight: bold;");
+			infoLayout->addWidget(_projectCenter, 1, 0);
 
-			_latitude = new QDoubleSpinBox();
-			_latitude->setRange(-90.0, 90.0);
-			_latitude->setDecimals(6);
-			_latitude->setSuffix("°");
-			_latitude->setReadOnly(true);
-
-			_longitude = new QDoubleSpinBox();
-			_longitude->setRange(-180.0, 180.0);
-			_longitude->setDecimals(6);
-			_longitude->setSuffix("°");
-			_longitude->setReadOnly(true);
-
-			coordsLayout->addWidget(latLabel);
-			coordsLayout->addWidget(_latitude);
-			coordsLayout->addWidget(lonLabel);
-			coordsLayout->addWidget(_longitude);
 
 			// Add layer selection
 			createLayerSelection(mainLayout);
@@ -108,28 +70,10 @@ namespace tjs {
 			// Add all elements to main layout
 			mainLayout->addWidget(_openFileButton);
 			mainLayout->addWidget(infoFrame);
-			mainLayout->addLayout(zoomLayout);
-			mainLayout->addWidget(arrowsFrame);
 			mainLayout->addLayout(coordsLayout);
 
 			// Connections
-			connect(_zoomInButton, &QPushButton::clicked, this, &MapControlWidget::onZoomIn);
-			connect(_zoomOutButton, &QPushButton::clicked, this, &MapControlWidget::onZoomOut);
-			connect(_northButton, &QPushButton::clicked, this, &MapControlWidget::moveNorth);
-			connect(_southButton, &QPushButton::clicked, this, &MapControlWidget::moveSouth);
-			connect(_westButton, &QPushButton::clicked, this, &MapControlWidget::moveWest);
-			connect(_eastButton, &QPushButton::clicked, this, &MapControlWidget::moveEast);
-
 			connect(_openFileButton, &QPushButton::clicked, this, &MapControlWidget::openOSMFile);
-
-			connect(_latitude, &QDoubleSpinBox::valueChanged, [this](double value) {
-				_application.settings().general.projectionCenter.latitude = value;
-			});
-
-			connect(_longitude, &QDoubleSpinBox::valueChanged, [this](double value) {
-				_application.settings().general.projectionCenter.longitude = value;
-			});
-
 			UpdateButtonsState();
 		}
 
@@ -271,14 +215,6 @@ namespace tjs {
 
 		void MapControlWidget::UpdateButtonsState() {
 			const bool value = !_application.settings().general.selectedFile.empty();
-			_zoomInButton->setEnabled(value);
-			_zoomOutButton->setEnabled(value);
-			_northButton->setEnabled(value);
-			_southButton->setEnabled(value);
-			_westButton->setEnabled(value);
-			_eastButton->setEnabled(value);
-			_latitude->setEnabled(value);
-			_longitude->setEnabled(value);
 		}
 
 		void MapControlWidget::UpdateLabels() {
@@ -288,112 +224,11 @@ namespace tjs {
 			}
 
 			_zoomLevel->setText(QString("Meters per pixel: %1").arg(render_data->metersPerPixel));
-			_latitude->setValue(render_data->projectionCenter.latitude);
-			_longitude->setValue(render_data->projectionCenter.longitude);
+			_projectCenter->setText(QString("Center: %1, %2").arg(render_data->projectionCenter.latitude).arg(render_data->projectionCenter.longitude));
 
 			_application.settings().general.zoomLevel = render_data->metersPerPixel;
 		}
 
-		void MapControlWidget::onZoomIn() {
-			auto render_data = _application.stores().get_model<core::model::MapRendererData>();
-			if (!render_data) {
-				return;
-			}
-
-			double currentZoom = render_data->metersPerPixel;
-			render_data->set_meters_per_pixel(currentZoom * 0.9); // Zoom in (decrease meters per pixel)
-			UpdateLabels();
-			visualization::recalculate_map_data(_application);
-		}
-
-		void MapControlWidget::onZoomOut() {
-			auto render_data = _application.stores().get_model<core::model::MapRendererData>();
-			if (!render_data) {
-				return;
-			}
-
-			double currentZoom = render_data->metersPerPixel;
-			render_data->set_meters_per_pixel(currentZoom * 1.1); // Zoom out (increase meters per pixel)
-			UpdateLabels();
-			visualization::recalculate_map_data(_application);
-		}
-
-		double getChangedStep(double metersPerPixel) {
-			// Определяем границы
-			const double minMetersPerPixel = 0.1;
-			const double maxMetersPerPixel = 13.0;
-
-			const double minStep = 0.0000001;
-			const double maxStep = 0.001;
-
-			// Линейная интерполяция
-			double normalizedValue = (metersPerPixel - minMetersPerPixel) / (maxMetersPerPixel - minMetersPerPixel);
-
-			// Рассчитываем step
-			double step = maxStep - (maxStep - minStep) * normalizedValue;
-
-			return step;
-		}
-
-		void MapControlWidget::moveNorth() {
-			auto render_data = _application.stores().get_model<core::model::MapRendererData>();
-			if (!render_data) {
-				return;
-			}
-
-			core::Coordinates current = render_data->projectionCenter;
-			if (current.latitude < 90.0) {
-				current.latitude += getChangedStep(render_data->metersPerPixel);
-				_latitude->setValue(current.latitude);
-				render_data->projectionCenter = current;
-				visualization::recalculate_map_data(_application);
-			}
-		}
-
-		void MapControlWidget::moveSouth() {
-			auto render_data = _application.stores().get_model<core::model::MapRendererData>();
-			if (!render_data) {
-				return;
-			}
-
-			core::Coordinates current = render_data->projectionCenter;
-			if (current.latitude > -90.0) {
-				current.latitude -= getChangedStep(render_data->metersPerPixel);
-				_latitude->setValue(current.latitude);
-				render_data->projectionCenter = current;
-				visualization::recalculate_map_data(_application);
-			}
-		}
-
-		void MapControlWidget::moveWest() {
-			auto render_data = _application.stores().get_model<core::model::MapRendererData>();
-			if (!render_data) {
-				return;
-			}
-
-			core::Coordinates current = render_data->projectionCenter;
-			if (current.longitude > -180.0) {
-				current.longitude -= getChangedStep(render_data->metersPerPixel);
-				_longitude->setValue(current.longitude);
-				render_data->projectionCenter = current;
-				visualization::recalculate_map_data(_application);
-			}
-		}
-
-		void MapControlWidget::moveEast() {
-			auto render_data = _application.stores().get_model<core::model::MapRendererData>();
-			if (!render_data) {
-				return;
-			}
-
-			core::Coordinates current = render_data->projectionCenter;
-			if (current.longitude < 180.0) {
-				current.longitude += getChangedStep(render_data->metersPerPixel);
-				_longitude->setValue(current.longitude);
-				render_data->projectionCenter = current;
-				visualization::recalculate_map_data(_application);
-			}
-		}
 
 		void MapControlWidget::onUpdate() {
 			if (_layerList == nullptr) {
@@ -412,17 +247,7 @@ namespace tjs {
 				item->setSelected(static_cast<uint32_t>(render_data->visibleLayers & layer) != 0);
 			}
 
-			if (const auto& projectionCenter = _application.settings().general.projectionCenter;
-				projectionCenter.latitude != 0.0 || projectionCenter.longitude != 0.0) {
-				render_data->projectionCenter = _application.settings().general.projectionCenter;
-			}
-			render_data->metersPerPixel = _application.settings().general.zoomLevel;
 			UpdateLabels();
-			visualization::recalculate_map_data(_application);
-
-			// Initialize spin boxes with current values
-			_latitude->setValue(render_data->projectionCenter.latitude);
-			_longitude->setValue(render_data->projectionCenter.longitude);
 		}
 
 		bool MapControlWidget::openFile(std::string_view fileName) {
