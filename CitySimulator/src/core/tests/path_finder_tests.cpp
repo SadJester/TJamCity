@@ -51,6 +51,7 @@ TEST_F(PathFinderTest, ReverseDirection) {
 
     auto path = algo::PathFinder::find_path_a_star(network, start, target);
 
+    ASSERT_FALSE(path.empty());
     ASSERT_EQ(path.front(), start);
     ASSERT_EQ(path.back(), target);
     EXPECT_EQ(path.size(), 3u);
