@@ -10,11 +10,12 @@ namespace tjs::core::model {
 		static std::type_index get_type() { return typeid(PersistentRenderData); }
 
 		std::unordered_map<uint64_t, visualization::NodeRenderInfo> nodes;
-		std::unordered_map<uint64_t, visualization::WayRenderInfo> ways;
-		std::vector<visualization::VehicleRenderInfo> vehicles;
+                std::unordered_map<uint64_t, visualization::WayRenderInfo> ways;
+                std::vector<visualization::VehicleRenderInfo> vehicles;
 
-		visualization::NodeRenderInfo* selectedNode = nullptr;
-	};
+                visualization::NodeRenderInfo* selectedNode = nullptr;
+                std::unordered_set<uint64_t> reachableNodes;
+        };
 
 } // namespace tjs::core::model
 

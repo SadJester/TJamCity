@@ -14,7 +14,7 @@ namespace tjs::core::model {
 		NetworkGraph = 1 << 3,
 		All = Ways | Nodes | TrafficLights | NetworkGraph);
 
-	struct MapRendererData : public IDataModel {
+        struct MapRendererData : public IDataModel {
 		static std::type_index get_type() {
 			return typeid(MapRendererData);
 		}
@@ -27,9 +27,11 @@ namespace tjs::core::model {
 		MapRendererLayer visibleLayers = MapRendererLayer::Ways;
 
 		// Rendering options
-		bool showBoundingBox = false;
-		bool showLaneMarkers = true;
-		double laneMarkerVisibilityThreshold = 50.0; // meters per pixel threshold
+                bool showBoundingBox = false;
+                bool showLaneMarkers = true;
+                double laneMarkerVisibilityThreshold = 50.0; // meters per pixel threshold
+
+                bool networkOnlyForSelected = false;
 
 		Position screen_center;
 

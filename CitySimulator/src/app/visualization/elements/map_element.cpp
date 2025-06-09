@@ -81,28 +81,38 @@ namespace tjs::visualization {
 
 	void MapElement::render_network_graph(IRenderer& renderer, const core::RoadNetwork& network) {
 		// Set color for network graph edges
-		renderer.set_draw_color({ 0.0f, 0.8f, 0.8f, 0.5f }); // Semi-transparent cyan
+                renderer.set_draw_color({ 0.0f, 0.8f, 0.8f, 0.5f }); // Semi-transparent cyan
 
-		const auto& nodes = _cache.nodes;
+                const auto& nodes = _cache.nodes;
+                bool filter = _render_data.networkOnlyForSelected && !_cache.reachableNodes.empty();
 
-		// Render edges from adjacency list
-		for (const auto& [node, neighbors] : network.adjacency_list) {
-			auto it = nodes.find(node->uid);
-			if (it == nodes.end()) {
-				continue;
-			}
+                // Render edges from adjacency list
+                for (const auto& [node, neighbors] : network.adjacency_list) {
+					const bool is_node_filtered = filter && !_cache.reachableNodes.contains(node->uid);
 
-			const Position& start = it->second.screenPos;
-			for (const auto& [neighbor, weight] : neighbors) {
-				auto itNeighbor = nodes.find(neighbor->uid);
-				const Position& end = itNeighbor->second.screenPos;
+					auto it = nodes.find(node->uid);
+					if (it == nodes.end()) {
+						continue;
+					}
 
-				// Draw edge as a thin line
-				drawThickLine(renderer, { start, end }, _render_data.metersPerPixel, 1.0f, { 0.0f, 0.8f, 0.8f, 0.5f });
-			}
-		}
+					const Position& start = it->second.screenPos;
+					for (const auto& [neighbor, weight] : neighbors) {
+						const bool is_neighbor_filtered = filter && !_cache.reachableNodes.contains(neighbor->uid);
 
-		draw_network_nodes(network);
+						auto itNeighbor = nodes.find(neighbor->uid);
+						if (itNeighbor == nodes.end()) {
+								continue;
+						}
+						const Position& end = itNeighbor->second.screenPos;
+
+						// Draw edge as a thin line
+						const FColor color = (is_node_filtered || is_neighbor_filtered) ?  FColor{ 0.8f, 0.0f, 0.0f, 0.5f } : FColor{ 0.0f, 0.8f, 0.8f, 0.5f };
+
+						drawThickLine(renderer, { start, end }, _render_data.metersPerPixel, 0.8f, color);
+					}
+                }
+
+                draw_network_nodes(network);
 	}
 
 	Position convert_to_screen(
@@ -508,15 +518,18 @@ namespace tjs::visualization {
 		}
 	}
 
-	void MapElement::draw_network_nodes(const core::RoadNetwork& network) {
-		auto& renderer = _application.renderer();
-		renderer.set_draw_color({ 1.0f, 0.0f, 0.0f, 1.0f });
+        void MapElement::draw_network_nodes(const core::RoadNetwork& network) {
+                auto& renderer = _application.renderer();
 
-		for (const auto& [uid, node] : network.nodes) {
-			if (auto it = _cache.nodes.find(uid); it != _cache.nodes.end()) {
-				draw_node(renderer, it->second);
-			}
-		}
-	}
+                bool filter = _render_data.networkOnlyForSelected && !_cache.reachableNodes.empty();
+                for (const auto& [uid, node] : network.nodes) {
+					const bool is_filtered = filter && !_cache.reachableNodes.contains(uid);
+					if (auto it = _cache.nodes.find(uid); it != _cache.nodes.end()) {
+						const FColor color = is_filtered ? FColor{ 1.0f, 0.0f, 0.0f, 1.0f } : FColor{ 0.0f, 1.0f, 0.0f, 1.0f };
+						renderer.set_draw_color(color);
+						draw_node(renderer, it->second);
+					}
+                }
+        }
 
 } // namespace tjs::visualization

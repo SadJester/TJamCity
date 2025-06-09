@@ -2,6 +2,7 @@
 #include "visualization/map_render_events_listener.h"
 #include "Application.h"
 #include "data/persistent_render_data.h"
+#include "data/map_renderer_data.h"
 
 #include <cmath>
 
@@ -37,12 +38,17 @@ namespace tjs::visualization {
 			cache->selectedNode->selected = false;
 		}
 
-		if (nearest) {
-			nearest->selected = true;
-			cache->selectedNode = nearest;
-		} else {
-			cache->selectedNode = nullptr;
-		}
+                if (nearest) {
+                        nearest->selected = true;
+                        cache->selectedNode = nearest;
+                } else {
+                        cache->selectedNode = nullptr;
+                }
+
+                auto* render = _application.stores().get_model<core::model::MapRendererData>();
+                if (render && render->networkOnlyForSelected) {
+                        visualization::recalculate_map_data(_application);
+                }
 	}
 
 } // namespace tjs::visualization

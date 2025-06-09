@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6">
+  <node id="1" lat="0.0" lon="0.0" />
+  <node id="2" lat="0.0" lon="0.01" />
+  <node id="3" lat="0.0" lon="0.02" />
+  <node id="4" lat="0.0" lon="0.03" />
+  <node id="5" lat="0.01" lon="0.0" />
+  <node id="6" lat="0.01" lon="0.01" />
+  <node id="7" lat="0.01" lon="0.02" />
+  <node id="8" lat="0.01" lon="0.03" />
+  <node id="9" lat="0.02" lon="0.0" />
+  <node id="10" lat="0.02" lon="0.01" />
+  <node id="11" lat="0.02" lon="0.02" />
+  <node id="12" lat="0.02" lon="0.03" />
+  <node id="13" lat="0.03" lon="0.0" />
+  <node id="14" lat="0.03" lon="0.01" />
+  <node id="15" lat="0.03" lon="0.02" />
+  <node id="16" lat="0.03" lon="0.03" />
+
+  <way id="30">
+    <nd ref="1"/><nd ref="2"/><nd ref="3"/><nd ref="4"/>
+    <tag k="highway" v="primary"/>
+    <tag k="lanes" v="2"/>
+  </way>
+  <way id="31">
+    <nd ref="5"/><nd ref="6"/><nd ref="7"/><nd ref="8"/>
+    <tag k="highway" v="residential"/>
+    <tag k="lanes" v="1"/>
+  </way>
+  <way id="32">
+    <nd ref="9"/><nd ref="10"/><nd ref="11"/><nd ref="12"/>
+    <tag k="highway" v="service"/>
+    <tag k="lanes" v="1"/>
+  </way>
+  <way id="33">
+    <nd ref="13"/><nd ref="14"/><nd ref="15"/><nd ref="16"/>
+    <tag k="highway" v="tertiary"/>
+    <tag k="lanes" v="1"/>
+  </way>
+  <way id="34">
+    <nd ref="1"/><nd ref="5"/><nd ref="9"/><nd ref="13"/>
+    <tag k="highway" v="residential"/>
+    <tag k="lanes" v="1"/>
+  </way>
+  <way id="35">
+    <nd ref="2"/><nd ref="6"/><nd ref="10"/><nd ref="14"/>
+    <tag k="highway" v="secondary"/>
+    <tag k="lanes" v="2"/>
+  </way>
+  <way id="36">
+    <nd ref="3"/><nd ref="7"/><nd ref="11"/><nd ref="15"/>
+    <tag k="highway" v="service"/>
+    <tag k="lanes" v="1"/>
+  </way>
+  <way id="37">
+    <nd ref="4"/><nd ref="8"/><nd ref="12"/><nd ref="16"/>
+    <tag k="highway" v="primary"/>
+    <tag k="lanes" v="2"/>
+  </way>
+</osm>

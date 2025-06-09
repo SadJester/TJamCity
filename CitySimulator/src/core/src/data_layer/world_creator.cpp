@@ -232,16 +232,16 @@ namespace tjs::core {
 								lanes = (value == "motorway") ? 3 : 1; // Default 3 lanes for motorway, 1 for link
 							} else if (value == "trunk" || value == "primary") {
 								lanes = 2; // Default 2 lanes for major roads
+							} else if (value == "residential" || value == "tertiary" || value == "unclassified" || 
+									 value == "secondary" || value == "primary_link" || value == "secondary_link" || 
+									 value == "tertiary_link" || value == "service") {
+								if (!lanes_found) {
+									lanes = 2; // Default 2 lanes for these road types
+								}
 							} else if (value == "footway" || value == "cycleway" || value == "path" || value == "bridleway" || value == "pedestrian") {
 								lanes = 1;
 								isOneway = false; // Always bidirectional
 								maxSpeed = 5;     // Very low speed for pedestrian paths
-							}
-							else if (value == "service") {
-								if (!lanes_found) {
-									lanes = 2;
-								}
-								isOneway = false;
 							}
 						}
 					} else if (key == "amenity") {

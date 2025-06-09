@@ -4,6 +4,7 @@
 #include "Application.h"
 
 #include <core/data_layer/world_data.h>
+#include <core/map_math/path_finder.h>
 
 namespace tjs::visualization {
 
@@ -14,10 +15,13 @@ namespace tjs::visualization {
 			return;
 		}
 
-		cache->nodes.clear();
-		cache->ways.clear();
-		cache->vehicles.clear();
-		cache->selectedNode = nullptr;
+                uint64_t selectedId = cache->selectedNode ? cache->selectedNode->node->uid : 0;
+
+                cache->nodes.clear();
+                cache->ways.clear();
+                cache->vehicles.clear();
+                cache->selectedNode = nullptr;
+                cache->reachableNodes.clear();
 
 		if (app.worldData().segments().empty()) {
 			return;
@@ -55,16 +59,30 @@ namespace tjs::visualization {
 			cache->ways.emplace(uid, std::move(info));
 		}
 
-		for (auto& vehicle : app.worldData().vehicles()) {
-			VehicleRenderInfo info;
-			info.vehicle = &vehicle;
-			info.screenPos = convert_to_screen(
-				vehicle.coordinates,
-				render->projectionCenter,
-				render->screen_center,
-				render->metersPerPixel);
-			cache->vehicles.push_back(info);
-		}
-	}
+                for (auto& vehicle : app.worldData().vehicles()) {
+                        VehicleRenderInfo info;
+                        info.vehicle = &vehicle;
+                        info.screenPos = convert_to_screen(
+                                vehicle.coordinates,
+                                render->projectionCenter,
+                                render->screen_center,
+                                render->metersPerPixel);
+                        cache->vehicles.push_back(info);
+                }
+
+                if (selectedId != 0) {
+                        if (auto it = cache->nodes.find(selectedId); it != cache->nodes.end()) {
+                                it->second.selected = true;
+                                cache->selectedNode = &it->second;
+                        }
+                }
+
+                if (render->networkOnlyForSelected && cache->selectedNode && segment.road_network) {
+                        auto nodes = core::algo::PathFinder::reachable_nodes(*segment.road_network, cache->selectedNode->node);
+                        for (auto* n : nodes) {
+                                cache->reachableNodes.insert(n->uid);
+                        }
+                }
+        }
 
 } // namespace tjs::visualization
