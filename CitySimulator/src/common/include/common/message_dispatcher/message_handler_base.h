@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/common/message_dispatcher/Event.h>
+#include <common/message_dispatcher/Event.h>
 
 
 namespace tjs::common {

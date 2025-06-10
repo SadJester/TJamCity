@@ -16,6 +16,9 @@ target_include_directories(TJC_Core PRIVATE
 	"${JSON_INCLUDE_DIR}"
 )
 
+# Link against the common library
+target_link_libraries(TJC_Core PUBLIC TJS_Common)
+
 if (WIN32)
 	target_link_libraries(TJC_Core PUBLIC ${PUGI_LIB_DIR}/pugixml.lib)
 elseif(APPLE) 

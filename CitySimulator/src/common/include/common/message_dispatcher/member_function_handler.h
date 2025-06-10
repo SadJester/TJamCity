@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/common/message_dispatcher/message_handler_base.h>
+#include <common/message_dispatcher/message_handler_base.h>
 
 
 namespace tjs::common {

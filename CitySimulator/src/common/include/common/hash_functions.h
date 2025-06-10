@@ -1,6 +1,6 @@
 #pragma once
 
-#include <core/common/const_string.h>
+#include <common/const_string.h>
 
 namespace tjs::common
 {

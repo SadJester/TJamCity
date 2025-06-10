@@ -21,6 +21,7 @@ target_precompile_headers(TJC_TJamApp PRIVATE "stdafx.h")
 # Link the core static library to the app executable
 target_link_libraries(TJC_TJamApp PRIVATE
     TJC_Core
+    TJS_Common
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets
@@ -40,6 +41,7 @@ SET(CMAKE_AUTOMOC_MOC_OPTIONS "-nw")
 target_include_directories(TJC_TJamApp PRIVATE 
     "${CMAKE_SOURCE_DIR}/CitySimulator/src/app"
     "${CMAKE_SOURCE_DIR}/CitySimulator/src/core/include"
+    "${CMAKE_SOURCE_DIR}/CitySimulator/src/common/include"
     ${JSON_INCLUDE_DIR}
 )
 

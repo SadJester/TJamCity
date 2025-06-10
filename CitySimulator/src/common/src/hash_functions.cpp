@@ -1,6 +1,6 @@
-#include <core/stdafx.h>
+#include <common/stdafx.h>
 
-#include <core/common/hash_functions.h>
+#include <common/hash_functions.h>
 
 namespace tjs::common
 {

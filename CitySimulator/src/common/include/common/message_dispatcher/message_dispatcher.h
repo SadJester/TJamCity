@@ -1,10 +1,10 @@
 #pragma once
 
-#include <core/common/message_dispatcher/message_handler_base.h>
-#include <core/common/message_dispatcher/member_function_handler.h>
+#include <common/message_dispatcher/message_handler_base.h>
+#include <common/message_dispatcher/member_function_handler.h>
 
-#include <core/common/const_string.h>
-#include <core/common/hash_functions.h>
+#include <common/const_string.h>
+#include <common/hash_functions.h>
 
 
 namespace tjs::common {
