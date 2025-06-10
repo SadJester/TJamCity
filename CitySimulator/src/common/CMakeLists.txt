@@ -33,6 +33,7 @@ if(WITH_TESTS)
 		${CMAKE_CURRENT_SOURCE_DIR}/include
 		"${JSON_INCLUDE_DIR}"
 		${GTEST_INCLUDE_DIR})
+	target_precompile_headers(common.Tests PRIVATE "tests/stdafx.h")
 	if (WIN32)
 		target_link_libraries(common.Tests PRIVATE
 			TJC_Core

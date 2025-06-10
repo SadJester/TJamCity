@@ -53,6 +53,23 @@
             "preLaunchTask": "cs_win_build_debug"
         },
         {
+            "name": "(Win) [UnitTests][Debug] TJS_Common_tests",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/cs/bin/Debug/common.Tests.exe",
+            "args": [],
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "${env:PATH};C:\\Qt\\6.9.0\\msvc2022_64\\bin"
+                }
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "cs_win_build_debug"
+        },
+        {
             "name": "(Win) [UnitTests][Release] TJC_Core_tests",
             "type": "cppvsdbg",
             "request": "launch",
