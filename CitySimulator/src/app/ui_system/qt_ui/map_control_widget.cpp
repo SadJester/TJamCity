@@ -9,11 +9,13 @@
 #include <QLabel>
 #include <QFileDialog>
 
+#include <project/project.h>
+
 // TODO: Dirty hack for now
 #include <ui_system/debug_ui/vehicle_analyze_widget.h>
 
 /// TODO: Place somwhere to be more pretty
-#include "app_launcher.h"
+
 #include "visualization/Scene.h"
 #include "visualization/scene_system.h"
 #include "visualization/elements/map_element.h"
@@ -30,6 +32,8 @@ namespace tjs {
 			, _application(application) {
 			// Create main layout
 			QVBoxLayout* mainLayout = new QVBoxLayout(this);
+
+			_application.message_dispatcher().RegisterHandler(*this, &MapControlWidget::handle_positioning_changed, "MapControlWidget");
 
 			// File button
 			_openFileButton = new QPushButton("Open OSMX File");
@@ -60,7 +64,6 @@ namespace tjs {
 			_projectCenter->setStyleSheet("font-size: 12px; font-weight: bold;");
 			infoLayout->addWidget(_projectCenter, 1, 0);
 
-
 			// Add layer selection
 			createLayerSelection(mainLayout);
 
@@ -78,7 +81,7 @@ namespace tjs {
 		}
 
 		MapControlWidget::~MapControlWidget() {
-			// Cleanup
+			_application.message_dispatcher().UnregisterHandler<events::MapPositioningChanged>("MapControlWidget");
 		}
 
 		void MapControlWidget::createVehicleInformation(QVBoxLayout* layout) {
@@ -145,12 +148,8 @@ namespace tjs {
 
 			connect(_regenerateVehiclesButton, &QPushButton::clicked, [this]() {
 				tjs::core::WorldCreator::createRandomVehicles(_application.worldData(), _application.settings().simulationSettings);
-				// TODO: message system
 				_application.simulationSystem().initialize();
 				_application.stores().get_model<core::model::VehicleAnalyzeData>()->agent = nullptr;
-				if (_vehiclesWidget) {
-					_vehiclesWidget->initialize();
-				}
 			});
 
 			layout->addWidget(infoFrame);
@@ -229,7 +228,6 @@ namespace tjs {
 			_application.settings().general.zoomLevel = render_data->metersPerPixel;
 		}
 
-
 		void MapControlWidget::onUpdate() {
 			if (_layerList == nullptr) {
 				return;
@@ -249,17 +247,8 @@ namespace tjs {
 			UpdateLabels();
 		}
 
-		bool MapControlWidget::openFile(std::string_view fileName) {
-			if (fileName.empty()) {
-				return false;
-			}
-
-			if (tjs::open_map(fileName, _application)) {
-				_application.settings().general.selectedFile = fileName;
-				onUpdate();
-				return true;
-			}
-			return false;
+		void MapControlWidget::handle_positioning_changed(const events::MapPositioningChanged& event) {
+			UpdateLabels();
 		}
 
 		void MapControlWidget::openOSMFile() {
@@ -269,7 +258,15 @@ namespace tjs {
 				"",
 				tr("OSMX Files (*.osmx)"));
 
-			openFile(fileName.toStdString());
+			const auto file_name = fileName.toStdString();
+			if (file_name.empty()) {
+				return;
+			}
+
+			if (tjs::open_map(file_name, _application)) {
+				_application.settings().general.selectedFile = file_name;
+				onUpdate();
+			}
 		}
 	} // namespace ui
 } // namespace tjs

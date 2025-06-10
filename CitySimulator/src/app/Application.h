@@ -4,6 +4,8 @@
 #include <core/store_models/idata_model.h>
 #include <core/utils/smoothed_value.h>
 
+#include <common/message_dispatcher/message_dispatcher.h>
+
 namespace tjs {
 
 	class UISystem;
@@ -18,7 +20,7 @@ namespace tjs {
 		namespace simulation {
 			class TrafficSimulationSystem;
 		} // namespace simulation
-	} // namespace core
+	}     // namespace core
 
 	class CommandLine {
 	public:
@@ -66,19 +68,19 @@ namespace tjs {
 			return _render_time;
 		}
 
-		const SmoothedValue& fps() const  {
+		const SmoothedValue& fps() const {
 			return _fps;
 		}
 
-		const SmoothedValue& systems_update() const  {
+		const SmoothedValue& systems_update() const {
 			return _systems_update;
 		}
 
-		const SmoothedValue& simulation_update() const  {
+		const SmoothedValue& simulation_update() const {
 			return _simulation_update;
 		}
 
-		const SmoothedValue& render_time() const  {
+		const SmoothedValue& render_time() const {
 			return _render_time;
 		}
 
@@ -153,6 +155,10 @@ namespace tjs {
 			return _models_store;
 		}
 
+		common::MessageDispatcher& message_dispatcher() {
+			return _message_dispatcher;
+		}
+
 	private:
 		CommandLine _commandLine;
 		bool _isFinished = false;
@@ -161,6 +167,8 @@ namespace tjs {
 
 		UserSettings _settings;
 		core::model::DataModelStore _models_store;
+
+		common::MessageDispatcher _message_dispatcher;
 
 		// Systems
 		std::unique_ptr<IRenderer> _renderer;

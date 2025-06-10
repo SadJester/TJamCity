@@ -9,9 +9,10 @@
 #include <visualization/scene_system.h>
 #include <visualization/scene_creator.h>
 
-#include <core/data_layer/world_data.h>
-#include <core/data_layer/world_creator.h>
+#include <project/project.h>
 
+// Core systems
+#include <core/data_layer/world_data.h>
 #include <core/simulation/simulation_system.h>
 
 // Store models
@@ -25,27 +26,8 @@
 #include "visualization/scene_system.h"
 #include "visualization/elements/map_element.h"
 #include "data/persistent_render_data.h"
-#include <core/simulation/simulation_system.h>
-
 
 namespace tjs {
-
-	bool open_map(std::string_view fileName, Application& application) {
-		if (tjs::core::WorldCreator::loadOSMData(application.worldData(), fileName)) {
-			tjs::core::WorldCreator::createRandomVehicles(application.worldData(), application.settings().simulationSettings);
-			application.settings().general.selectedFile = fileName;
-
-			// TODO: message system
-			if (auto scene = application.sceneSystem().getScene("General"); scene) {
-				if (auto mapElement = dynamic_cast<visualization::MapElement*>(scene->getNode("MapElement")); mapElement) {
-					mapElement->on_map_updated();
-				}
-			}
-			application.simulationSystem().initialize();
-			return true;
-		}
-		return false;
-	}
 
 	void setup_store_models(Application& app) {
 		app.stores().add_model<core::model::VehicleAnalyzeData>();

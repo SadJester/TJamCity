@@ -4,6 +4,8 @@
 #include <core/simulation/tactical/tactical_planning_module.h>
 #include <core/simulation/movement/vehicle_movement_module.h>
 
+#include <common/message_dispatcher/message_dispatcher.h>
+
 namespace tjs::core {
 	class WorldData;
 	class TimeModule;
@@ -51,6 +53,10 @@ namespace tjs::core::simulation {
 			return _store;
 		}
 
+		common::MessageDispatcher& message_dispatcher() {
+			return _message_dispatcher;
+		}
+
 	private:
 		Agents _agents;
 
@@ -61,5 +67,7 @@ namespace tjs::core::simulation {
 		core::model::DataModelStore& _store;
 
 		core::WorldData& _worldData;
+
+		common::MessageDispatcher _message_dispatcher;
 	};
 } // namespace tjs::core::simulation

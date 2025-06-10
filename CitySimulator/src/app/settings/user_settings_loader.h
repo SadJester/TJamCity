@@ -10,8 +10,8 @@ namespace tjs::settings {
 	public:
 		JsonFileHandler()
 			: DiskFileHandler<json>(
-				  [](const json& j) { return j.dump(4); },
-				  [](const std::string& s) { return json::parse(s); }) {
+				[](const json& j) { return j.dump(4); },
+				[](const std::string& s) { return json::parse(s); }) {
 		}
 	};
 

@@ -1,9 +1,7 @@
 #pragma once
 
-
 namespace tjs::common {
-	struct Event
-	{
+	struct Event {
 		virtual ~Event() {}
 	};
-}
+} // namespace tjs::common

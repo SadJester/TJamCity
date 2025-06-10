@@ -62,10 +62,9 @@ namespace tjs {
 			auto simulation_end = std::chrono::high_resolution_clock::now();
 
 			prevFrameStart = frameStart;
-			
+
 			_frameStats.simulation_update().update(
-				std::chrono::duration_cast<std::chrono::duration<double>>(simulation_end - frameStart).count()
-			);
+				std::chrono::duration_cast<std::chrono::duration<double>>(simulation_end - frameStart).count());
 
 			// Run the update and draw operations
 			_uiSystem->update();
@@ -74,8 +73,7 @@ namespace tjs {
 
 			auto systems_end = std::chrono::high_resolution_clock::now();
 			_frameStats.systems_update().update(
-				std::chrono::duration_cast<std::chrono::duration<double>>(systems_end - simulation_end).count()
-			);
+				std::chrono::duration_cast<std::chrono::duration<double>>(systems_end - simulation_end).count());
 
 			// Rendering
 			_renderer->begin_frame();
@@ -84,8 +82,7 @@ namespace tjs {
 
 			auto rendering_end = std::chrono::high_resolution_clock::now();
 			_frameStats.render_time().update(
-				std::chrono::duration_cast<std::chrono::duration<double>>(rendering_end - systems_end).count()
-			);
+				std::chrono::duration_cast<std::chrono::duration<double>>(rendering_end - systems_end).count());
 
 			// Calculate actual frame time
 			auto frameEnd = rendering_end;

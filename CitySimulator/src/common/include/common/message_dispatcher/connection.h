@@ -2,11 +2,9 @@
 
 #include <common/message_dispatcher/message_dispatcher.h>
 
-namespace tjs::common
-{
+namespace tjs::common {
 
-	class Connection
-	{
+	class Connection {
 	private:
 		MessageDispatcher* mp_dispatcher;
 		std::size_t m_type;
@@ -15,24 +13,21 @@ namespace tjs::common
 
 	public:
 		Connection(const Connection&) = delete;
-		Connection& operator = (const Connection&) = delete;
+		Connection& operator=(const Connection&) = delete;
 
 		Connection()
 			: m_type(0)
-			, mp_dispatcher(nullptr)
-		{}
+			, mp_dispatcher(nullptr) {}
 
 		Connection(Connection&& right)
 			: mp_dispatcher(right.mp_dispatcher)
 			, m_publisher(right.m_publisher)
 			, m_handler_id(right.m_handler_id)
-			, m_type(right.m_type)
-		{
+			, m_type(right.m_type) {
 			right.mp_dispatcher = nullptr;
 		}
 
-		Connection& operator = (Connection&& right)
-		{
+		Connection& operator=(Connection&& right) {
 			mp_dispatcher = right.mp_dispatcher;
 			m_publisher = right.m_publisher;
 			m_handler_id = right.m_handler_id;
@@ -41,7 +36,7 @@ namespace tjs::common
 			return *this;
 		}
 
-		template <typename HandlerType, typename EventType>
+		template<typename HandlerType, typename EventType>
 		Connection(MessageDispatcher& o_dispatcher,
 			HandlerType& i_instance,
 			void (HandlerType::*member_function)(const EventType&),
@@ -50,27 +45,24 @@ namespace tjs::common
 			: m_type(typeid(EventType).hash_code())
 			, mp_dispatcher(&o_dispatcher)
 			, m_handler_id(i_handler_id)
-			, m_publisher(i_publisher)
-		{
+			, m_publisher(i_publisher) {
 			mp_dispatcher->RegisterHandler<HandlerType, EventType>(i_instance, member_function, m_handler_id, i_publisher);
 		}
-		~Connection()
-		{
+		~Connection() {
 			disconnect();
 		}
 
-		bool connected() const
-		{
+		bool connected() const {
 			return mp_dispatcher != nullptr;
 		}
-		void disconnect()
-		{
-			if (mp_dispatcher == nullptr)
+		void disconnect() {
+			if (mp_dispatcher == nullptr) {
 				return;
+			}
 
 			mp_dispatcher->UnregisterHandler(m_type, m_handler_id, m_publisher);
 			mp_dispatcher = nullptr;
 		}
 	};
 
-}
+} // namespace tjs::common

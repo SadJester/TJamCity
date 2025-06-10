@@ -3,10 +3,9 @@
 #include <core/data_layer/data_types.h>
 #include <render/render_primitives.h>
 
-namespace tjs::visualization
-{
-    
-    struct NodeRenderInfo {
+namespace tjs::visualization {
+
+	struct NodeRenderInfo {
 		core::Node* node = nullptr;
 		tjs::Position screenPos {};
 		bool selected = false;
@@ -25,4 +24,3 @@ namespace tjs::visualization
 	};
 
 } // namespace tjs::visualization
-

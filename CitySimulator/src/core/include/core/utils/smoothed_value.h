@@ -1,20 +1,19 @@
 #pragma once
 
-
 namespace tjs {
-    struct SmoothedValue {
+	struct SmoothedValue {
 		SmoothedValue(float initial, float smoothing_factor)
 			: _value(initial)
 			, _smoothing_factor(smoothing_factor)
-			, _smoothed_value(initial){
-			}
+			, _smoothed_value(initial) {
+		}
 
 		void update(float value) {
 			_value = value;
 			_smoothed_value = _smoothed_value * (1.0 - _smoothing_factor) + _value * _smoothing_factor;
 		}
 
-		float get()const {
+		float get() const {
 			return _smoothed_value;
 		}
 
@@ -32,4 +31,4 @@ namespace tjs {
 		float _value = 0.f;
 		float _smoothing_factor;
 	};
-}
+} // namespace tjs

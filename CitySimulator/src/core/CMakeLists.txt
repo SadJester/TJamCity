@@ -11,6 +11,7 @@ add_library(TJC_Core STATIC ${CORE_SOURCES})
 # Specify the include directories for core
 target_include_directories(TJC_Core PRIVATE 
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
+	"${CMAKE_CURRENT_SOURCE_DIR}/../common/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
 	"${PUGI_INCLUDE_DIR}"
 	"${JSON_INCLUDE_DIR}"
@@ -40,6 +41,7 @@ if(WITH_TESTS)
 	target_include_directories(core.Tests PRIVATE
 		${CMAKE_CURRENT_SOURCE_DIR}/tests
 		${CMAKE_CURRENT_SOURCE_DIR}/include
+		"${CMAKE_CURRENT_SOURCE_DIR}/../common/include"
 		"${JSON_INCLUDE_DIR}"
 		${GTEST_INCLUDE_DIR})
 	if (WIN32)
