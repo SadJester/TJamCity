@@ -2,6 +2,8 @@
 
 #include <QtWidgets>
 
+#include <core/events/simulation_events.h>
+
 namespace tjs::model {
 	struct VehicleAnalyzeData;
 } // namespace tjs::model
@@ -17,6 +19,7 @@ namespace tjs {
 		class VehicleAnalyzeWidget : public QWidget {
 		public:
 			VehicleAnalyzeWidget(Application& app);
+			~VehicleAnalyzeWidget();
 
 			void initialize();
 		private slots:
@@ -24,6 +27,7 @@ namespace tjs {
 
 		private:
 			void updateAgentDetails(const tjs::core::AgentData* agent);
+			void handle_simulation_initialized(const core::events::SimulationInitialized& event);
 
 			Application& _application;
 			tjs::model::VehicleAnalyzeData* _model;
@@ -37,7 +41,6 @@ namespace tjs {
 			QLabel* _currentGoalValue;
 			QLabel* _currentStepGoalValue;
 			QLabel* _pathNodeCountValue;
-			QPushButton* _updateButton;
 		};
 	} // namespace ui
 } // namespace tjs

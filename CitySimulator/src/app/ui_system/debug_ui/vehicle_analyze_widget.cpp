@@ -18,6 +18,17 @@ namespace tjs::ui {
 		, _agentComboBox(nullptr)
 		, _detailsGroup(nullptr) {
 		initialize();
+
+		_application.simulationSystem().message_dispatcher().register_handler(*this, &VehicleAnalyzeWidget::handle_simulation_initialized, "VehicleAnalyzeWidget");
+	}
+
+	VehicleAnalyzeWidget::~VehicleAnalyzeWidget() {
+		_application.simulationSystem().message_dispatcher().unregister_handler<core::events::SimulationInitialized>("VehicleAnalyzeWidget");
+	}
+
+	void VehicleAnalyzeWidget::handle_simulation_initialized(const core::events::SimulationInitialized& event) {
+		_application.stores().get_model<core::model::VehicleAnalyzeData>()->agent = nullptr;
+		initialize();
 	}
 
 	void VehicleAnalyzeWidget::initialize() {
@@ -45,9 +56,6 @@ namespace tjs::ui {
 		}
 
 		QVBoxLayout* mainLayout = new QVBoxLayout(this);
-
-		_updateButton = new QPushButton("Update");
-		mainLayout->addWidget(_updateButton);
 
 		// Agent selection combo box
 		QHBoxLayout* selectionLayout = new QHBoxLayout();
@@ -84,9 +92,6 @@ namespace tjs::ui {
 		// Connect signals
 		connect(_agentComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
 			this, &VehicleAnalyzeWidget::handleAgentSelection);
-		connect(_updateButton, &QPushButton::clicked, this, [this]() {
-			initialize();
-		});
 
 		setLayout(mainLayout);
 	}

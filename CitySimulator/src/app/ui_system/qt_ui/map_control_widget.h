@@ -8,6 +8,8 @@
 #include <QCheckBox>
 #include <QListWidget>
 
+#include <events/map_events.h>
+
 namespace tjs {
 	class Application;
 
@@ -25,12 +27,10 @@ namespace tjs {
 			explicit MapControlWidget(Application& application, QWidget* parent = nullptr);
 			~MapControlWidget() override;
 
-			void setVehicles(VehicleAnalyzeWidget* vehiclesWidget) { _vehiclesWidget = vehiclesWidget; }
-
 		private:
 			void UpdateButtonsState();
 			void UpdateLabels();
-			bool openFile(std::string_view fileName);
+			void handle_positioning_changed(const events::MapPositioningChanged& event);
 
 			void createVehicleInformation(QVBoxLayout* layout);
 			void createLayerSelection(QVBoxLayout* layout);
@@ -58,8 +58,6 @@ namespace tjs {
 			QLabel* _projectCenter = nullptr;
 			QLabel* _longtitude = nullptr;
 			QListWidget* _layerList = nullptr;
-
-			VehicleAnalyzeWidget* _vehiclesWidget = nullptr;
 		};
 	} // namespace ui
 } // namespace tjs

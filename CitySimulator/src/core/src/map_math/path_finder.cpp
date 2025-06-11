@@ -53,7 +53,7 @@ namespace tjs::core::algo {
 		return {}; // Путь не найден
 	}
 
-        std::deque<Node*> PathFinder::find_path_a_star(const RoadNetwork& network, Node* source, Node* target) {
+	std::deque<Node*> PathFinder::find_path_a_star(const RoadNetwork& network, Node* source, Node* target) {
 		using NodeEntry = std::pair<double, Node*>;
 		std::priority_queue<NodeEntry, std::vector<NodeEntry>, std::greater<>> open_set;
 
@@ -106,38 +106,38 @@ namespace tjs::core::algo {
 			}
 		}
 
-                return {}; // Путь не найден
-        }
+		return {}; // Путь не найден
+	}
 
-        std::unordered_set<Node*> PathFinder::reachable_nodes(const RoadNetwork& network, Node* source) {
-                std::unordered_set<Node*> visited;
-                if (!source) {
-                        return visited;
-                }
+	std::unordered_set<Node*> PathFinder::reachable_nodes(const RoadNetwork& network, Node* source) {
+		std::unordered_set<Node*> visited;
+		if (!source) {
+			return visited;
+		}
 
-                std::queue<Node*> queue;
-                queue.push(source);
-                visited.insert(source);
+		std::queue<Node*> queue;
+		queue.push(source);
+		visited.insert(source);
 
-                while (!queue.empty()) {
-                        Node* current = queue.front();
-                        queue.pop();
+		while (!queue.empty()) {
+			Node* current = queue.front();
+			queue.pop();
 
-                        auto it = network.adjacency_list.find(current);
-                        if (it == network.adjacency_list.end()) {
-                                continue;
-                        }
+			auto it = network.adjacency_list.find(current);
+			if (it == network.adjacency_list.end()) {
+				continue;
+			}
 
-                        for (const auto& [neighbor, cost] : it->second) {
-                                if (!visited.contains(neighbor)) {
-                                        visited.insert(neighbor);
-                                        queue.push(neighbor);
-                                }
-                        }
-                }
+			for (const auto& [neighbor, cost] : it->second) {
+				if (!visited.contains(neighbor)) {
+					visited.insert(neighbor);
+					queue.push(neighbor);
+				}
+			}
+		}
 
-                return visited;
-        }
+		return visited;
+	}
 
 	bool PathFinder::can_traverse_shortcut(
 		const RoadNetwork& network,

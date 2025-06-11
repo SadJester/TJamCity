@@ -8,6 +8,8 @@
 #include <core/data_layer/road_network.h>
 #include <visualization/map_render_events_listener.h>
 
+#include <events/project_events.h>
+
 namespace tjs {
 	class Application;
 	class IRenderer;
@@ -24,6 +26,9 @@ namespace tjs::visualization {
 		void render(IRenderer& renderer) override;
 
 		void on_map_updated();
+
+	private:
+		void handle_open_map_simulation_reinit(const events::OpenMapEvent& event);
 
 	private:
 		Position convert_to_screen(const core::Coordinates& coord) const;

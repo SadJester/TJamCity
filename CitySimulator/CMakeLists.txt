@@ -41,7 +41,8 @@ if(WIN32)
     endif()
 endif()
 
-#Add subdirectories for app and core
+#Add subdirectories for app, core, and common
+add_subdirectory(src/common)
 add_subdirectory(src/launcher)
 add_subdirectory(src/app)
 add_subdirectory(src/core)

@@ -10,8 +10,8 @@ namespace tjs::core::algo {
 	class PathFinder {
 	public:
 		static std::deque<Node*> find_path(const RoadNetwork& network, uint64_t source, uint64_t target);
-                static std::deque<Node*> find_path_a_star(const RoadNetwork& network, Node* source, Node* target);
-                static std::unordered_set<Node*> reachable_nodes(const RoadNetwork& network, Node* source);
+		static std::deque<Node*> find_path_a_star(const RoadNetwork& network, Node* source, Node* target);
+		static std::unordered_set<Node*> reachable_nodes(const RoadNetwork& network, Node* source);
 
 	private:
 		// Вспомогательная функция для проверки возможности перехода через shortcut
