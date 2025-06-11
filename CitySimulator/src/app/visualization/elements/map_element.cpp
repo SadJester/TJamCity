@@ -18,6 +18,48 @@
 namespace tjs::visualization {
 	using namespace tjs::core;
 
+
+	bool point_inside_screen(const Position& p, int w, int h) {
+		return p.x >= 0 && p.x <= w && p.y >= 0 && p.y <= h;
+	}
+
+	bool line_outside_screen(const Position& sp1, const Position& sp2, int w, int h) {
+		// Step 1: Check if either endpoint is inside screen
+		if (point_inside_screen(sp1, w, h) || point_inside_screen(sp2, w, h))
+			return false;
+
+		// Step 2: Check for intersection with any screen edge
+		// Define screen rectangle as lines
+		Position top_left     = {0, 0};
+		Position top_right    = {w, 0};
+		Position bottom_left  = {0, h};
+		Position bottom_right = {w, h};
+
+		auto intersects = [](Position a1, Position a2, Position b1, Position b2) {
+			auto cross = [](Position p1, Position p2) {
+				return p1.x * p2.y - p1.y * p2.x;
+			};
+			Position r = {a2.x - a1.x, a2.y - a1.y};
+			Position s = {b2.x - b1.x, b2.y - b1.y};
+			Position diff = {b1.x - a1.x, b1.y - a1.y};
+			int denom = cross(r, s);
+			int num1 = cross(diff, s);
+			int num2 = cross(diff, r);
+			if (denom == 0) return false; // Parallel
+			double t = (double)num1 / denom;
+			double u = (double)num2 / denom;
+			return t >= 0 && t <= 1 && u >= 0 && u <= 1;
+		};
+
+		return !(
+			intersects(sp1, sp2, top_left, top_right)    ||
+			intersects(sp1, sp2, top_right, bottom_right) ||
+			intersects(sp1, sp2, bottom_right, bottom_left) ||
+			intersects(sp1, sp2, bottom_left, top_left)
+		);
+	}
+
+
 	MapElement::MapElement(Application& application)
 		: SceneNode("MapElement")
 		, _application(application)
@@ -122,10 +164,12 @@ namespace tjs::visualization {
 					continue;
 				}
 				const Position& end = itNeighbor->second.screenPos;
+				if (line_outside_screen(start, end, renderer.screen_width(), renderer.screen_height())) {
+					continue;
+				}
 
 				// Draw edge as a thin line
-				const FColor color = (is_node_filtered || is_neighbor_filtered) ? FColor { 0.8f, 0.0f, 0.0f, 0.5f } : FColor { 0.0f, 0.8f, 0.8f, 0.5f };
-
+				const FColor color = (is_node_filtered || is_neighbor_filtered) ? FColor { 0.8f, 0.0f, 0.0f, 0.5f } : FColor { 0.0f, 0.8f, 0.8f, 0.5f };				
 				drawThickLine(renderer, { start, end }, _render_data.metersPerPixel, 0.8f, color);
 			}
 		}
@@ -277,14 +321,6 @@ namespace tjs::visualization {
 		screenPoints.reserve(way.nodes.size());
 		for (auto node : way.nodes) {
 			screenPoints.emplace_back(node->screenPos);
-
-			if (_application.renderer().is_point_visible(node->screenPos.x, node->screenPos.y)) {
-				hasVisiblePoints = true;
-			}
-		}
-
-		if (!hasVisiblePoints) {
-			return 0;
 		}
 
 		const FColor color = get_way_color(way.way->type);
@@ -464,6 +500,10 @@ namespace tjs::visualization {
 				Position p1 = nodes[i];
 				Position p2 = nodes[i + 1];
 
+				if (line_outside_screen(p1, p2, renderer.screen_width(), renderer.screen_height())) {
+					continue;
+				}
+
 				// Calculate perpendicular vector
 				float dx = p2.x - p1.x;
 				float dy = p2.y - p1.y;
@@ -476,10 +516,9 @@ namespace tjs::visualization {
 				float perpy = dx / len * offset;
 
 				// Draw dashed lane markers
-				float segmentLength = 5.0f; // meters
-				int segments = static_cast<int>(len / (segmentLength * _render_data.metersPerPixel));
-
-				for (int s = 0; s < segments; s += 2) {
+				static const float segmentLength = 5.0f; // meters
+				int segments = static_cast<int>(len / segmentLength);
+				for (int s = 0; s < segments; s += 3) {
 					float t1 = s / static_cast<float>(segments);
 					float t2 = (s + 1) / static_cast<float>(segments);
 
@@ -491,6 +530,10 @@ namespace tjs::visualization {
 						static_cast<int>(p1.x + t2 * dx + perpx),
 						static_cast<int>(p1.y + t2 * dy + perpy)
 					};
+
+					if (line_outside_screen(sp1, sp2, renderer.screen_width(), renderer.screen_height())) {
+						continue;
+					}
 
 					renderer.draw_line(sp1.x, sp1.y, sp2.x, sp2.y);
 
