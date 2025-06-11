@@ -27,8 +27,6 @@ namespace tjs {
 			explicit MapControlWidget(Application& application, QWidget* parent = nullptr);
 			~MapControlWidget() override;
 
-			void setVehicles(VehicleAnalyzeWidget* vehiclesWidget) { _vehiclesWidget = vehiclesWidget; }
-
 		private:
 			void UpdateButtonsState();
 			void UpdateLabels();
@@ -60,8 +58,6 @@ namespace tjs {
 			QLabel* _projectCenter = nullptr;
 			QLabel* _longtitude = nullptr;
 			QListWidget* _layerList = nullptr;
-
-			VehicleAnalyzeWidget* _vehiclesWidget = nullptr;
 		};
 	} // namespace ui
 } // namespace tjs

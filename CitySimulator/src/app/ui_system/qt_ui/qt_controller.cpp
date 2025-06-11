@@ -90,8 +90,6 @@ namespace tjs {
 			strategicWidget->setParent(scrollContent);
 			debugColumn->addWidget(strategicWidget);
 
-			mapControlWidget->setVehicles(vehicleAnalyzeWidget);
-
 			scrollContent->setLayout(columnsLayout);
 			scrollArea->setWidget(scrollContent);
 

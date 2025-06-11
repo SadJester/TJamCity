@@ -11,9 +11,6 @@
 
 #include <project/project.h>
 
-// TODO: Dirty hack for now
-#include <ui_system/debug_ui/vehicle_analyze_widget.h>
-
 /// TODO: Place somwhere to be more pretty
 
 #include "visualization/Scene.h"
@@ -149,7 +146,6 @@ namespace tjs {
 			connect(_regenerateVehiclesButton, &QPushButton::clicked, [this]() {
 				tjs::core::WorldCreator::createRandomVehicles(_application.worldData(), _application.settings().simulationSettings);
 				_application.simulationSystem().initialize();
-				_application.stores().get_model<core::model::VehicleAnalyzeData>()->agent = nullptr;
 			});
 
 			layout->addWidget(infoFrame);

@@ -27,6 +27,7 @@ namespace tjs::ui {
 	}
 
 	void VehicleAnalyzeWidget::handle_simulation_initialized(const core::events::SimulationInitialized& event) {
+		_application.stores().get_model<core::model::VehicleAnalyzeData>()->agent = nullptr;
 		initialize();
 	}
 
