@@ -50,7 +50,7 @@ namespace tjs::core::simulation {
 			_store.get_model<core::model::VehicleAnalyzeData>()->agent = &_agents[0];
 		}
 
-		_message_dispatcher.HandleMessage(events::SimulationInitialized {}, "simulation");
+		_message_dispatcher.handle_message(events::SimulationInitialized {}, "simulation");
 	}
 
 	void TrafficSimulationSystem::update(double realTimeDelta) {

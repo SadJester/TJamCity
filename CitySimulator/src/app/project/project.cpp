@@ -12,12 +12,12 @@
 #include <core/simulation/simulation_system.h>
 
 namespace tjs {
-	bool open_map(std::string_view fileName, Application& application) {
+	bool open_map_simulation_reinit(std::string_view fileName, Application& application) {
 		if (tjs::core::WorldCreator::loadOSMData(application.worldData(), fileName)) {
 			tjs::core::WorldCreator::createRandomVehicles(application.worldData(), application.settings().simulationSettings);
 			application.settings().general.selectedFile = fileName;
 
-			application.message_dispatcher().HandleMessage(events::OpenMapEvent {}, "project");
+			application.message_dispatcher().handle_message(events::OpenMapEvent {}, "project");
 			application.simulationSystem().initialize();
 			return true;
 		}

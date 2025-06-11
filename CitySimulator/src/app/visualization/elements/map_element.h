@@ -28,7 +28,7 @@ namespace tjs::visualization {
 		void on_map_updated();
 
 	private:
-		void handle_open_map(const events::OpenMapEvent& event);
+		void handle_open_map_simulation_reinit(const events::OpenMapEvent& event);
 
 	private:
 		Position convert_to_screen(const core::Coordinates& coord) const;

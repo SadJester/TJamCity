@@ -40,7 +40,7 @@ namespace tjs::common {
 			, mp_dispatcher(&o_dispatcher)
 			, m_handler_id(i_handler_id)
 			, m_publisher(i_publisher) {
-			mp_dispatcher->RegisterHandler<HandlerType, EventType>(i_instance, member_function, m_handler_id, i_publisher);
+			mp_dispatcher->register_handler<HandlerType, EventType>(i_instance, member_function, m_handler_id, i_publisher);
 		}
 		~Connection() {
 			disconnect();
@@ -54,7 +54,7 @@ namespace tjs::common {
 				return;
 			}
 
-			mp_dispatcher->UnregisterHandler(m_type, m_handler_id, m_publisher);
+			mp_dispatcher->unregister_handler(m_type, m_handler_id, m_publisher);
 			mp_dispatcher = nullptr;
 		}
 

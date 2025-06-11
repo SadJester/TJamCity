@@ -58,7 +58,7 @@ namespace tjs::visualization {
 
 	void MapElement::init() {
 		_application.renderer().register_event_listener(&_listener);
-		_application.message_dispatcher().RegisterHandler(*this, &MapElement::handle_open_map, "project");
+		_application.message_dispatcher().register_handler(*this, &MapElement::handle_open_map_simulation_reinit, "project");
 	}
 
 	void MapElement::update() {
@@ -153,7 +153,7 @@ namespace tjs::visualization {
 		return { screenX, screenY };
 	}
 
-	void MapElement::handle_open_map(const events::OpenMapEvent& event) {
+	void MapElement::handle_open_map_simulation_reinit(const events::OpenMapEvent& event) {
 		on_map_updated();
 	}
 
@@ -206,7 +206,7 @@ namespace tjs::visualization {
 		_render_data.screen_center.x = renderer.screen_width() / 2.0;
 		_render_data.screen_center.y = renderer.screen_height() / 2.0;
 
-		_application.message_dispatcher().HandleMessage(events::MapPositioningChanged {}, "map");
+		_application.message_dispatcher().handle_message(events::MapPositioningChanged {}, "map");
 	}
 
 	void MapElement::calculate_map_bounds(const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {

@@ -56,7 +56,7 @@ namespace tjs::visualization {
 			visualization::recalculate_map_data(_application);
 		}
 
-		_application.message_dispatcher().HandleMessage(events::MapPositioningChanged {}, "map");
+		_application.message_dispatcher().handle_message(events::MapPositioningChanged {}, "map");
 	}
 
 	double MapRenderEventsListener::get_changed_step(double metersPerPixel) {
@@ -88,7 +88,7 @@ namespace tjs::visualization {
 		render_data->projectionCenter.longitude = std::clamp(newLon, -180.0, 180.0);
 		visualization::recalculate_map_data(_application);
 
-		_application.message_dispatcher().HandleMessage(events::MapPositioningChanged {}, "map");
+		_application.message_dispatcher().handle_message(events::MapPositioningChanged {}, "map");
 	}
 
 	void MapRenderEventsListener::on_key_event(const render::RendererKeyEvent& event) {
@@ -133,7 +133,7 @@ namespace tjs::visualization {
 		render_data->projectionCenter = current;
 		visualization::recalculate_map_data(_application);
 
-		_application.message_dispatcher().HandleMessage(events::MapPositioningChanged {}, "map");
+		_application.message_dispatcher().handle_message(events::MapPositioningChanged {}, "map");
 	}
 
 } // namespace tjs::visualization

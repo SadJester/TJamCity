@@ -47,11 +47,11 @@ TEST(MessageDispatcherTest, RegisterAndHandleMemberFunction) {
 	TestHandler handler;
 
 	// Register handler
-	dispatcher.RegisterHandler(handler, &TestHandler::HandleTestEvent, "test_handler");
+	dispatcher.register_handler(handler, &TestHandler::HandleTestEvent, "test_handler");
 
 	// Create and dispatch event
 	TestEvent event { 42 };
-	dispatcher.HandleMessage(event, "");
+	dispatcher.handle_message(event, "");
 
 	// Verify handler was called
 	EXPECT_EQ(handler.last_value, 42);
@@ -63,15 +63,15 @@ TEST(MessageDispatcherTest, RegisterAndHandleMultipleEvents) {
 	TestHandler handler;
 
 	// Register handlers for different events
-	dispatcher.RegisterHandler(handler, &TestHandler::HandleTestEvent, "test_handler");
-	dispatcher.RegisterHandler(handler, &TestHandler::HandleAnotherEvent, "another_handler");
+	dispatcher.register_handler(handler, &TestHandler::HandleTestEvent, "test_handler");
+	dispatcher.register_handler(handler, &TestHandler::HandleAnotherEvent, "another_handler");
 
 	// Create and dispatch events
 	TestEvent test_event { 42 };
 	AnotherEvent another_event { "test message" };
 
-	dispatcher.HandleMessage(test_event, "");
-	dispatcher.HandleMessage(another_event, "");
+	dispatcher.handle_message(test_event, "");
+	dispatcher.handle_message(another_event, "");
 
 	// Verify both handlers were called
 	EXPECT_EQ(handler.last_value, 42);
@@ -83,11 +83,11 @@ TEST(MessageDispatcherTest, RegisterAndHandleFreeFunction) {
 	MessageDispatcher dispatcher;
 
 	// Register free function handler
-	dispatcher.RegisterHandler(&FreeFunctionHandler, "free_handler", "");
+	dispatcher.register_handler(&FreeFunctionHandler, "free_handler", "");
 
 	// Create and dispatch event
 	TestEvent event { 42 };
-	dispatcher.HandleMessage(event, "");
+	dispatcher.handle_message(event, "");
 
 	// Note: We can't easily verify the free function was called
 	// as it uses static variables. In a real test, you might want
@@ -99,35 +99,35 @@ TEST(MessageDispatcherTest, PublisherSpecificHandling) {
 	TestHandler handler;
 
 	// Register handler for specific publisher
-	dispatcher.RegisterHandler(handler, &TestHandler::HandleTestEvent, "test_handler", "publisher1");
+	dispatcher.register_handler(handler, &TestHandler::HandleTestEvent, "test_handler", "publisher1");
 
 	// Create event
 	TestEvent event { 42 };
 
 	// Dispatch from matching publisher
-	dispatcher.HandleMessage(event, "publisher1");
+	dispatcher.handle_message(event, "publisher1");
 	EXPECT_EQ(handler.last_value, 42);
 	EXPECT_EQ(handler.call_count, 1);
 
 	// Dispatch from different publisher
 	handler.call_count = 0;
-	dispatcher.HandleMessage(event, "publisher2");
+	dispatcher.handle_message(event, "publisher2");
 	EXPECT_EQ(handler.call_count, 0); // Handler should not be called
 }
 
-TEST(MessageDispatcherTest, UnregisterHandler) {
+TEST(MessageDispatcherTest, unregister_handler) {
 	MessageDispatcher dispatcher;
 	TestHandler handler;
 
 	// Register handler
-	dispatcher.RegisterHandler(handler, &TestHandler::HandleTestEvent, "test_handler");
+	dispatcher.register_handler(handler, &TestHandler::HandleTestEvent, "test_handler");
 
 	// Unregister handler
-	dispatcher.UnregisterHandler<TestEvent>("test_handler");
+	dispatcher.unregister_handler<TestEvent>("test_handler");
 
 	// Create and dispatch event
 	TestEvent event { 42 };
-	dispatcher.HandleMessage(event, "");
+	dispatcher.handle_message(event, "");
 
 	// Verify handler was not called
 	EXPECT_EQ(handler.call_count, 0);
@@ -138,14 +138,14 @@ TEST(MessageDispatcherTest, UnregisterPublisherSpecificHandler) {
 	TestHandler handler;
 
 	// Register handler for specific publisher
-	dispatcher.RegisterHandler(handler, &TestHandler::HandleTestEvent, "test_handler", "publisher1");
+	dispatcher.register_handler(handler, &TestHandler::HandleTestEvent, "test_handler", "publisher1");
 
 	// Unregister handler
-	dispatcher.UnregisterHandler<TestEvent>("test_handler", "publisher1");
+	dispatcher.unregister_handler<TestEvent>("test_handler", "publisher1");
 
 	// Create and dispatch event
 	TestEvent event { 42 };
-	dispatcher.HandleMessage(event, "publisher1");
+	dispatcher.handle_message(event, "publisher1");
 
 	// Verify handler was not called
 	EXPECT_EQ(handler.call_count, 0);
@@ -157,12 +157,12 @@ TEST(MessageDispatcherTest, MultipleHandlersForSameEvent) {
 	TestHandler handler2;
 
 	// Register two handlers for the same event
-	dispatcher.RegisterHandler(handler1, &TestHandler::HandleTestEvent, "handler1");
-	dispatcher.RegisterHandler(handler2, &TestHandler::HandleTestEvent, "handler2");
+	dispatcher.register_handler(handler1, &TestHandler::HandleTestEvent, "handler1");
+	dispatcher.register_handler(handler2, &TestHandler::HandleTestEvent, "handler2");
 
 	// Create and dispatch event
 	TestEvent event { 42 };
-	dispatcher.HandleMessage(event, "");
+	dispatcher.handle_message(event, "");
 
 	// Verify both handlers were called
 	EXPECT_EQ(handler1.last_value, 42);
@@ -176,12 +176,12 @@ TEST(MessageDispatcherTest, DuplicateRegistration) {
 	TestHandler handler;
 
 	// Register handler twice
-	dispatcher.RegisterHandler(handler, &TestHandler::HandleTestEvent, "test_handler");
-	dispatcher.RegisterHandler(handler, &TestHandler::HandleTestEvent, "test_handler");
+	dispatcher.register_handler(handler, &TestHandler::HandleTestEvent, "test_handler");
+	dispatcher.register_handler(handler, &TestHandler::HandleTestEvent, "test_handler");
 
 	// Create and dispatch event
 	TestEvent event { 42 };
-	dispatcher.HandleMessage(event, "");
+	dispatcher.handle_message(event, "");
 
 	// Verify handler was called only once
 	EXPECT_EQ(handler.call_count, 1);

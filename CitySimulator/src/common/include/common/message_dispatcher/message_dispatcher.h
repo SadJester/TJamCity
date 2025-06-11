@@ -9,37 +9,20 @@
 namespace tjs::common {
 	template<typename EventBase = Event>
 	class MessageDispatcherBase {
-	private:
-		using HandlerPtr = std::unique_ptr<MessageHandlerBase<EventBase>>;
-		struct HandlerPair {
-			size_t publisher_hash = 0;
-			size_t handler_hash = 0;
-			HandlerPtr handler = nullptr;
-			HandlerPair(size_t i_publisher, size_t i_handler, HandlerPtr ip_handler)
-				: publisher_hash(i_publisher)
-				, handler_hash(i_handler)
-				, handler(std::move(ip_handler)) {}
-		};
-
-		using EventHandlers = std::vector<HandlerPair>; // one event and different publishers needs different handlers
-		using HandlersPair = std::pair<size_t /*type_hash*/, EventHandlers>;
-		using Handlers = std::vector<HandlersPair>;
-		Handlers m_handlers;
-
 	public:
 		MessageDispatcherBase() {}
 		~MessageDispatcherBase() {}
 
 		template<class HandlerType, typename EventType>
-		void RegisterHandler(HandlerType& i_instance, void (HandlerType::*member_function)(const EventType&), const std::string& i_handler_id) {
-			RegisterHandler<HandlerType, EventType>(i_instance, member_function, i_handler_id, std::string());
+		void register_handler(HandlerType& i_instance, void (HandlerType::*member_function)(const EventType&), const std::string& i_handler_id) {
+			register_handler<HandlerType, EventType>(i_instance, member_function, i_handler_id, std::string());
 		}
 
 		template<class HandlerType, typename EventType>
-		void RegisterHandler(HandlerType& i_instance, void (HandlerType::*member_function)(const EventType&), const std::string& i_handler_id, const std::string& i_publisher);
+		void register_handler(HandlerType& i_instance, void (HandlerType::*member_function)(const EventType&), const std::string& i_handler_id, const std::string& i_publisher);
 
 		template<typename EventType>
-		void RegisterHandler(void (*Function)(const EventType&), const std::string& i_handler_id, const std::string& i_publisher) {
+		void register_handler(void (*Function)(const EventType&), const std::string& i_handler_id, const std::string& i_publisher) {
 			static const size_t event_type_hash = typeid(EventType).hash_code();
 			// find list of handlers for specific event
 			auto it = std::find_if(m_handlers.begin(), m_handlers.end(), [](const HandlersPair& handlers) {
@@ -66,28 +49,47 @@ namespace tjs::common {
 		}
 
 		template<class EventType>
-		void UnregisterHandler(const std::string& i_handler_id) {
+		void unregister_handler(const std::string& i_handler_id) {
 			static const size_t event_type_hash = typeid(EventType).hash_code();
-			UnregisterHandler(event_type_hash, i_handler_id, std::string());
+			unregister_handler(event_type_hash, i_handler_id, std::string());
 		}
 
 		template<class EventType>
-		void UnregisterHandler(const std::string& i_handler_id, const std::string& i_publisher) {
+		void unregister_handler(const std::string& i_handler_id, const std::string& i_publisher) {
 			static const size_t event_type_hash = typeid(EventType).hash_code();
-			UnregisterHandler(event_type_hash, i_handler_id, i_publisher);
+			unregister_handler(event_type_hash, i_handler_id, i_publisher);
 		}
 
-		void UnregisterHandler(const size_t i_event_type_hash, const std::string& i_handler_id, const std::string& i_publisher);
+		void unregister_handler(const size_t i_event_type_hash, const std::string& i_handler_id, const std::string& i_publisher);
 
 		template<typename EventType>
-		void HandleMessage(const EventType& i_event, const std::string& i_publisher);
+		void handle_message(const EventType& i_event, const std::string& i_publisher);
+
+	private:
+
+	private:
+		using HandlerPtr = std::unique_ptr<MessageHandlerBase<EventBase>>;
+		struct HandlerPair {
+			size_t publisher_hash = 0;
+			size_t handler_hash = 0;
+			HandlerPtr handler = nullptr;
+			HandlerPair(size_t i_publisher, size_t i_handler, HandlerPtr ip_handler)
+				: publisher_hash(i_publisher)
+				, handler_hash(i_handler)
+				, handler(std::move(ip_handler)) {}
+		};
+
+		using EventHandlers = std::vector<HandlerPair>; // one event and different publishers needs different handlers
+		using HandlersPair = std::pair<size_t /*type_hash*/, EventHandlers>;
+		using Handlers = std::vector<HandlersPair>;
+		Handlers m_handlers;
 	};
 
 	//////////////////////////////////////////////////////////////////////////
 
 	template<typename EventBase>
 	template<typename HandlerType, typename EventType>
-	void MessageDispatcherBase<EventBase>::RegisterHandler(HandlerType& i_instance, void (HandlerType::*member_function)(const EventType&), const std::string& i_handler_id, const std::string& i_publisher) {
+	void MessageDispatcherBase<EventBase>::register_handler(HandlerType& i_instance, void (HandlerType::*member_function)(const EventType&), const std::string& i_handler_id, const std::string& i_publisher) {
 		static const size_t event_type_hash = typeid(EventType).hash_code();
 		using FunctionHandler = MemberFunctionHandler<HandlerType, const EventType&, EventBase>;
 		// find list of handlers for specific event
@@ -115,7 +117,7 @@ namespace tjs::common {
 	}
 
 	template<typename EventBase>
-	void MessageDispatcherBase<EventBase>::UnregisterHandler(const size_t i_event_type_hash, const std::string& i_handler_id, const std::string& i_publisher) {
+	void MessageDispatcherBase<EventBase>::unregister_handler(const size_t i_event_type_hash, const std::string& i_handler_id, const std::string& i_publisher) {
 		if (m_handlers.empty()) {
 			return;
 		}
@@ -137,7 +139,7 @@ namespace tjs::common {
 
 	template<typename EventBase>
 	template<typename EventType>
-	void MessageDispatcherBase<EventBase>::HandleMessage(const EventType& i_event, const std::string& i_publisher) {
+	void MessageDispatcherBase<EventBase>::handle_message(const EventType& i_event, const std::string& i_publisher) {
 		static const size_t event_type_hash = typeid(EventType).hash_code();
 		static const size_t empty_string_hash = tjs::common::hash_function(std::string());
 		auto handlers_it = std::find_if(m_handlers.begin(), m_handlers.end(), [](const HandlersPair& handlers) {
@@ -148,7 +150,7 @@ namespace tjs::common {
 			auto& handlers = handlers_it->second;
 			for (auto& handler : handlers) {
 				if (handler.publisher_hash == empty_string_hash || handler.publisher_hash == hash) {
-					handler.handler->ExecuteHandler(i_event);
+					handler.handler->execute_handler(i_event);
 				}
 			}
 		}

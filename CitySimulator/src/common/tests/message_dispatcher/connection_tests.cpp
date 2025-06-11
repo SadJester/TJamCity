@@ -48,7 +48,7 @@ TEST(ConnectionTest, BasicConnection) {
 
     // Create and dispatch event
     TestEvent event{42};
-    dispatcher.HandleMessage(event, "");
+    dispatcher.handle_message(event, "");
 
     // Verify handler was called
     EXPECT_EQ(handler.last_value, 42);
@@ -67,7 +67,7 @@ TEST(ConnectionTest, AutomaticDisconnection) {
 
     // Create and dispatch event
     TestEvent event{42};
-    dispatcher.HandleMessage(event, "");
+    dispatcher.handle_message(event, "");
 
     // Verify handler was not called (connection was disis_connected)
     EXPECT_EQ(handler.call_count, 0);
@@ -87,7 +87,7 @@ TEST(ConnectionTest, ManualDisconnection) {
 
     // Create and dispatch event
     TestEvent event{42};
-    dispatcher.HandleMessage(event, "");
+    dispatcher.handle_message(event, "");
 
     // Verify handler was not called
     EXPECT_EQ(handler.call_count, 0);
@@ -108,7 +108,7 @@ TEST(ConnectionTest, MoveConstruction) {
 
     // Create and dispatch event
     TestEvent event{42};
-    dispatcher.HandleMessage(event, "");
+    dispatcher.handle_message(event, "");
 
     // Verify handler was called through the moved connection
     EXPECT_EQ(handler.last_value, 42);
@@ -131,7 +131,7 @@ TEST(ConnectionTest, MoveAssignment) {
 
     // Create and dispatch event
     TestEvent event{42};
-    dispatcher.HandleMessage(event, "");
+    dispatcher.handle_message(event, "");
 
     // Verify only handler2 was called (handler1's connection was replaced)
     EXPECT_EQ(handler1.call_count, 0);
@@ -151,13 +151,13 @@ TEST(ConnectionTest, PublisherSpecificConnection) {
     TestEvent event{42};
 
     // Dispatch from matching publisher
-    dispatcher.HandleMessage(event, "publisher1");
+    dispatcher.handle_message(event, "publisher1");
     EXPECT_EQ(handler.last_value, 42);
     EXPECT_EQ(handler.call_count, 1);
 
     // Dispatch from different publisher
     handler.call_count = 0;
-    dispatcher.HandleMessage(event, "publisher2");
+    dispatcher.handle_message(event, "publisher2");
     EXPECT_EQ(handler.call_count, 0); // Handler should not be called
 }
 
@@ -173,8 +173,8 @@ TEST(ConnectionTest, MultipleConnections) {
     TestEvent test_event{42};
     AnotherEvent another_event{"test message"};
 
-    dispatcher.HandleMessage(test_event, "");
-    dispatcher.HandleMessage(another_event, "");
+    dispatcher.handle_message(test_event, "");
+    dispatcher.handle_message(another_event, "");
 
     // Verify both handlers were called
     EXPECT_EQ(handler.last_value, 42);

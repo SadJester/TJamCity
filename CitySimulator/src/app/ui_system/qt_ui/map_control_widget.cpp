@@ -30,7 +30,7 @@ namespace tjs {
 			// Create main layout
 			QVBoxLayout* mainLayout = new QVBoxLayout(this);
 
-			_application.message_dispatcher().RegisterHandler(*this, &MapControlWidget::handle_positioning_changed, "MapControlWidget");
+			_application.message_dispatcher().register_handler(*this, &MapControlWidget::handle_positioning_changed, "MapControlWidget");
 
 			// File button
 			_openFileButton = new QPushButton("Open OSMX File");
@@ -78,7 +78,7 @@ namespace tjs {
 		}
 
 		MapControlWidget::~MapControlWidget() {
-			_application.message_dispatcher().UnregisterHandler<events::MapPositioningChanged>("MapControlWidget");
+			_application.message_dispatcher().unregister_handler<events::MapPositioningChanged>("MapControlWidget");
 		}
 
 		void MapControlWidget::createVehicleInformation(QVBoxLayout* layout) {
@@ -259,7 +259,7 @@ namespace tjs {
 				return;
 			}
 
-			if (tjs::open_map(file_name, _application)) {
+			if (tjs::open_map_simulation_reinit(file_name, _application)) {
 				_application.settings().general.selectedFile = file_name;
 				onUpdate();
 			}

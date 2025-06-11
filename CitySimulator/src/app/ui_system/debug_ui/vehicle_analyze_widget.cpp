@@ -19,11 +19,11 @@ namespace tjs::ui {
 		, _detailsGroup(nullptr) {
 		initialize();
 
-		_application.simulationSystem().message_dispatcher().RegisterHandler(*this, &VehicleAnalyzeWidget::handle_simulation_initialized, "VehicleAnalyzeWidget");
+		_application.simulationSystem().message_dispatcher().register_handler(*this, &VehicleAnalyzeWidget::handle_simulation_initialized, "VehicleAnalyzeWidget");
 	}
 
 	VehicleAnalyzeWidget::~VehicleAnalyzeWidget() {
-		_application.simulationSystem().message_dispatcher().UnregisterHandler<core::events::SimulationInitialized>("VehicleAnalyzeWidget");
+		_application.simulationSystem().message_dispatcher().unregister_handler<core::events::SimulationInitialized>("VehicleAnalyzeWidget");
 	}
 
 	void VehicleAnalyzeWidget::handle_simulation_initialized(const core::events::SimulationInitialized& event) {

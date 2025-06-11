@@ -7,6 +7,6 @@ namespace tjs::common {
 	class MessageHandlerBase {
 	public:
 		virtual ~MessageHandlerBase() {}
-		virtual void ExecuteHandler(const EventBase& i_event) = 0;
+		virtual void execute_handler(const EventBase& i_event) = 0;
 	};
 } // namespace tjs::common

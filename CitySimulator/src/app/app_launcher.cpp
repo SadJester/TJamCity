@@ -60,7 +60,7 @@ namespace tjs {
 		tjs::visualization::prepareScene(application);
 
 		// Open first map that was opened earlier
-		open_map(application.settings().general.selectedFile, application);
+		open_map_simulation_reinit(application.settings().general.selectedFile, application);
 
 		application.run();
 

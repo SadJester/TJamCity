@@ -17,7 +17,7 @@ namespace tjs::common {
 			: m_instance(i_handler_instance)
 			, m_function(i_member_func) {}
 
-		virtual void ExecuteHandler(const EventBase& i_event) override {
+		virtual void execute_handler(const EventBase& i_event) override {
 			(m_instance.*m_function)(static_cast<const EventType&>(i_event));
 		}
 	};
@@ -34,7 +34,7 @@ namespace tjs::common {
 		FunctionHandler(Function i_function)
 			: m_function(i_function) {}
 
-		virtual void ExecuteHandler(const EventBase& i_event) override {
+		virtual void execute_handler(const EventBase& i_event) override {
 			(m_function)(static_cast<const EventType&>(i_event));
 		}
 	};
