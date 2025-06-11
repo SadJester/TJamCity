@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "visualization/map_render_events_listener.h"
+#include "logic/map/map_positioning.h"
 #include "Application.h"
 #include "data/persistent_render_data.h"
 #include "data/simulation_debug_data.h"
@@ -13,11 +13,11 @@
 
 namespace tjs::visualization {
 
-	MapRenderEventsListener::MapRenderEventsListener(Application& app)
+	MapPositioning::MapPositioning(Application& app)
 		: _application(app)
 		, _maxDistance(app.settings().render.map.selectionDistance) {}
 
-	void MapRenderEventsListener::on_mouse_event(const render::RendererMouseEvent& event) {
+	void MapPositioning::on_mouse_event(const render::RendererMouseEvent& event) {
 		if (event.button != render::RendererMouseEvent::ButtonType::Left || event.state != render::RendererMouseEvent::ButtonState::Pressed) {
 			return;
 		}
@@ -51,21 +51,16 @@ namespace tjs::visualization {
 			debug->selectedNode = nullptr;
 		}
 
-		auto* render = _application.stores().get_model<core::model::MapRendererData>();
-		if (render && render->networkOnlyForSelected) {
-			visualization::recalculate_map_data(_application);
-		}
-
-		_application.message_dispatcher().handle_message(events::MapPositioningChanged {}, "map");
+		update_map_positioning();
 	}
 
-	double MapRenderEventsListener::get_changed_step(double metersPerPixel) {
+	double MapPositioning::get_changed_step(double metersPerPixel) {
 		const double pixels = 50.0; // move step equals 50 screen pixels
 		double meters = metersPerPixel * pixels;
 		return (meters / core::MathConstants::EARTH_RADIUS) * core::MathConstants::RAD_TO_DEG;
 	}
 
-	void MapRenderEventsListener::on_mouse_wheel_event(const render::RendererMouseWheelEvent& event) {
+	void MapPositioning::on_mouse_wheel_event(const render::RendererMouseWheelEvent& event) {
 		auto* render_data = _application.stores().get_model<core::model::MapRendererData>();
 		if (!render_data) {
 			return;
@@ -86,12 +81,11 @@ namespace tjs::visualization {
 		double newLon = lonAtPoint - (event.x - render_data->screen_center.x) * newMPP / (core::MathConstants::EARTH_RADIUS * core::MathConstants::DEG_TO_RAD);
 		render_data->projectionCenter.latitude = std::clamp(newLat, -90.0, 90.0);
 		render_data->projectionCenter.longitude = std::clamp(newLon, -180.0, 180.0);
-		visualization::recalculate_map_data(_application);
-
-		_application.message_dispatcher().handle_message(events::MapPositioningChanged {}, "map");
+		
+		update_map_positioning();
 	}
 
-	void MapRenderEventsListener::on_key_event(const render::RendererKeyEvent& event) {
+	void MapPositioning::on_key_event(const render::RendererKeyEvent& event) {
 		if (event.state != render::RendererKeyEvent::KeyState::Pressed) {
 			return;
 		}
@@ -131,8 +125,20 @@ namespace tjs::visualization {
 		}
 
 		render_data->projectionCenter = current;
-		visualization::recalculate_map_data(_application);
 
+		update_map_positioning();
+	}
+
+
+	void MapPositioning::update_map_positioning() {
+		auto* render_data = _application.stores().get_model<core::model::MapRendererData>();
+		if (render_data) {
+			visualization::recalculate_map_data(_application);
+		}
+
+		auto& general_settings = _application.settings().general;
+		general_settings.projectionCenter = render_data->projectionCenter;
+		general_settings.zoomLevel = render_data->metersPerPixel;
 		_application.message_dispatcher().handle_message(events::MapPositioningChanged {}, "map");
 	}
 

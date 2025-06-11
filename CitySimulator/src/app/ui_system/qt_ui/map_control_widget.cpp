@@ -220,8 +220,6 @@ namespace tjs {
 
 			_zoomLevel->setText(QString("Meters per pixel: %1").arg(render_data->metersPerPixel));
 			_projectCenter->setText(QString("Center: %1, %2").arg(render_data->projectionCenter.latitude).arg(render_data->projectionCenter.longitude));
-
-			_application.settings().general.zoomLevel = render_data->metersPerPixel;
 		}
 
 		void MapControlWidget::onUpdate() {

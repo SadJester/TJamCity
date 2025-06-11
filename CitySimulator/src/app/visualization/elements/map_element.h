@@ -6,7 +6,8 @@
 #include <data/persistent_render_data.h>
 #include <data/simulation_debug_data.h>
 #include <core/data_layer/road_network.h>
-#include <visualization/map_render_events_listener.h>
+
+#include <logic/map/map_positioning.h>
 
 #include <events/project_events.h>
 
@@ -47,7 +48,7 @@ namespace tjs::visualization {
 		core::model::MapRendererData& _render_data;
 		core::model::PersistentRenderData& _cache;
 		core::model::SimulationDebugData& _debugData;
-		MapRenderEventsListener _listener;
+		MapPositioning _map_positioning;
 
 		// Bounding box coordinates
 		float min_lat = 0.0f;

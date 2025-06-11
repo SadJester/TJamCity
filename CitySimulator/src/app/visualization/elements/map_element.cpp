@@ -3,7 +3,6 @@
 #include "visualization/elements/map_element.h"
 
 #include "data/persistent_render_data.h"
-#include "visualization/map_render_events_listener.h"
 #include "data/simulation_debug_data.h"
 
 #include <render/render_base.h>
@@ -25,11 +24,11 @@ namespace tjs::visualization {
 		, _render_data(*application.stores().get_model<model::MapRendererData>())
 		, _cache(*application.stores().get_model<core::model::PersistentRenderData>())
 		, _debugData(*application.stores().get_model<core::model::SimulationDebugData>())
-		, _listener(application) {
+		, _map_positioning(application) {
 	}
 
 	MapElement::~MapElement() {
-		_application.renderer().unregister_event_listener(&_listener);
+		_application.renderer().unregister_event_listener(&_map_positioning);
 	}
 
 	void MapElement::on_map_updated() {
@@ -40,24 +39,23 @@ namespace tjs::visualization {
 			auto_zoom(segments.front()->nodes);
 		}
 
+		auto& general_settings = _application.settings().general;
+
 		if (_current_file.empty()) {
 			_current_file = _application.settings().general.selectedFile;
 
-			auto render_data = _application.stores().get_model<core::model::MapRendererData>();
-			if (render_data) {
-				if (const auto& projectionCenter = _application.settings().general.projectionCenter;
-					projectionCenter.latitude != 0.0 || projectionCenter.longitude != 0.0) {
-					render_data->projectionCenter = _application.settings().general.projectionCenter;
-				}
-				render_data->metersPerPixel = _application.settings().general.zoomLevel;
+			if (const auto& projectionCenter = general_settings.projectionCenter;
+				projectionCenter.latitude != 0.0 || projectionCenter.longitude != 0.0) {
+				_render_data.projectionCenter = general_settings.projectionCenter;
 			}
+			_render_data.metersPerPixel = general_settings.zoomLevel;
 		}
 
-		visualization::recalculate_map_data(_application);
+		_map_positioning.update_map_positioning();
 	}
 
 	void MapElement::init() {
-		_application.renderer().register_event_listener(&_listener);
+		_application.renderer().register_event_listener(&_map_positioning);
 		_application.message_dispatcher().register_handler(*this, &MapElement::handle_open_map_simulation_reinit, "project");
 	}
 
@@ -205,8 +203,6 @@ namespace tjs::visualization {
 		// Recalculate screen center based on the new zoom level
 		_render_data.screen_center.x = renderer.screen_width() / 2.0;
 		_render_data.screen_center.y = renderer.screen_height() / 2.0;
-
-		_application.message_dispatcher().handle_message(events::MapPositioningChanged {}, "map");
 	}
 
 	void MapElement::calculate_map_bounds(const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {
@@ -254,9 +250,9 @@ namespace tjs::visualization {
 				break;
 			case WayType::Emergency_Bay:
 			case WayType::Emergency_Access:
-			case WayType::Parking:
 				roadColor = Constants::EMERGENCY_COLOR;
 				break;
+			case WayType::Parking:
 			case WayType::Rest_Area:
 			case WayType::Services:
 				roadColor = Constants::SERVICE_AREA_COLOR;
