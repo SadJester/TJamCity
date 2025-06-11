@@ -6,8 +6,8 @@ namespace tjs::common {
 
 	class Connection {
 	private:
-		MessageDispatcher* mp_dispatcher;
-		std::size_t m_type;
+		MessageDispatcher* mp_dispatcher = nullptr;
+		std::size_t m_type = 0;
 		std::string m_publisher;
 		std::string m_handler_id;
 
@@ -19,20 +19,14 @@ namespace tjs::common {
 			: m_type(0)
 			, mp_dispatcher(nullptr) {}
 
-		Connection(Connection&& right)
-			: mp_dispatcher(right.mp_dispatcher)
-			, m_publisher(right.m_publisher)
-			, m_handler_id(right.m_handler_id)
-			, m_type(right.m_type) {
-			right.mp_dispatcher = nullptr;
+		Connection(Connection&& right) {
+			disconnect();
+			set_from(std::move(right));
 		}
 
 		Connection& operator=(Connection&& right) {
-			mp_dispatcher = right.mp_dispatcher;
-			m_publisher = right.m_publisher;
-			m_handler_id = right.m_handler_id;
-			m_type = right.m_type;
-			right.mp_dispatcher = nullptr;
+			disconnect();
+			set_from(std::move(right));
 			return *this;
 		}
 
@@ -52,7 +46,7 @@ namespace tjs::common {
 			disconnect();
 		}
 
-		bool connected() const {
+		bool is_connected() const {
 			return mp_dispatcher != nullptr;
 		}
 		void disconnect() {
@@ -62,6 +56,15 @@ namespace tjs::common {
 
 			mp_dispatcher->UnregisterHandler(m_type, m_handler_id, m_publisher);
 			mp_dispatcher = nullptr;
+		}
+
+	private:
+		void set_from(Connection&& right) {
+			mp_dispatcher = right.mp_dispatcher;
+			m_publisher = right.m_publisher;
+			m_handler_id = right.m_handler_id;
+			m_type = right.m_type;
+			right.mp_dispatcher = nullptr;
 		}
 	};
 
