@@ -86,7 +86,7 @@ TEST_F(SpatialGridTest, AddMultipleWays) {
 
 /*
 =======================================
-Edge cases
+Edge_Contract cases
 ======================================
 */
 TEST_F(SpatialGridTest, NegativeCoordinates) {

@@ -5,14 +5,14 @@
 
 namespace tjs::core {
 	// CH data structures
-	struct Edge {
+	struct Edge_Contract {
 		uint64_t target;
 		double weight;
 		bool is_shortcut;
 		uint64_t shortcut_id1;
 		uint64_t shortcut_id2;
 
-		Edge(uint64_t t, double w, bool sc = false, uint64_t s1 = 0, uint64_t s2 = 0)
+		Edge_Contract(uint64_t t, double w, bool sc = false, uint64_t s1 = 0, uint64_t s2 = 0)
 			: target(t)
 			, weight(w)
 			, is_shortcut(sc)
@@ -20,15 +20,44 @@ namespace tjs::core {
 			, shortcut_id2(s2) {}
 	};
 
+	struct Edge;
+
+	struct Lane {
+		Edge* parent;
+        // Data for the lane
+	};
+
+	struct Edge {
+		std::vector<Lane> lanes;
+        
+        core::Node* start_node;
+        core::Node* end_node;
+
+	public:
+        // methods for easier access
+	};
+
+	struct Junction {
+		// Data for the junction
+	};
+
+
 	struct RoadNetwork {
+		// List of structures for easier access
 		std::unordered_map<uint64_t, Node*> nodes;
 		std::unordered_map<uint64_t, WayInfo*> ways;
 
-		std::unordered_map<Node*, std::vector<std::pair<Node*, double>>> adjacency_list;
-		std::unordered_map<Node*, double> heuristic_cache;
+		// network of edges that consider not only edges but also lanes
+        // consider Junction has lane connectors
 
-		std::unordered_map<uint64_t, std::vector<Edge>> upward_graph;
-		std::unordered_map<uint64_t, std::vector<Edge>> downward_graph;
+		// Trivial network for A* without considering lanes
+		std::unordered_map<Node*, std::vector<std::pair<Node*, double>>> adjacency_list;
+
+
+		// Data for CH [not used now]
+		std::unordered_map<Node*, double> heuristic_cache;
+		std::unordered_map<uint64_t, std::vector<Edge_Contract>> upward_graph;
+		std::unordered_map<uint64_t, std::vector<Edge_Contract>> downward_graph;
 		std::unordered_map<uint64_t, int> node_levels;
 		uint64_t next_shortcut_id = 1;
 	};

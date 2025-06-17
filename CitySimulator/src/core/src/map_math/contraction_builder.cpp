@@ -92,7 +92,7 @@ namespace tjs::core::algo {
 
 	void ContractionBuilder::contract_node(core::RoadNetwork& network, uint64_t node_id) {
 		auto& edges = network.upward_graph[node_id];
-		std::vector<Edge> downward_edges = network.downward_graph[node_id];
+		std::vector<Edge_Contract> downward_edges = network.downward_graph[node_id];
 
 		// Обрабатываем входящие и исходящие ребра
 		for (const auto& in_edge : downward_edges) {
@@ -112,16 +112,16 @@ namespace tjs::core::algo {
 	}
 
 	bool ContractionBuilder::should_add_shortcut(core::RoadNetwork& network,
-		const core::Edge& in_edge,
-		const core::Edge& out_edge) {
+		const core::Edge_Contract& in_edge,
+		const core::Edge_Contract& out_edge) {
 		// Проверяем существование более короткого пути через другие ребра
 		return !has_witness_path(network, in_edge.target, out_edge.target,
 			in_edge.weight + out_edge.weight);
 	}
 
 	void ContractionBuilder::add_shortcut(core::RoadNetwork& network,
-		const core::Edge& in_edge,
-		const core::Edge& out_edge,
+		const core::Edge_Contract& in_edge,
+		const core::Edge_Contract& out_edge,
 		uint64_t contracted_node) {
 		double weight = in_edge.weight + out_edge.weight;
 		uint64_t shortcut_id = network.next_shortcut_id++;

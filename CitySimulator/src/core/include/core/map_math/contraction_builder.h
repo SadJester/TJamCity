@@ -4,7 +4,7 @@
 
 namespace tjs::core {
 	struct RoadNetwork;
-	struct Edge;
+	struct Edge_Contract;
 } // namespace tjs::core
 
 namespace tjs::core::algo {
@@ -19,11 +19,11 @@ namespace tjs::core::algo {
 		double compute_edge_difference(core::RoadNetwork& network, uint64_t node_id);
 		void contract_node(core::RoadNetwork& network, uint64_t node_id);
 		bool should_add_shortcut(core::RoadNetwork& network,
-			const core::Edge& in_edge,
-			const core::Edge& out_edge);
+			const core::Edge_Contract& in_edge,
+			const core::Edge_Contract& out_edge);
 		void add_shortcut(core::RoadNetwork& network,
-			const core::Edge& in_edge,
-			const core::Edge& out_edge,
+			const core::Edge_Contract& in_edge,
+			const core::Edge_Contract& out_edge,
 			uint64_t contracted_node);
 		bool has_witness_path(core::RoadNetwork& network,
 			uint64_t from,

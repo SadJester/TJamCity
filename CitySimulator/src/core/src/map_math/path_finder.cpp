@@ -142,7 +142,7 @@ namespace tjs::core::algo {
 	bool PathFinder::can_traverse_shortcut(
 		const RoadNetwork& network,
 		uint64_t from, uint64_t to,
-		const Edge& shortcut) {
+		const Edge_Contract& shortcut) {
 		// 1. Проверка на существование shortcut-ребра
 		if (!shortcut.is_shortcut) {
 			return false;
