@@ -81,7 +81,7 @@ namespace tjs::visualization {
 		double newLon = lonAtPoint - (event.x - render_data->screen_center.x) * newMPP / (core::MathConstants::EARTH_RADIUS * core::MathConstants::DEG_TO_RAD);
 		render_data->projectionCenter.latitude = std::clamp(newLat, -90.0, 90.0);
 		render_data->projectionCenter.longitude = std::clamp(newLon, -180.0, 180.0);
-		
+
 		update_map_positioning();
 	}
 
@@ -128,7 +128,6 @@ namespace tjs::visualization {
 
 		update_map_positioning();
 	}
-
 
 	void MapPositioning::update_map_positioning() {
 		auto* render_data = _application.stores().get_model<core::model::MapRendererData>();

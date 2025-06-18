@@ -3,6 +3,7 @@
 #include <core/data_layer/way_info.h>
 #include <core/data_layer/node.h>
 
+
 namespace tjs::core {
 	// [DON`t USE IT NOW] CH data structures
 	struct Edge_Contract {
@@ -22,19 +23,28 @@ namespace tjs::core {
 
 	struct Edge;
 
+	enum class LaneOrientation : char { Forward,
+		Backward };
+
 	struct Lane {
 		Edge* parent;
-        // Data for the lane
+		LaneOrientation orientation;
+		double width;
+		std::vector<Coordinates> centerLine;
+		TurnDirection turn;
 	};
 
 	struct Edge {
 		std::vector<Lane> lanes;
-        
-        core::Node* start_node;
-        core::Node* end_node;
+
+		core::Node* start_node;
+		core::Node* end_node;
+		WayInfo* way;
+		LaneOrientation orientation;
+		double length;
 
 	public:
-        // methods for easier access
+		Edge() = default;
 	};
 
 	struct RoadNetwork {
@@ -42,8 +52,11 @@ namespace tjs::core {
 		std::unordered_map<uint64_t, Node*> nodes;
 		std::unordered_map<uint64_t, WayInfo*> ways;
 
+		std::vector<Edge> edges;
+		std::unordered_map<Node*, std::vector<Edge*>> edge_graph;
+
 		// network of edges that consider not only edges but also lanes
-        // consider Junction has lane connectors
+		// consider Junction has lane connectors
 
 		// Trivial network for A* without considering lanes
 		std::unordered_map<Node*, std::vector<std::pair<Node*, double>>> adjacency_list;

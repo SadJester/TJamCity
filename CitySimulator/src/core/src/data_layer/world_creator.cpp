@@ -5,6 +5,7 @@
 #include <core/map_math/contraction_builder.h>
 
 #include <core/random_generator.h>
+#include <sstream>
 
 namespace tjs::core {
 	bool WorldCreator::loadOSMData(WorldData& data, std::string_view osmFilename) {
@@ -16,6 +17,21 @@ namespace tjs::core {
 		// Prepare data
 		for (auto& segment : data.segments()) {
 			segment->rebuild_grid();
+
+			// Build junctions information
+			segment->junctions.clear();
+			for (auto& [nid, node] : segment->nodes) {
+				if (node->ways.size() > 1) {
+					auto junc = std::make_unique<Junction>();
+					junc->uid = nid;
+					junc->node = node.get();
+					junc->connectedWays.reserve(node->ways.size());
+					for (auto* w : node->ways) {
+						junc->connectedWays.push_back(w);
+					}
+					segment->junctions[nid] = std::move(junc);
+				}
+			}
 
 			auto& road_network = segment->road_network;
 			for (auto& [uid, way] : segment->ways) {
@@ -166,6 +182,9 @@ namespace tjs::core {
 				bool isOneway = false;
 				int maxSpeed = 50; // Default speed in km/h
 				WayType type = WayType::None;
+				double laneWidth = 3.0;
+				std::vector<TurnDirection> turnsForward;
+				std::vector<TurnDirection> turnsBackward;
 
 				// Default speeds by road type (in km/h)
 				static const std::unordered_map<std::string, std::pair<WayType, int>> roadDefaults = {
@@ -257,6 +276,12 @@ namespace tjs::core {
 					} else if (key == "lanes:backward") {
 						lanesBackward = tag.attribute("v").as_int();
 						lanes_found = true;
+					} else if (key == "lane_width" || key == "lanes:width") {
+						laneWidth = std::stod(value);
+					} else if (key == "turn:lanes:forward") {
+						turnsForward = parseTurnLanes(value);
+					} else if (key == "turn:lanes:backward") {
+						turnsBackward = parseTurnLanes(value);
 					} else if (key == "oneway") {
 						isOneway = (value == "yes" || value == "1" || value == "true");
 					} else if (key == "maxspeed") {
@@ -296,6 +321,9 @@ namespace tjs::core {
 				way->isOneway = isOneway;
 				way->lanesForward = lanesForward;
 				way->lanesBackward = lanesBackward;
+				way->laneWidth = laneWidth;
+				way->forwardTurns = std::move(turnsForward);
+				way->backwardTurns = std::move(turnsBackward);
 
 				std::vector<Node*> nodes;
 				nodes.reserve(nodeRefs.size());
@@ -311,6 +339,26 @@ namespace tjs::core {
 				way->nodeRefs = std::move(nodeRefs);
 				way->nodes = std::move(nodes);
 				world.ways[id] = std::move(way);
+			}
+
+			static std::vector<TurnDirection> parseTurnLanes(const std::string& value) {
+				std::vector<TurnDirection> result;
+				std::stringstream ss(value);
+				std::string token;
+				while (std::getline(ss, token, '|')) {
+					if (token == "left") {
+						result.push_back(TurnDirection::Left);
+					} else if (token == "right") {
+						result.push_back(TurnDirection::Right);
+					} else if (token == "through" || token == "straight") {
+						result.push_back(TurnDirection::Straight);
+					} else if (token == "reverse") {
+						result.push_back(TurnDirection::UTurn);
+					} else {
+						result.push_back(TurnDirection::None);
+					}
+				}
+				return result;
 			}
 
 			static int parseSpeedValue(const std::string& speedStr) {

@@ -1,6 +1,7 @@
 #pragma once
 #include <core/enum_flags.h>
 #include <nlohmann/json.hpp>
+#include <vector>
 
 namespace tjs::core {
 	struct Coordinates {
@@ -37,9 +38,10 @@ namespace tjs::core {
 	};
 	// static_assert(std::is_pod<Node>::value, "Data object expect to be POD");
 
-
 	struct Junction {
-
+		uint64_t uid;
+		Node* node;
+		std::vector<WayInfo*> connectedWays;
 	};
 
 } // namespace tjs::core

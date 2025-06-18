@@ -4,6 +4,7 @@ namespace tjs::core {
 	struct RoadNetwork;
 	struct Node;
 	struct Edge_Contract;
+	struct Edge;
 } // namespace tjs::core
 
 namespace tjs::core::algo {
@@ -11,6 +12,7 @@ namespace tjs::core::algo {
 	public:
 		static std::deque<Node*> find_path_a_star(const RoadNetwork& network, Node* source, Node* target);
 		static std::unordered_set<Node*> reachable_nodes(const RoadNetwork& network, Node* source);
+		static std::vector<const Edge*> find_edge_path_a_star(const RoadNetwork& network, Node* source, Node* target);
 
 	private:
 		// Вспомогательная функция для проверки возможности перехода через shortcut
