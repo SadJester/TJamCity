@@ -37,4 +37,9 @@ namespace tjs::core {
 	};
 	// static_assert(std::is_pod<Node>::value, "Data object expect to be POD");
 
+
+	struct Junction {
+
+	};
+
 } // namespace tjs::core

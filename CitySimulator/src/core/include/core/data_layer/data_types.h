@@ -75,6 +75,7 @@ namespace tjs::core {
 		SegmentBoundingBox boundingBox;
 		std::unordered_map<uint64_t, std::unique_ptr<Node>> nodes;
 		std::unordered_map<uint64_t, std::unique_ptr<WayInfo>> ways;
+		std::unordered_map<uint64_t, std::unique_ptr<Junction>> junctions;
 
 		std::unique_ptr<RoadNetwork> road_network;
 		SpatialGrid spatialGrid;

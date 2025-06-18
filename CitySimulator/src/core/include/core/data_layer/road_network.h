@@ -4,7 +4,7 @@
 #include <core/data_layer/node.h>
 
 namespace tjs::core {
-	// CH data structures
+	// [DON`t USE IT NOW] CH data structures
 	struct Edge_Contract {
 		uint64_t target;
 		double weight;
@@ -36,11 +36,6 @@ namespace tjs::core {
 	public:
         // methods for easier access
 	};
-
-	struct Junction {
-		// Data for the junction
-	};
-
 
 	struct RoadNetwork {
 		// List of structures for easier access
