@@ -35,4 +35,14 @@ namespace tjs::core::algo {
 		const double a_harv = pow(sin(dlat / 2), 2) + cos(lat1) * cos(lat2) * pow(sin(dlon / 2), 2);
 		return MathConstants::EARTH_RADIUS * 2 * atan2(sqrt(a_harv), sqrt(1 - a_harv));
 	}
+
+	double bearing(const Coordinates& from, const Coordinates& to) {
+		double lat1 = to_radians(from.latitude);
+		double lat2 = to_radians(to.latitude);
+		double dlon = to_radians(to.longitude - from.longitude);
+		double y = sin(dlon) * cos(lat2);
+		double x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dlon);
+		double brng = atan2(y, x);
+		return std::fmod(to_degrees(brng) + 360.0, 360.0);
+	}
 } // namespace tjs::core::algo

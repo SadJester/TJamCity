@@ -50,10 +50,10 @@ namespace tjs::core {
 			auto way = std::make_unique<WayInfo>();
 			way->uid = uid;
 			way->lanes = lanes;
-			way->lanesForward = lanes; 								// By default, all lanes are forward
-			way->lanesBackward = 0;    								// By default, no backward lanes
-			way->isOneway = false;     								// By default, ways are bidirectional
-			way->laneWidth = SimulationConstants::LANE_WIDTH;      // default lane width in meters
+			way->lanesForward = lanes;                        // By default, all lanes are forward
+			way->lanesBackward = 0;                           // By default, no backward lanes
+			way->isOneway = false;                            // By default, ways are bidirectional
+			way->laneWidth = SimulationConstants::LANE_WIDTH; // default lane width in meters
 			way->maxSpeed = maxSpeed;
 			way->type = type;
 			return way;

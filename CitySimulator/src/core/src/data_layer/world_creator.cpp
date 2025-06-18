@@ -3,6 +3,7 @@
 #include <core/data_layer/world_creator.h>
 #include <core/data_layer/world_data.h>
 #include <core/map_math/contraction_builder.h>
+#include <core/map_math/lane_connector_builder.h>
 
 #include <core/random_generator.h>
 #include <sstream>
@@ -46,6 +47,7 @@ namespace tjs::core {
 
 			algo::ContractionBuilder builder;
 			builder.build_graph(*segment->road_network);
+			algo::LaneConnectorBuilder::build_lane_connections(*segment->road_network);
 		}
 
 		return result;

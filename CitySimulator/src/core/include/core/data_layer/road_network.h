@@ -3,7 +3,6 @@
 #include <core/data_layer/way_info.h>
 #include <core/data_layer/node.h>
 
-
 namespace tjs::core {
 	// [DON`t USE IT NOW] CH data structures
 	struct Edge_Contract {
@@ -32,6 +31,8 @@ namespace tjs::core {
 		double width;
 		std::vector<Coordinates> centerLine;
 		TurnDirection turn;
+		std::vector<Lane*> outgoing_connections;
+		std::vector<Lane*> incoming_connections;
 	};
 
 	struct Edge {
