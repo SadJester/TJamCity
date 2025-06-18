@@ -52,14 +52,6 @@ namespace tjs::core {
 
 		// Trivial network for A* without considering lanes
 		std::unordered_map<Node*, std::vector<std::pair<Node*, double>>> adjacency_list;
-
-
-		// Data for CH [not used now]
-		std::unordered_map<Node*, double> heuristic_cache;
-		std::unordered_map<uint64_t, std::vector<Edge_Contract>> upward_graph;
-		std::unordered_map<uint64_t, std::vector<Edge_Contract>> downward_graph;
-		std::unordered_map<uint64_t, int> node_levels;
-		uint64_t next_shortcut_id = 1;
 	};
 
 } // namespace tjs::core

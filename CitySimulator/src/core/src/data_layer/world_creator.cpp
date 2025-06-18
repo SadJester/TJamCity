@@ -29,7 +29,6 @@ namespace tjs::core {
 			}
 
 			algo::ContractionBuilder builder;
-			builder.build_contraction_hierarchy(*segment->road_network);
 			builder.build_graph(*segment->road_network);
 		}
 

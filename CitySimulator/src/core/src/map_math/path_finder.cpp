@@ -8,51 +8,6 @@
 #include <core/map_math/earth_math.h>
 
 namespace tjs::core::algo {
-
-	std::deque<Node*> PathFinder::find_path(const RoadNetwork& network, uint64_t source, uint64_t target) {
-		if (source == target) {
-			return { network.nodes.at(source) };
-		}
-
-		std::unordered_set<uint64_t> visited;
-		std::queue<std::pair<uint64_t, std::deque<Node*>>> queue;
-		queue.emplace(std::make_pair(source, std::deque<Node*> { network.nodes.at(source) }));
-
-		while (!queue.empty()) {
-			auto [current, path] = queue.front();
-			queue.pop();
-
-			if (current == target) {
-				return path;
-			}
-
-			if (visited.count(current)) {
-				continue;
-			}
-			visited.insert(current);
-
-			// Проверяем upward-ребра
-			for (const auto& edge : network.upward_graph.at(current)) {
-				if (edge.weight < std::numeric_limits<double>::infinity() && network.node_levels.at(edge.target) > network.node_levels.at(current)) {
-					std::deque<Node*> new_path = path;
-					new_path.push_back(network.nodes.at(edge.target));
-					queue.emplace(edge.target, new_path);
-				}
-			}
-
-			// Проверяем downward-ребра
-			for (const auto& edge : network.downward_graph.at(current)) {
-				if (edge.weight < std::numeric_limits<double>::infinity() && network.node_levels.at(edge.target) < network.node_levels.at(current)) {
-					std::deque<Node*> new_path = path;
-					new_path.push_back(network.nodes.at(edge.target));
-					queue.emplace(edge.target, new_path);
-				}
-			}
-		}
-
-		return {}; // Путь не найден
-	}
-
 	std::deque<Node*> PathFinder::find_path_a_star(const RoadNetwork& network, Node* source, Node* target) {
 		using NodeEntry = std::pair<double, Node*>;
 		std::priority_queue<NodeEntry, std::vector<NodeEntry>, std::greater<>> open_set;
@@ -138,47 +93,4 @@ namespace tjs::core::algo {
 
 		return visited;
 	}
-
-	bool PathFinder::can_traverse_shortcut(
-		const RoadNetwork& network,
-		uint64_t from, uint64_t to,
-		const Edge_Contract& shortcut) {
-		// 1. Проверка на существование shortcut-ребра
-		if (!shortcut.is_shortcut) {
-			return false;
-		}
-
-		// 2. Проверка на корректность идентификаторов shortcut
-		if (shortcut.shortcut_id1 == 0 || shortcut.shortcut_id2 == 0) {
-			return false;
-		}
-
-		// 3. Проверка на обход через более высокие уровни
-		if (network.node_levels.at(from) < network.node_levels.at(shortcut.shortcut_id1) || network.node_levels.at(to) < network.node_levels.at(shortcut.shortcut_id2)) {
-			return false;
-		}
-
-		// 4. Проверка на корректность геометрии
-		if (!is_geometry_valid(network, from, to, shortcut)) {
-			return false;
-		}
-
-		// 5. Проверка на временные ограничения (если применимо)
-		if (!is_time_valid(network, from, to, shortcut)) {
-			return false;
-		}
-
-		// 6. Проверка на транспортные ограничения
-		if (!is_transport_valid(network, from, to, shortcut)) {
-			return false;
-		}
-
-		// 7. Проверка на физические препятствия
-		if (!is_obstacle_free(network, from, to, shortcut)) {
-			return false;
-		}
-
-		return true;
-	}
-
 } // namespace tjs::core::algo
