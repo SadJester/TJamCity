@@ -77,12 +77,13 @@ namespace tjs::core::algo {
 			Node* current = queue.front();
 			queue.pop();
 
-			auto it = network.adjacency_list.find(current);
-			if (it == network.adjacency_list.end()) {
+			auto it = network.edge_graph.find(current);
+			if (it == network.edge_graph.end()) {
 				continue;
 			}
 
-			for (const auto& [neighbor, cost] : it->second) {
+			for (const Edge* edge : it->second) {
+				Node* neighbor = edge->end_node;
 				if (!visited.contains(neighbor)) {
 					visited.insert(neighbor);
 					queue.push(neighbor);

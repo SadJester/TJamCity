@@ -29,7 +29,24 @@ namespace tjs::core::simulation {
 	}
 
 	std::deque<Node*> findPath(Node* start, Node* goal, RoadNetwork& road_network) {
-		return core::algo::PathFinder::find_path_a_star(road_network, start, goal);
+		std::deque<Node*> result;
+		auto edge_path = core::algo::PathFinder::find_edge_path_a_star(road_network, start, goal);
+
+		if (start == goal) {
+			result.push_back(start);
+			return result;
+		}
+
+		if (edge_path.empty()) {
+			return result;
+		}
+
+		result.push_back(start);
+		for (const auto* edge : edge_path) {
+			result.push_back(edge->end_node);
+		}
+
+		return result;
 	}
 
 	void TacticalPlanningModule::update_agent_tactics(core::AgentData& agent) {

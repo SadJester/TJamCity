@@ -143,8 +143,8 @@ namespace tjs::visualization {
 		const auto& nodes = _cache.nodes;
 		bool filter = _render_data.networkOnlyForSelected && !_debugData.reachableNodes.empty();
 
-		// Render edges from adjacency list
-		for (const auto& [node, neighbors] : network.adjacency_list) {
+		// Render edges from edge graph
+		for (const auto& [node, edges] : network.edge_graph) {
 			const bool is_node_filtered = filter && !_debugData.reachableNodes.contains(node->uid);
 
 			auto it = nodes.find(node->uid);
@@ -153,7 +153,8 @@ namespace tjs::visualization {
 			}
 
 			const Position& start = it->second.screenPos;
-			for (const auto& [neighbor, weight] : neighbors) {
+			for (const Edge* edge : edges) {
+				Node* neighbor = edge->end_node;
 				const bool is_neighbor_filtered = filter && !_debugData.reachableNodes.contains(neighbor->uid);
 
 				auto itNeighbor = nodes.find(neighbor->uid);
