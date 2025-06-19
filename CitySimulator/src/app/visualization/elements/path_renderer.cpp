@@ -58,10 +58,10 @@ namespace tjs::visualization {
 		}
 
 		std::vector<Position> toVisitPoints;
-		toVisitPoints.reserve(path.size());
+		toVisitPoints.reserve(path.size() + 1);
 
 		std::vector<Position> visitedPoints;
-		visitedPoints.reserve(visited_path.size());
+		visitedPoints.reserve(visited_path.size() + 1);
 
 		renderer.set_draw_color(Constants::PATH_MARK_COLOR);
 		for (size_t i = 0; i < visited_path.size(); ++i) {
@@ -77,6 +77,16 @@ namespace tjs::visualization {
 				point.y,
 				i == 0 ? 5.0f : 3.0f);
 		}
+
+		auto current_position = tjs::visualization::convert_to_screen(
+			model->agent->vehicle->coordinates,
+			_mapRendererData.projectionCenter,
+			_mapRendererData.screen_center,
+			_mapRendererData.metersPerPixel
+		);
+		// Current position is the last of visited and the first for to-visit
+		visitedPoints.push_back(current_position);
+		toVisitPoints.push_back(current_position);
 
 		// To visit nodes
 		bool markFirst = visited_path.size() == 0;
