@@ -1,19 +1,12 @@
 #include "stdafx.h"
 
+#include <data_loader_mixin.h>
 #include <core/data_layer/world_creator.h>
 #include <core/data_layer/world_data.h>
 
-#include <filesystem>
-
 using namespace tjs::core;
 
-namespace {
-	std::filesystem::path data_file(const char* name) {
-		return std::filesystem::path(__FILE__).parent_path() / "test_data" / name;
-	}
-} // namespace
-
-class LaneConnectorTest : public ::testing::Test {
+class LaneConnectorTest : public ::testing::Test, tjs::core::tests::DataLoaderMixin {
 protected:
 	WorldData world;
 	void SetUp() override {

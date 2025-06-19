@@ -4,6 +4,7 @@
 #include <core/simulation/simulation_system.h>
 #include <core/math_constants.h>
 #include <core/map_math/earth_math.h>
+#include <core/data_layer/road_network.h>
 
 namespace tjs::core::simulation {
 	VehicleMovementModule::VehicleMovementModule(TrafficSimulationSystem& system)
@@ -48,43 +49,38 @@ namespace tjs::core::simulation {
 	}
 
 	void VehicleMovementModule::update_movement(AgentData& agent) {
-		if (agent.currentGoal == nullptr) {
+		if (agent.currentGoal == nullptr || agent.vehicle->currentLane == nullptr) {
 			return;
 		}
 
-		auto& worldData = _system.worldData();
-
 		agent.vehicle->currentSpeed = 60.0f;
 		double delta_time = _system.timeModule().state().timeDelta;
-		// Convert km/h to m/s and calculate distance covered this frame
 		const double speed_mps = agent.vehicle->currentSpeed * 1000.0 / 3600.0;
 		const double max_move = speed_mps * delta_time;
 
-		// Get current and target positions
-		const core::Coordinates current = agent.vehicle->coordinates;
-		const core::Coordinates target = agent.currentStepGoal;
+		Lane* lane = agent.vehicle->currentLane;
+		const auto& start = lane->centerLine.front();
+		const auto& end = lane->centerLine.back();
+		double lane_length = core::algo::haversine_distance(start, end);
 
-		// Calculate actual movement
-		const double distance_to_target = core::algo::haversine_distance(current, target);
+		double remaining = lane_length - agent.vehicle->s_on_lane;
+		double move = std::min(max_move, remaining);
+		agent.vehicle->s_on_lane += move;
 
-		if (distance_to_target <= max_move) {
-			// Reached destination
-			agent.vehicle->coordinates = target;
-		} else {
-			// Calculate new position
-			agent.vehicle->coordinates = move_towards(current, target, max_move, distance_to_target);
-		}
+		agent.vehicle->coordinates = move_towards(start, end, agent.vehicle->s_on_lane, lane_length);
 
-		// Ensure speed doesn't exceed maximum
-		agent.vehicle->currentSpeed = std::min(
-			agent.vehicle->currentSpeed,
-			agent.vehicle->maxSpeed);
+		agent.vehicle->currentSpeed = std::min(agent.vehicle->currentSpeed, agent.vehicle->maxSpeed);
 
 		core::Coordinates dir {
-			target.latitude - current.latitude,
-			target.longitude - current.longitude
+			end.latitude - start.latitude,
+			end.longitude - start.longitude
 		};
 		agent.vehicle->rotationAngle = atan2(dir.longitude, dir.latitude);
+
+		if (agent.vehicle->s_on_lane >= lane_length) {
+			agent.vehicle->currentLane = agent.target_lane ? agent.target_lane : agent.vehicle->currentLane;
+			agent.vehicle->s_on_lane = 0.0;
+		}
 	}
 
 } // namespace tjs::core::simulation

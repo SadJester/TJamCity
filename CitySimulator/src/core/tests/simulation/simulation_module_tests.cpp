@@ -1,23 +1,16 @@
 #include "stdafx.h"
 
+#include <data_loader_mixin.h>
 #include <core/data_layer/world_creator.h>
 #include <core/data_layer/world_data.h>
 #include <core/simulation/simulation_system.h>
 #include <core/store_models/vehicle_analyze_data.h>
 #include <core/random_generator.h>
 
-#include <filesystem>
-
 using namespace tjs::core;
 using namespace tjs::core::simulation;
 
-namespace {
-	std::filesystem::path data_file(const char* name) {
-		return std::filesystem::path(__FILE__).parent_path() / "test_data" / name;
-	}
-} // namespace
-
-class SimulationModuleTest : public ::testing::Test {
+class SimulationModuleTest : public ::testing::Test, tjs::core::tests::DataLoaderMixin {
 protected:
 	WorldData world;
 	model::DataModelStore store;
@@ -34,6 +27,9 @@ protected:
 		v.coordinates = world.segments().front()->nodes.begin()->second->coordinates;
 		v.currentWay = nullptr;
 		v.currentSegmentIndex = 0;
+		v.currentLane = nullptr;
+		v.s_on_lane = 0.0;
+		v.lateral_offset = 0.0;
 		world.vehicles().push_back(v);
 
 		store.add_model<model::VehicleAnalyzeData>();

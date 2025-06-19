@@ -27,6 +27,9 @@ namespace tjs::core {
 		WayInfo* currentWay;
 		int currentSegmentIndex;
 		float rotationAngle; // orientation in radians
+		Lane* currentLane;
+		double s_on_lane;
+		double lateral_offset;
 	};
 	static_assert(std::is_pod<Vehicle>::value, "Data object expect to be POD");
 

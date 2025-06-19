@@ -107,6 +107,9 @@ namespace tjs::core {
 			vehicle.coordinates = coordinates;
 			vehicle.currentSegmentIndex = 0;
 			vehicle.currentWay = find_way(*nodeIt);
+			vehicle.currentLane = nullptr;
+			vehicle.s_on_lane = 0.0;
+			vehicle.lateral_offset = 0.0;
 
 			vehicles.push_back(vehicle);
 		}

@@ -35,6 +35,7 @@ namespace tjs::core::simulation {
 				core::Coordinates { 0.0, 0.0 },
 				&vehicles[i],
 				{},
+				nullptr,
 				{},
 				false,
 				0.0,

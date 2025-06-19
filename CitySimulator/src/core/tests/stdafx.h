@@ -2,6 +2,7 @@
 #define __STDAFX_H__
 
 #include <functional>
+#include <filesystem>
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>

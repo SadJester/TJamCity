@@ -28,25 +28,36 @@ namespace tjs::core::simulation {
 		}
 	}
 
-	std::deque<Node*> findPath(Node* start, Node* goal, RoadNetwork& road_network) {
-		std::deque<Node*> result;
+	std::vector<Edge*> findEdgePath(Node* start, Node* goal, RoadNetwork& road_network) {
+		std::vector<Edge*> result;
 		auto edge_path = core::algo::PathFinder::find_edge_path_a_star(road_network, start, goal);
 
-		if (start == goal) {
-			result.push_back(start);
-			return result;
-		}
-
-		if (edge_path.empty()) {
-			return result;
-		}
-
-		result.push_back(start);
+		result.reserve(edge_path.size());
 		for (const auto* edge : edge_path) {
-			result.push_back(edge->end_node);
+			result.push_back(const_cast<Edge*>(edge));
+		}
+
+		if (result.empty()) {
+			auto test = core::algo::PathFinder::find_path_a_star(road_network, start, goal);
+			test.push_back(nullptr);
 		}
 
 		return result;
+	}
+
+	static Lane* choose_next_lane(Lane* current_lane, Edge* next_edge) {
+		if (current_lane) {
+			for (Lane* l : current_lane->outgoing_connections) {
+				if (l->parent == next_edge) {
+					return l;
+				}
+			}
+		}
+
+		if (!next_edge->lanes.empty()) {
+			return &next_edge->lanes.front();
+		}
+		return nullptr;
 	}
 
 	void TacticalPlanningModule::update_agent_tactics(core::AgentData& agent) {
@@ -117,12 +128,17 @@ namespace tjs::core::simulation {
 			Node* goal_node = agent.currentGoal;
 
 			if (start_node && goal_node) {
-				agent.path = findPath(start_node, goal_node, road_network);
+				agent.path = findEdgePath(start_node, goal_node, road_network);
 				agent.visitedNodes.clear();
 				if (!agent.path.empty()) {
-					agent.currentStepGoal = agent.path.front()->coordinates;
-					agent.visitedNodes.push_back(agent.path.front());
-					agent.path.pop_front();
+					Edge* next_edge = agent.path.front();
+					agent.currentStepGoal = next_edge->end_node->coordinates;
+					agent.visitedNodes.push_back(next_edge->start_node);
+					agent.path.erase(agent.path.begin());
+					agent.target_lane = choose_next_lane(vehicle.currentLane, next_edge);
+					if (vehicle.currentLane == nullptr) {
+						vehicle.currentLane = agent.target_lane;
+					}
 					agent.distanceTraveled = 0.0; // Reset distance for new path
 					agent.goalFailCount = 0;
 				} else {
@@ -155,10 +171,13 @@ namespace tjs::core::simulation {
 					agent.distanceTraveled += core::algo::haversine_distance(last_visited->coordinates, agent.currentStepGoal);
 				}
 
-				// Move to next point in path
-				agent.currentStepGoal = agent.path.front()->coordinates;
-				agent.visitedNodes.push_back(agent.path.front());
-				agent.path.pop_front();
+				Edge* next_edge = agent.path.front();
+				agent.currentStepGoal = next_edge->end_node->coordinates;
+				agent.visitedNodes.push_back(next_edge->start_node);
+				agent.path.erase(agent.path.begin());
+				agent.target_lane = choose_next_lane(vehicle.currentLane, next_edge);
+				vehicle.currentLane = agent.target_lane;
+				vehicle.s_on_lane = 0.0;
 				agent.last_segment = agent.path.empty();
 			} else {
 				// Final segment distance

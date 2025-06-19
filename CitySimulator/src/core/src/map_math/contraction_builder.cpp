@@ -9,6 +9,8 @@ namespace tjs::core::algo {
 		network.edges.clear();
 		network.edge_graph.clear();
 
+		std::unordered_map<Node*, std::vector<size_t>> edge_graph_indices;
+
 		for (const auto& [way_id, way] : network.ways) {
 			// Skip ways that are not suitable for cars
 			if (!way->is_car_accessible()) {
@@ -60,7 +62,7 @@ namespace tjs::core::algo {
 							lane.turn = core::TurnDirection::Straight;
 						}
 					}
-					network.edge_graph[current].push_back(&edge);
+					edge_graph_indices[current].push_back(network.edges.size() - 1);
 				}
 
 				if (!way->isOneway && way->lanesBackward > 0) {
@@ -84,11 +86,17 @@ namespace tjs::core::algo {
 							lane.turn = core::TurnDirection::Straight;
 						}
 					}
-					network.edge_graph[next].push_back(&edge);
+					edge_graph_indices[next].push_back(network.edges.size() - 1);
 				}
 
 				current->tags = current->tags | NodeTags::Way;
 				next->tags = current->tags | NodeTags::Way;
+			}
+		}
+
+		for (const auto& [node, indices] : edge_graph_indices) {
+			for (const auto& index : indices) {
+				network.edge_graph[node].push_back(&network.edges[index]);
 			}
 		}
 	}

@@ -8,6 +8,7 @@
 
 #include <core/data_layer/world_data.h>
 #include <core/data_layer/data_types.h>
+#include <core/data_layer/road_network.h>
 #include <core/math_constants.h>
 #include <core/store_models/vehicle_analyze_data.h>
 #include <core/simulation/agent/agent_data.h>
@@ -80,7 +81,7 @@ namespace tjs::visualization {
 		// To visit nodes
 		bool markFirst = visited_path.size() == 0;
 		for (size_t i = 0; i < path.size(); ++i) {
-			auto node = path[i];
+			auto node = path[i]->end_node;
 			auto point = tjs::visualization::convert_to_screen(
 				node->coordinates,
 				_mapRendererData.projectionCenter,
