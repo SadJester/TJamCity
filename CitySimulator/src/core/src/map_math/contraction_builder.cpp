@@ -1,6 +1,7 @@
 #include <core/stdafx.h>
 
 #include <core/map_math/contraction_builder.h>
+#include <core/map_math/earth_math.h>
 
 namespace tjs::core::algo {
 	void ContractionBuilder::build_graph(core::RoadNetwork& network) {
@@ -50,12 +51,18 @@ namespace tjs::core::algo {
 					edge.orientation = core::LaneOrientation::Forward;
 					edge.length = dist;
 					edge.lanes.resize(static_cast<size_t>(way->lanesForward));
-					for (size_t l = 0; l < edge.lanes.size(); ++l) {
+
+					double heading = bearing(current->coordinates, next->coordinates);
+					size_t lane_count = edge.lanes.size();
+					for (size_t l = 0; l < lane_count; ++l) {
 						auto& lane = edge.lanes[l];
 						lane.parent = &edge;
 						lane.orientation = core::LaneOrientation::Forward;
 						lane.width = way->laneWidth;
-						lane.centerLine = { current->coordinates, next->coordinates };
+						double offset = (static_cast<double>(l) - (static_cast<double>(lane_count - 1) / 2.0)) * lane.width;
+						Coordinates start = offset_coordinate(current->coordinates, heading, offset);
+						Coordinates end = offset_coordinate(next->coordinates, heading, offset);
+						lane.centerLine = { start, end };
 						if (l < way->forwardTurns.size()) {
 							lane.turn = way->forwardTurns[l];
 						} else {
@@ -74,12 +81,18 @@ namespace tjs::core::algo {
 					edge.orientation = core::LaneOrientation::Backward;
 					edge.length = dist;
 					edge.lanes.resize(static_cast<size_t>(way->lanesBackward));
-					for (size_t l = 0; l < edge.lanes.size(); ++l) {
+
+					double heading = bearing(next->coordinates, current->coordinates);
+					size_t lane_count = edge.lanes.size();
+					for (size_t l = 0; l < lane_count; ++l) {
 						auto& lane = edge.lanes[l];
 						lane.parent = &edge;
 						lane.orientation = core::LaneOrientation::Backward;
 						lane.width = way->laneWidth;
-						lane.centerLine = { next->coordinates, current->coordinates };
+						double offset = (static_cast<double>(l) - (static_cast<double>(lane_count - 1) / 2.0)) * lane.width;
+						Coordinates start = offset_coordinate(next->coordinates, heading, offset);
+						Coordinates end = offset_coordinate(current->coordinates, heading, offset);
+						lane.centerLine = { start, end };
 						if (l < way->backwardTurns.size()) {
 							lane.turn = way->backwardTurns[l];
 						} else {

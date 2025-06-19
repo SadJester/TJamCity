@@ -45,4 +45,21 @@ namespace tjs::core::algo {
 		double brng = atan2(y, x);
 		return std::fmod(to_degrees(brng) + 360.0, 360.0);
 	}
+
+	Coordinates offset_coordinate(
+		const Coordinates& origin,
+		double heading_degrees,
+		double lateral_offset_meters) {
+		// Convert inputs to radians
+		double heading_rad = to_radians(heading_degrees);
+		double offset_angle = heading_rad + MathConstants::M_PI / 2.0; // right side
+
+		double dlat = (lateral_offset_meters * cos(offset_angle)) / MathConstants::EARTH_RADIUS;
+		double dlon = (lateral_offset_meters * sin(offset_angle)) / (MathConstants::EARTH_RADIUS * cos(to_radians(origin.latitude)));
+
+		Coordinates result;
+		result.latitude = origin.latitude + to_degrees(dlat);
+		result.longitude = origin.longitude + to_degrees(dlon);
+		return result;
+	}
 } // namespace tjs::core::algo
