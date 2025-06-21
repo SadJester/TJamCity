@@ -86,7 +86,7 @@ namespace tjs::visualization {
 		);
 		// Current position is the last of visited and the first for to-visit
 		visitedPoints.push_back(current_position);
-		toVisitPoints.push_back(current_position);
+		//toVisitPoints.push_back(current_position);
 
 		// To visit nodes
 		bool markFirst = visited_path.size() == 0;
@@ -98,6 +98,7 @@ namespace tjs::visualization {
 				_mapRendererData.screen_center,
 				_mapRendererData.metersPerPixel);
 			toVisitPoints.push_back(point);
+
 			renderer.draw_circle(
 				point.x,
 				point.y,
@@ -105,7 +106,7 @@ namespace tjs::visualization {
 		}
 
 		// TODO: thickness of path in settings
-		static float thickness = 11.0f;
+		static float thickness = 3.5f;
 		drawThickLine(renderer, visitedPoints, _mapRendererData.metersPerPixel, thickness, FColor { 0.f, 0.f, 1.0f, 1.0f });
 		drawThickLine(renderer, toVisitPoints, _mapRendererData.metersPerPixel, thickness, Constants::PATH_COLOR);
 

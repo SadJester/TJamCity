@@ -27,7 +27,7 @@ protected:
 		v.coordinates = world.segments().front()->nodes.begin()->second->coordinates;
 		v.currentWay = nullptr;
 		v.currentSegmentIndex = 0;
-		v.currentLane = nullptr;
+		v.current_lane = nullptr;
 		v.s_on_lane = 0.0;
 		v.lateral_offset = 0.0;
 		world.vehicles().push_back(v);

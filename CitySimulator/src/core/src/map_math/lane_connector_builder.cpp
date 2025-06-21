@@ -45,7 +45,55 @@ namespace tjs::core::algo {
 			return false;
 		}
 
+
+		Lane* get_target_lane(Lane* from_lane, Edge* out_edge, TurnDirection turn) {
+			auto& out_lanes = out_edge->lanes;
+			if (out_lanes.empty()) {
+				return nullptr;
+			}
+
+			switch (turn) {
+				case TurnDirection::Straight:
+					// Match by index if possible
+					if (from_lane->parent && !from_lane->parent->lanes.empty()) {
+						size_t from_index = std::distance(
+							from_lane->parent->lanes.data(),
+							from_lane
+						);
+
+						if (from_index < out_lanes.size()) {
+							return &out_lanes[from_index];
+						} else {
+							// fallback to closest index
+							return &out_lanes.back();
+						}
+					}
+					break;
+
+				case TurnDirection::Right:
+					// Prefer rightmost lane
+					return &out_lanes.back();
+
+				case TurnDirection::Left:
+					// Prefer leftmost lane
+					return &out_lanes.front();
+
+				case TurnDirection::UTurn:
+					// Optional: handle separately
+					return &out_lanes.front();
+
+				default:
+					break;
+			}
+
+			return nullptr;
+		}
+
+
 	} // namespace
+
+
+
 
 	void LaneConnectorBuilder::build_lane_connections(core::RoadNetwork& network) {
 		// clear old connections
@@ -71,15 +119,18 @@ namespace tjs::core::algo {
 			for (Edge* in_edge : incoming) {
 				for (Edge* out_edge : outgoing) {
 					TurnDirection desired = relative_direction(in_edge, out_edge);
-					size_t count = std::min(in_edge->lanes.size(), out_edge->lanes.size());
-					for (size_t i = 0; i < count; ++i) {
-						Lane* from_lane = &in_edge->lanes[i];
-						Lane* to_lane = &out_edge->lanes[i];
-						if (!is_turn_allowed(*from_lane, desired)) {
+					for (Lane& from_lane : in_edge->lanes) {
+						if (!is_turn_allowed(from_lane, desired)) {
 							continue;
 						}
-						from_lane->outgoing_connections.push_back(to_lane);
-						to_lane->incoming_connections.push_back(from_lane);
+
+						Lane* to_lane = get_target_lane(&from_lane, out_edge, desired);
+						if (!to_lane) {
+							continue;
+						}
+
+						from_lane.outgoing_connections.push_back(to_lane);
+						to_lane->incoming_connections.push_back(&from_lane);
 					}
 				}
 			}

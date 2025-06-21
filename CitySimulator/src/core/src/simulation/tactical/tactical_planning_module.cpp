@@ -37,24 +37,21 @@ namespace tjs::core::simulation {
 			result.push_back(const_cast<Edge*>(edge));
 		}
 
-		if (result.empty()) {
-			auto test = core::algo::PathFinder::find_path_a_star(road_network, start, goal);
-			test.push_back(nullptr);
-		}
-
 		return result;
 	}
 
-	static Lane* choose_next_lane(Lane* current_lane, Edge* next_edge) {
-		if (current_lane) {
-			for (Lane* l : current_lane->outgoing_connections) {
-				if (l->parent == next_edge) {
+	static const Lane* choose_next_lane(const Lane* current_lane, Edge* next_edge) {
+		if (current_lane && next_edge) {
+			// First try to find a lane that connects directly to the next edge
+			for (const Lane* l : current_lane->outgoing_connections) {
+				if (l && l->parent == next_edge) {
 					return l;
 				}
 			}
 		}
 
-		if (!next_edge->lanes.empty()) {
+		// If no direct connection found, return the first lane of the next edge
+		if (next_edge && !next_edge->lanes.empty()) {
 			return &next_edge->lanes.front();
 		}
 		return nullptr;
@@ -84,7 +81,7 @@ namespace tjs::core::simulation {
 		// 3. if rich destination: nullptr for currentGoal
 
 		// Step 1: If vehicle has no current way, find the nearest way
-		if (vehicle.currentWay == nullptr) {
+		/*if (vehicle.currentWay == nullptr) {
 			auto ways_opt = spatial_grid.get_ways_in_cell(vehicle.coordinates);
 			if (!ways_opt.has_value()) {
 				return;
@@ -120,7 +117,7 @@ namespace tjs::core::simulation {
 			} else {
 				return;
 			}
-		}
+		}*/
 
 		// Step 2: If we don't have a path to the goal, find one
 		if (!agent.last_segment && agent.path.empty()) {
@@ -131,18 +128,17 @@ namespace tjs::core::simulation {
 				agent.path = findEdgePath(start_node, goal_node, road_network);
 				agent.visitedNodes.clear();
 				if (!agent.path.empty()) {
-					Edge* next_edge = agent.path.front();
-					agent.currentStepGoal = next_edge->end_node->coordinates;
-					agent.visitedNodes.push_back(next_edge->start_node);
+					agent.current_goal = agent.path.front();
+					agent.target_lane = &agent.current_goal->lanes[0];
+					agent.currentStepGoal = agent.current_goal->end_node->coordinates; // agent.target_lane->centerLine.back();
+					agent.visitedNodes.push_back(agent.current_goal->start_node);
 					agent.path.erase(agent.path.begin());
-					agent.target_lane = choose_next_lane(vehicle.currentLane, next_edge);
-					if (vehicle.currentLane == nullptr) {
-						vehicle.currentLane = agent.target_lane;
-					}
 					agent.distanceTraveled = 0.0; // Reset distance for new path
 					agent.goalFailCount = 0;
 				} else {
 					agent.currentGoal = nullptr;
+					agent.current_goal = nullptr;
+					agent.target_lane = nullptr;
 					agent.last_segment = false;
 					agent.goalFailCount++;
 					if (agent.goalFailCount >= 5) {
@@ -152,6 +148,8 @@ namespace tjs::core::simulation {
 				}
 			} else {
 				agent.currentGoal = nullptr;
+				agent.current_goal = nullptr;
+				agent.target_lane = nullptr;
 				agent.last_segment = false;
 				agent.goalFailCount++;
 				if (agent.goalFailCount >= 5) {
@@ -163,7 +161,9 @@ namespace tjs::core::simulation {
 
 		// Step 3: Check if vehicle reached current step goal using haversine distance
 		const double distance_to_target = core::algo::haversine_distance(vehicle.coordinates, agent.currentStepGoal);
-		if (distance_to_target < SimulationConstants::ARRIVAL_THRESHOLD) {
+
+		const bool is_expected_lane = vehicle.current_lane != nullptr && vehicle.current_lane->parent == agent.current_goal;
+		if (distance_to_target < SimulationConstants::ARRIVAL_THRESHOLD && is_expected_lane) {
 			if (!agent.path.empty()) {
 				// Update distance traveled with the segment we just completed
 				if (!agent.visitedNodes.empty()) {
@@ -171,13 +171,12 @@ namespace tjs::core::simulation {
 					agent.distanceTraveled += core::algo::haversine_distance(last_visited->coordinates, agent.currentStepGoal);
 				}
 
-				Edge* next_edge = agent.path.front();
-				agent.currentStepGoal = next_edge->end_node->coordinates;
-				agent.visitedNodes.push_back(next_edge->start_node);
+				agent.current_goal = agent.path.front();
+				agent.target_lane = &agent.current_goal->lanes[0];
+				agent.currentStepGoal = agent.current_goal->start_node->coordinates; // agent.target_lane->centerLine.back();
+				agent.visitedNodes.push_back(agent.current_goal->start_node);
 				agent.path.erase(agent.path.begin());
-				agent.target_lane = choose_next_lane(vehicle.currentLane, next_edge);
-				vehicle.currentLane = agent.target_lane;
-				vehicle.s_on_lane = 0.0;
+				
 				agent.last_segment = agent.path.empty();
 			} else {
 				// Final segment distance
@@ -185,6 +184,8 @@ namespace tjs::core::simulation {
 
 				// Reached final destination
 				agent.currentGoal = nullptr;
+				agent.current_goal = nullptr;
+				agent.target_lane = nullptr;
 				agent.last_segment = false;
 				agent.goalFailCount = 0;
 				return;

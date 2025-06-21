@@ -41,6 +41,7 @@ namespace tjs::visualization {
 		void draw_path_nodes(const WayRenderInfo& way);
 		void draw_network_nodes(const core::RoadNetwork& network);
 		void render_network_graph(IRenderer& renderer, const core::RoadNetwork& network);
+		void render_lanes(IRenderer& renderer, const core::RoadNetwork& network);
 		void draw_direction_arrows(const std::vector<Position>& nodes, bool reverse);
 		FColor get_way_color(core::WayType type) const;
 

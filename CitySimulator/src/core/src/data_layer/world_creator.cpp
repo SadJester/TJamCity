@@ -62,19 +62,11 @@ namespace tjs::core {
 		// Get all nodes from the road network
 		auto& segment = data.segments()[0];
 
-		std::vector<core::Node*> allNodes;
-		allNodes.reserve(segment->nodes.size());
+		std::vector<core::Edge*> all_edges;
+		all_edges.reserve(segment->road_network->edges.size());
 
-		auto& ways = segment->ways;
-		// TODO: create with view
-		// allNodes = std::views::join(ways | std::ranges::view::transform([](const core::WayInfo& way) {
-		//    return way.nodes;
-		//})) | std::ranges::to<std::vector>();
-
-		for (auto& way : ways) {
-			for (auto node : way.second->nodes) {
-				allNodes.push_back(node);
-			}
+		for (auto& edge : segment->road_network->edges) {
+			all_edges.push_back(&edge);
 		}
 
 		// TODO: RandomGenerator<Context>
@@ -82,21 +74,11 @@ namespace tjs::core {
 			RandomGenerator::set_seed(settings.seedValue);
 		}
 
-		auto find_way = [&](Node* node) -> core::WayInfo* {
-			auto it = std::ranges::find_if(ways, [&](const auto& way) {
-				return std::ranges::find(way.second->nodes, node) != way.second->nodes.end();
-			});
-			if (it != ways.end()) {
-				return it->second.get();
-			}
-			return nullptr;
-		};
-
 		// Generate vehicles
 		for (size_t i = 0; i < settings.vehiclesCount; ++i) {
 			// Randomly select a node for the vehicle's coordinates
-			auto nodeIt = std::next(allNodes.begin(), RandomGenerator::get().next_int(0, allNodes.size() - 1));
-			const Coordinates& coordinates = (*nodeIt)->coordinates;
+			auto edge_it = std::next(all_edges.begin(), RandomGenerator::get().next_int(0, all_edges.size() - 1));
+			const Coordinates& coordinates = (*edge_it)->start_node->coordinates;
 
 			// Create a vehicle with random attributes and the selected node's coordinates
 			Vehicle vehicle;
@@ -106,8 +88,8 @@ namespace tjs::core {
 			vehicle.maxSpeed = RandomGenerator::get().next_float(0.0f, 100.0f);
 			vehicle.coordinates = coordinates;
 			vehicle.currentSegmentIndex = 0;
-			vehicle.currentWay = find_way(*nodeIt);
-			vehicle.currentLane = nullptr;
+			//vehicle.currentWay = find_way(*nodeIt);
+			vehicle.current_lane = &(*edge_it)->lanes[0];
 			vehicle.s_on_lane = 0.0;
 			vehicle.lateral_offset = 0.0;
 

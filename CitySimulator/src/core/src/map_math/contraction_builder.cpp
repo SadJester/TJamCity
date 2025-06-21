@@ -4,6 +4,47 @@
 #include <core/map_math/earth_math.h>
 
 namespace tjs::core::algo {
+
+	Edge create_edge(Node* start_node, Node* end_node, WayInfo* way, double dist, core::LaneOrientation orientation) {
+		Edge edge;
+		edge.start_node = start_node;
+		edge.end_node = end_node;
+		edge.way = way;
+		edge.orientation = orientation;
+		edge.length = dist;
+
+		const size_t reserved_size = orientation == LaneOrientation::Forward ? way->lanesForward : way->lanesBackward;
+		edge.lanes.resize(reserved_size);
+
+		double heading = bearing(start_node->coordinates, end_node->coordinates);
+		const size_t lane_count = edge.lanes.size();
+		for (size_t l = 0; l < reserved_size; ++l) {
+			auto& lane = edge.lanes[l];
+			lane.parent = nullptr;
+			lane.orientation = orientation;
+			lane.width = way->laneWidth;
+			double offset = (static_cast<double>(l) - (static_cast<double>(lane_count - 1) / 2.0)) * lane.width;
+			Coordinates start = offset_coordinate(start_node->coordinates, heading, offset);
+			Coordinates end = offset_coordinate(end_node->coordinates, heading, offset);
+			lane.centerLine = { start, end };
+			lane.length = haversine_distance(start, end);
+
+			auto turn_direction = core::TurnDirection::None;
+			if (orientation == LaneOrientation::Backward) {
+				if (l < way->forwardTurns.size()) {
+					turn_direction = way->forwardTurns[l];
+				}
+			}
+			else if (orientation == LaneOrientation::Forward) {
+				if (l < way->backwardTurns.size()) {
+					turn_direction = way->backwardTurns[l];
+				}
+			}
+			lane.turn = turn_direction;
+		}
+		return edge;
+	}
+
 	void ContractionBuilder::build_graph(core::RoadNetwork& network) {
 		// Clear previous data
 		network.adjacency_list.clear();
@@ -43,67 +84,24 @@ namespace tjs::core::algo {
 				}
 
 				if (way->lanesForward > 0) {
-					network.edges.emplace_back();
-					auto& edge = network.edges.back();
-					edge.start_node = current;
-					edge.end_node = next;
-					edge.way = way;
-					edge.orientation = core::LaneOrientation::Forward;
-					edge.length = dist;
-					edge.lanes.resize(static_cast<size_t>(way->lanesForward));
-
-					double heading = bearing(current->coordinates, next->coordinates);
-					size_t lane_count = edge.lanes.size();
-					for (size_t l = 0; l < lane_count; ++l) {
-						auto& lane = edge.lanes[l];
-						lane.parent = &edge;
-						lane.orientation = core::LaneOrientation::Forward;
-						lane.width = way->laneWidth;
-						double offset = (static_cast<double>(l) - (static_cast<double>(lane_count - 1) / 2.0)) * lane.width;
-						Coordinates start = offset_coordinate(current->coordinates, heading, offset);
-						Coordinates end = offset_coordinate(next->coordinates, heading, offset);
-						lane.centerLine = { start, end };
-						if (l < way->forwardTurns.size()) {
-							lane.turn = way->forwardTurns[l];
-						} else {
-							lane.turn = core::TurnDirection::Straight;
-						}
-					}
+					network.edges.push_back(create_edge(current, next, way, dist, LaneOrientation::Forward));
 					edge_graph_indices[current].push_back(network.edges.size() - 1);
 				}
 
 				if (!way->isOneway && way->lanesBackward > 0) {
-					network.edges.emplace_back();
-					auto& edge = network.edges.back();
-					edge.start_node = next;
-					edge.end_node = current;
-					edge.way = way;
-					edge.orientation = core::LaneOrientation::Backward;
-					edge.length = dist;
-					edge.lanes.resize(static_cast<size_t>(way->lanesBackward));
-
-					double heading = bearing(next->coordinates, current->coordinates);
-					size_t lane_count = edge.lanes.size();
-					for (size_t l = 0; l < lane_count; ++l) {
-						auto& lane = edge.lanes[l];
-						lane.parent = &edge;
-						lane.orientation = core::LaneOrientation::Backward;
-						lane.width = way->laneWidth;
-						double offset = (static_cast<double>(l) - (static_cast<double>(lane_count - 1) / 2.0)) * lane.width;
-						Coordinates start = offset_coordinate(next->coordinates, heading, offset);
-						Coordinates end = offset_coordinate(current->coordinates, heading, offset);
-						lane.centerLine = { start, end };
-						if (l < way->backwardTurns.size()) {
-							lane.turn = way->backwardTurns[l];
-						} else {
-							lane.turn = core::TurnDirection::Straight;
-						}
-					}
+					network.edges.push_back(create_edge(next, current, way, dist, LaneOrientation::Backward));
 					edge_graph_indices[next].push_back(network.edges.size() - 1);
 				}
 
 				current->tags = current->tags | NodeTags::Way;
 				next->tags = current->tags | NodeTags::Way;
+			}
+		}
+
+
+		for (auto& edge : network.edges) {
+			for (auto& lane : edge.lanes) {
+				lane.parent = &edge;
 			}
 		}
 

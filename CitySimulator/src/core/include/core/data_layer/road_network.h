@@ -29,10 +29,22 @@ namespace tjs::core {
 		Edge* parent;
 		LaneOrientation orientation;
 		double width;
+		double length;
 		std::vector<Coordinates> centerLine;
 		TurnDirection turn;
 		std::vector<Lane*> outgoing_connections;
 		std::vector<Lane*> incoming_connections;
+
+		int id;
+		Lane() {
+			static int __id = 0;
+			this->id = __id++;
+		}
+		Lane(Lane&&) = default;
+		Lane& operator=(Lane&&) = default;
+		Lane(const Lane&) = default;
+		Lane& operator=(const Lane&) = default;
+		~Lane() = default;
 	};
 
 	struct Edge {

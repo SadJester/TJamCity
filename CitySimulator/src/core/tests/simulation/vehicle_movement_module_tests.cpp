@@ -34,7 +34,7 @@ protected:
 		v.coordinates = world.segments().front()->nodes.begin()->second->coordinates;
 		v.currentWay = nullptr;
 		v.currentSegmentIndex = 0;
-		v.currentLane = nullptr;
+		v.current_lane = nullptr;
 		v.s_on_lane = 0.0;
 		v.lateral_offset = 0.0;
 		world.vehicles().push_back(v);
@@ -70,7 +70,7 @@ TEST_F(VehicleMovementModuleTest, NoMovementWhenCurrentGoalIsNullptr) {
 		Coordinates{0.0, 0.0},
 		Coordinates{0.001, 0.001}
 	);
-	agent.vehicle->currentLane = &testLane;
+	agent.vehicle->current_lane = &testLane;
 	
 	// Record initial position
 	Coordinates initialPosition = agent.vehicle->coordinates;
@@ -86,12 +86,12 @@ TEST_F(VehicleMovementModuleTest, NoMovementWhenCurrentGoalIsNullptr) {
 	EXPECT_EQ(agent.vehicle->s_on_lane, initialSOnLane);
 }
 
-TEST_F(VehicleMovementModuleTest, NoMovementWhenCurrentLaneIsNullptr) {
+TEST_F(VehicleMovementModuleTest, NoMovementWhencurrent_laneIsNullptr) {
 	auto& agent = getAgent();
 	
 	// Set up agent with a goal but no lane
 	agent.currentGoal = world.segments().front()->nodes.begin()->second.get();
-	agent.vehicle->currentLane = nullptr;
+	agent.vehicle->current_lane = nullptr;
 	
 	// Record initial position
 	Coordinates initialPosition = agent.vehicle->coordinates;
@@ -112,7 +112,7 @@ TEST_F(VehicleMovementModuleTest, NoMovementWhenBothCurrentGoalAndLaneAreNullptr
 	
 	// Set both to nullptr
 	agent.currentGoal = nullptr;
-	agent.vehicle->currentLane = nullptr;
+	agent.vehicle->current_lane = nullptr;
 	
 	// Record initial position
 	Coordinates initialPosition = agent.vehicle->coordinates;
@@ -139,7 +139,7 @@ TEST_F(VehicleMovementModuleTest, MovementOccursWithValidGoalAndLane) {
 		Coordinates{0.0, 0.0},
 		Coordinates{0.001, 0.001}
 	);
-	agent.vehicle->currentLane = &testLane;
+	agent.vehicle->current_lane = &testLane;
 	
 	// Record initial position
 	Coordinates initialPosition = agent.vehicle->coordinates;
@@ -166,7 +166,7 @@ TEST_F(VehicleMovementModuleTest, SpeedIsSetToDefaultWhenMoving) {
 		Coordinates{0.0, 0.0},
 		Coordinates{0.001, 0.001}
 	);
-	agent.vehicle->currentLane = &testLane;
+	agent.vehicle->current_lane = &testLane;
 	
 	// Set initial speed to 0
 	agent.vehicle->currentSpeed = 0.0f;
@@ -190,7 +190,7 @@ TEST_F(VehicleMovementModuleTest, SpeedIsCappedAtMaxSpeed) {
 		Coordinates{0.0, 0.0},
 		Coordinates{0.001, 0.001}
 	);
-	agent.vehicle->currentLane = &testLane;
+	agent.vehicle->current_lane = &testLane;
 	
 	// Set max speed lower than default speed
 	agent.vehicle->maxSpeed = 30.0f;
@@ -214,7 +214,7 @@ TEST_F(VehicleMovementModuleTest, RotationAngleIsCalculatedCorrectly) {
 		Coordinates{0.0, 0.0},
 		Coordinates{0.001, 0.001} // 45-degree angle
 	);
-	agent.vehicle->currentLane = &testLane;
+	agent.vehicle->current_lane = &testLane;
 	
 	// Update time and run movement
 	system->timeModule().update(0.016);
@@ -235,7 +235,7 @@ TEST_F(VehicleMovementModuleTest, LaneTransitionWhenReachingEnd) {
 		Coordinates{0.0, 0.0},
 		Coordinates{0.001, 0.001}
 	);
-	agent.vehicle->currentLane = &testLane;
+	agent.vehicle->current_lane = &testLane;
 	
 	// Set s_on_lane to almost reach the end of the lane
 	double laneLength = tjs::core::algo::haversine_distance(testLane.centerLine.front(), testLane.centerLine.back());
@@ -253,7 +253,7 @@ TEST_F(VehicleMovementModuleTest, LaneTransitionWhenReachingEnd) {
 	system->vehicleMovementModule().update();
 	
 	// Verify lane transition occurred
-	EXPECT_EQ(agent.vehicle->currentLane, &targetLane);
+	EXPECT_EQ(agent.vehicle->current_lane, &targetLane);
 	EXPECT_EQ(agent.vehicle->s_on_lane, 0.0);
 }
 
@@ -268,7 +268,7 @@ TEST_F(VehicleMovementModuleTest, NoLaneTransitionWhenNoTargetLane) {
 		Coordinates{0.0, 0.0},
 		Coordinates{0.001, 0.001}
 	);
-	agent.vehicle->currentLane = &testLane;
+	agent.vehicle->current_lane = &testLane;
 	
 	// Set s_on_lane to almost reach the end of the lane
 	double laneLength = tjs::core::algo::haversine_distance(testLane.centerLine.front(), testLane.centerLine.back());
@@ -282,7 +282,7 @@ TEST_F(VehicleMovementModuleTest, NoLaneTransitionWhenNoTargetLane) {
 	system->vehicleMovementModule().update();
 	
 	// Verify no lane transition occurred
-	EXPECT_EQ(agent.vehicle->currentLane, &testLane);
+	EXPECT_EQ(agent.vehicle->current_lane, &testLane);
 	EXPECT_EQ(agent.vehicle->s_on_lane, 0.0);
 }
 
@@ -297,7 +297,7 @@ TEST_F(VehicleMovementModuleTest, MovementDistanceIsLimitedByLaneLength) {
 		Coordinates{0.0, 0.0},
 		Coordinates{0.0001, 0.0001} // Very short lane
 	);
-	agent.vehicle->currentLane = &testLane;
+	agent.vehicle->current_lane = &testLane;
 	
 	// Set s_on_lane to middle of lane
 	double laneLength = tjs::core::algo::haversine_distance(testLane.centerLine.front(), testLane.centerLine.back());
@@ -321,7 +321,7 @@ TEST_F(VehicleMovementModuleTest, MultipleAgentsWithDifferentStates) {
 	v2.coordinates = Coordinates{0.1, 0.1};
 	v2.currentWay = nullptr;
 	v2.currentSegmentIndex = 0;
-	v2.currentLane = nullptr;
+	v2.current_lane = nullptr;
 	v2.s_on_lane = 0.0;
 	v2.lateral_offset = 0.0;
 	world.vehicles().push_back(v2);
@@ -335,12 +335,12 @@ TEST_F(VehicleMovementModuleTest, MultipleAgentsWithDifferentStates) {
 	// Set up agent1 with goal and lane (should move)
 	agent1.currentGoal = world.segments().front()->nodes.begin()->second.get();
 	auto lane1 = createTestLane(Coordinates{0.0, 0.0}, Coordinates{0.001, 0.001});
-	agent1.vehicle->currentLane = &lane1;
+	agent1.vehicle->current_lane = &lane1;
 	
 	// Set up agent2 with no goal (should not move)
 	agent2.currentGoal = nullptr;
 	auto lane2 = createTestLane(Coordinates{0.1, 0.1}, Coordinates{0.101, 0.101});
-	agent2.vehicle->currentLane = &lane2;
+	agent2.vehicle->current_lane = &lane2;
 	
 	// Record initial positions
 	Coordinates initialPos1 = agent1.vehicle->coordinates;

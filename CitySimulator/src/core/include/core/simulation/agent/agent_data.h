@@ -17,6 +17,7 @@ namespace tjs::core {
 		uint64_t id;
 		TacticalBehaviour behaviour;
 		core::Node* currentGoal;
+		core::Edge* current_goal;
 		core::Coordinates currentStepGoal;
 		tjs::core::Vehicle* vehicle;
 		std::vector<core::Edge*> path; // Path to follow
