@@ -22,3 +22,6 @@ Hint: Run commands using shortcut Cntrl+Shift+P
 - mac - for Darwin. It uses Ninja
 2. Select build toolset `CMake: Select Build preset`. There are presets for debug and release. After that you can build with F7
 3. Run application with one of the configurations.
+
+## License
+This project is licensed for non-commercial use and study only. Commercial use is prohibited. See [LICENSE](LICENSE) for more information.
