@@ -7,10 +7,15 @@ namespace tjs::core {
 	struct Coordinates {
 		double latitude;
 		double longitude;
+		double x;
+		double y;
 
 		NLOHMANN_DEFINE_TYPE_INTRUSIVE(Coordinates,
 			latitude,
-			longitude)
+			longitude,
+			x,
+			y
+		)
 	};
 
 	ENUM_FLAG(NodeTags, char, None, TrafficLight, StopSign, Crosswalk, Way);
