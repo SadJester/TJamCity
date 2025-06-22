@@ -18,3 +18,5 @@ if (WITH_TESTS)
     add_subdirectory(gtest)
     set_target_properties(gtest PROPERTIES FOLDER "sdks")
 endif()
+
+add_subdirectory(tracy)
