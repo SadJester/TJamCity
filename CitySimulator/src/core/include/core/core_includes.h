@@ -22,5 +22,7 @@
 
 #include <core/enum_flags.h>
 
+#include <core/definitions.h>
+
 // TODO: algo error handling
 #include <stdexcept>

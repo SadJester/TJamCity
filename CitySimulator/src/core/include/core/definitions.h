@@ -1,11 +1,6 @@
 #pragma once
 
-#include <core/core_includes.h>
-
-#include <pugixml.hpp>
-
 #ifdef TRACY_ENABLED
-#  define TRACY_ENABLE
 #  include <tracy/tracy/Tracy.hpp>
 
 #  define TJS_TRACY ZoneScoped

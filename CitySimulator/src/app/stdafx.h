@@ -17,15 +17,4 @@
 #include <concepts>
 #include <utility>
 
-#ifdef TRACY_ENABLED
-#  define TRACY_ENABLE
-#  include <Tracy.hpp>
-
-#  define TJS_TRACY ZoneScoped
-#  define TJS_TRACY_NAMED(NAME) ZoneScopedN(NAME)
-#  define TJS_FRAME_MARK FrameMark
-#else
-#  define TJS_TRACY
-#  define TJS_TRACY_NAMED(NAME)
-#  define TJS_FRAME_MARK
-#endif
+#include <core/core_includes.h>
