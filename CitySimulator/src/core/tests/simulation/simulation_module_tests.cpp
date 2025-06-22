@@ -60,8 +60,8 @@ TEST_F(SimulationModuleTest, VehicleMovesTowardsGoal) {
 	Coordinates start = agent.vehicle->coordinates;
 	system->timeModule().update(0.016);
 	system->vehicleMovementModule().update();
-	EXPECT_NE(start.latitude, agent.vehicle->coordinates.latitude);
-	EXPECT_NE(start.longitude, agent.vehicle->coordinates.longitude);
+	EXPECT_NE(start.x, agent.vehicle->coordinates.x);
+	EXPECT_NE(start.y, agent.vehicle->coordinates.y);
 }
 
 TEST_F(SimulationModuleTest, TacticalMarksAgentStuckAfterFailures) {

@@ -4,9 +4,11 @@
 #include <core/data_layer/world_data.h>
 #include <core/map_math/contraction_builder.h>
 #include <core/map_math/lane_connector_builder.h>
+#include <core/math_constants.h>
 
 #include <core/random_generator.h>
 #include <sstream>
+#include <limits>
 
 namespace tjs::core {
 	bool WorldCreator::loadOSMData(WorldData& data, std::string_view osmFilename) {
@@ -112,9 +114,33 @@ namespace tjs::core {
 					return nullptr;
 				}
 
+				double minLat = std::numeric_limits<double>::max();
+				double maxLat = std::numeric_limits<double>::lowest();
+				double minLon = std::numeric_limits<double>::max();
+				double maxLon = std::numeric_limits<double>::lowest();
+
 				// First pass: parse all nodes
 				for (pugi::xml_node xml_node : doc.child("osm").children("node")) {
-					parseNode(xml_node, *world);
+					parseNode(xml_node, *world, minLat, maxLat, minLon, maxLon);
+				}
+
+				// Compute projection center from bounds
+				Coordinates center {};
+				if (!world->nodes.empty()) {
+					center.latitude = (minLat + maxLat) / 2.0;
+					center.longitude = (minLon + maxLon) / 2.0;
+					center.x = center.longitude * MathConstants::DEG_TO_RAD * MathConstants::EARTH_RADIUS;
+					center.y = -std::log(std::tan((90.0 + center.latitude) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS;
+
+					for (auto& [uid, node] : world->nodes) {
+						node->coordinates.x -= center.x;
+						node->coordinates.y -= center.y;
+					}
+
+					world->boundingBox.left = { center.latitude, minLon, minLon * MathConstants::DEG_TO_RAD * MathConstants::EARTH_RADIUS - center.x, 0.0 };
+					world->boundingBox.right = { center.latitude, maxLon, maxLon * MathConstants::DEG_TO_RAD * MathConstants::EARTH_RADIUS - center.x, 0.0 };
+					world->boundingBox.top = { maxLat, center.longitude, 0.0, -std::log(std::tan((90.0 + maxLat) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS - center.y };
+					world->boundingBox.bottom = { minLat, center.longitude, 0.0, -std::log(std::tan((90.0 + minLat) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS - center.y };
 				}
 
 				// Second pass: parse all ways
@@ -126,7 +152,13 @@ namespace tjs::core {
 			}
 
 		private:
-			static void parseNode(const pugi::xml_node& xml_node, WorldSegment& world) {
+			static void parseNode(
+				const pugi::xml_node& xml_node,
+				WorldSegment& world,
+				double& minLat,
+				double& maxLat,
+				double& minLon,
+				double& maxLon) {
 				uint64_t id = xml_node.attribute("id").as_ullong();
 				double lat = xml_node.attribute("lat").as_double();
 				double lon = xml_node.attribute("lon").as_double();
@@ -143,7 +175,17 @@ namespace tjs::core {
 				}
 
 				if (!(std::abs(lat) > 90.0 || std::abs(lon) > 180.0)) {
-					world.nodes[id] = Node::create(id, Coordinates { lat, lon }, tags);
+					Coordinates coords {};
+					coords.latitude = lat;
+					coords.longitude = lon;
+					coords.x = lon * MathConstants::DEG_TO_RAD * MathConstants::EARTH_RADIUS;
+					coords.y = -std::log(std::tan((90.0 + lat) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS;
+					world.nodes[id] = Node::create(id, coords, tags);
+
+					minLat = std::min(minLat, lat);
+					maxLat = std::max(maxLat, lat);
+					minLon = std::min(minLon, lon);
+					maxLon = std::max(maxLon, lon);
 				}
 			}
 

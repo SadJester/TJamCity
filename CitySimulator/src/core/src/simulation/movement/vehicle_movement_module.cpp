@@ -43,10 +43,13 @@ namespace tjs::core::simulation {
 
 		const double fraction = distance / total_distance;
 
-		const double lat = start.latitude + fraction * (end.latitude - start.latitude);
-		const double lon = start.longitude + fraction * (end.longitude - start.longitude);
+		const double x = start.x + fraction * (end.x - start.x);
+		const double y = start.y + fraction * (end.y - start.y);
 
-		return { lat, lon };
+		Coordinates result {};
+		result.x = x;
+		result.y = y;
+		return result;
 	}
 
 	const Lane* find_lane(const Coordinates& coordinates, const RoadNetwork& network) {
@@ -97,7 +100,7 @@ namespace tjs::core::simulation {
 		}
 
 		const Lane* lane = agent.vehicle->current_lane;
-		agent.vehicle->currentSpeed = 60.0f;//std::min(static_cast<float>(lane->parent->way->maxSpeed), 60.0f);
+		agent.vehicle->currentSpeed = 60.0f; //std::min(static_cast<float>(lane->parent->way->maxSpeed), 60.0f);
 
 		double delta_time = _system.timeModule().state().timeDelta;
 		const double speed_mps = agent.vehicle->currentSpeed * 1000.0 / 3600.0;
@@ -114,11 +117,10 @@ namespace tjs::core::simulation {
 
 		agent.vehicle->currentSpeed = std::min(agent.vehicle->currentSpeed, agent.vehicle->maxSpeed);
 
-		core::Coordinates dir {
-			end.latitude - start.latitude,
-			end.longitude - start.longitude
-		};
-		agent.vehicle->rotationAngle = atan2(dir.longitude, dir.latitude);
+		core::Coordinates dir {};
+		dir.x = end.x - start.x;
+		dir.y = end.y - start.y;
+		agent.vehicle->rotationAngle = atan2(dir.y, dir.x);
 
 		if (agent.vehicle->s_on_lane >= lane->length) {
 			// Lane switching logic with multiple fallback mechanisms:
@@ -127,7 +129,7 @@ namespace tjs::core::simulation {
 				// Find the first valid outgoing connection
 				for (Lane* candidate : vehicle->current_lane->outgoing_connections) {
 					if (candidate != nullptr) {
-						for (const Lane& goal_lane :agent.current_goal->lanes) {
+						for (const Lane& goal_lane : agent.current_goal->lanes) {
 							if (candidate == &goal_lane) {
 								next_lane = candidate;
 								break;
@@ -137,14 +139,12 @@ namespace tjs::core::simulation {
 				}
 			}
 
-
 			if (next_lane) {
 				auto prev_lane = vehicle->current_lane;
 				auto dist = core::algo::haversine_distance(vehicle->coordinates, next_lane->parent->start_node->coordinates);
 				if (vehicle->current_lane == next_lane) {
 					vehicle->s_on_lane = 0.0f;
-				}
-				else {
+				} else {
 					vehicle->current_lane = next_lane;
 					vehicle->s_on_lane = 0.0;
 				}
@@ -158,8 +158,7 @@ namespace tjs::core::simulation {
 			} else {
 				if (vehicle->current_lane == agent.target_lane) {
 					vehicle->s_on_lane = 1.0f;
-				}
-				else {
+				} else {
 					// No connector found: block, stop, or fallback
 					vehicle->state = VehicleState::Stopped;
 				}
