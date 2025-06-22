@@ -83,11 +83,7 @@ namespace tjs::visualization {
 
 		if (_current_file.empty()) {
 			_current_file = _application.settings().general.selectedFile;
-
-			if (const auto& projectionCenter = general_settings.projectionCenter;
-				projectionCenter.latitude != 0.0 || projectionCenter.longitude != 0.0) {
-				_render_data.projectionCenter = general_settings.projectionCenter;
-			}
+			_render_data.screen_center = general_settings.screen_center;
 			_render_data.metersPerPixel = general_settings.zoomLevel;
 		}
 
@@ -178,11 +174,10 @@ namespace tjs::visualization {
 
 	Position convert_to_screen(
 		const Coordinates& coord,
-		const Coordinates& projection_center,
 		const Position& screen_center,
 		double meters_per_pixel) {
-		double x = coord.x - projection_center.x;
-		double y = coord.y - projection_center.y;
+		double x = coord.x;
+		double y = coord.y;
 
 		// Scale to screen coordinates
 		int screenX = static_cast<int>(screen_center.x + x / meters_per_pixel);
@@ -198,7 +193,6 @@ namespace tjs::visualization {
 	Position MapElement::convert_to_screen(const Coordinates& coord) const {
 		return tjs::visualization::convert_to_screen(
 			coord,
-			_render_data.projectionCenter,
 			_render_data.screen_center,
 			_render_data.metersPerPixel);
 	}
@@ -218,8 +212,8 @@ namespace tjs::visualization {
 
 		for (const auto& pair : nodes) {
 			const auto& node = pair.second;
-			double x = node->coordinates.x - _render_data.projectionCenter.x;
-			double y = node->coordinates.y - _render_data.projectionCenter.y;
+			double x = node->coordinates.x;
+			double y = node->coordinates.y;
 
 			minX = std::min(minX, x);
 			maxX = std::max(maxX, x);
@@ -238,9 +232,11 @@ namespace tjs::visualization {
 
 		_render_data.set_meters_per_pixel(std::min(zoomX, zoomY));
 
-		// Recalculate screen center based on the new zoom level
-		_render_data.screen_center.x = renderer.screen_width() / 2.0;
-		_render_data.screen_center.y = renderer.screen_height() / 2.0;
+		double center_x = (minX + maxX) / 2.0;
+		double center_y = (minY + maxY) / 2.0;
+
+		_render_data.screen_center.x = static_cast<int>(renderer.screen_width() / 2.0 - center_x / _render_data.metersPerPixel);
+		_render_data.screen_center.y = static_cast<int>(renderer.screen_height() / 2.0 - center_y / _render_data.metersPerPixel);
 	}
 
 	void MapElement::calculate_map_bounds(const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {
@@ -267,12 +263,6 @@ namespace tjs::visualization {
 			min_y = std::min(min_y, node->coordinates.y);
 			max_y = std::max(max_y, node->coordinates.y);
 		}
-
-		// Calculate the center of the bounding box
-		_render_data.projectionCenter.latitude = (min_lat + max_lat) / 2.0f;
-		_render_data.projectionCenter.longitude = (min_lon + max_lon) / 2.0f;
-		_render_data.projectionCenter.x = (min_x + max_x) / 2.0;
-		_render_data.projectionCenter.y = (min_y + max_y) / 2.0;
 	}
 
 	FColor MapElement::get_way_color(WayType type) const {

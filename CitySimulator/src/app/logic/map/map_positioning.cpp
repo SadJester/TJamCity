@@ -54,12 +54,6 @@ namespace tjs::visualization {
 		update_map_positioning();
 	}
 
-	double MapPositioning::get_changed_step(double metersPerPixel) {
-		const double pixels = 50.0; // move step equals 50 screen pixels
-		double meters = metersPerPixel * pixels;
-		return (meters / core::MathConstants::EARTH_RADIUS) * core::MathConstants::RAD_TO_DEG;
-	}
-
 	void MapPositioning::on_mouse_wheel_event(const render::RendererMouseWheelEvent& event) {
 		auto* render_data = _application.stores().get_model<core::model::MapRendererData>();
 		if (!render_data) {
@@ -68,21 +62,12 @@ namespace tjs::visualization {
 
 		double oldMPP = render_data->metersPerPixel;
 		double scale = event.deltaY > 0 ? 0.9 : 1.1;
-		double xOff = (event.x - render_data->screen_center.x) * oldMPP;
-		double yCenter = -std::log(std::tan((90.0 + render_data->projectionCenter.latitude) * core::MathConstants::DEG_TO_RAD / 2.0)) * core::MathConstants::EARTH_RADIUS;
-		double yOff = (event.y - render_data->screen_center.y) * oldMPP + yCenter;
-		double lonAtPoint = render_data->projectionCenter.longitude + xOff / (core::MathConstants::EARTH_RADIUS * core::MathConstants::DEG_TO_RAD);
-		double latAtPoint = (2.0 * std::atan(std::exp(-yOff / core::MathConstants::EARTH_RADIUS)) - core::MathConstants::M_PI / 2.0) * core::MathConstants::RAD_TO_DEG;
+		double worldX = (event.x - render_data->screen_center.x) * oldMPP;
+		double worldY = (event.y - render_data->screen_center.y) * oldMPP;
 		double newMPP = oldMPP * scale;
 		render_data->set_meters_per_pixel(newMPP);
-		double yPoint = -std::log(std::tan((90.0 + latAtPoint) * core::MathConstants::DEG_TO_RAD / 2.0)) * core::MathConstants::EARTH_RADIUS;
-		double newYCenter = yPoint - (event.y - render_data->screen_center.y) * newMPP;
-		double newLat = (2.0 * std::atan(std::exp(-newYCenter / core::MathConstants::EARTH_RADIUS)) - core::MathConstants::M_PI / 2.0) * core::MathConstants::RAD_TO_DEG;
-		double newLon = lonAtPoint - (event.x - render_data->screen_center.x) * newMPP / (core::MathConstants::EARTH_RADIUS * core::MathConstants::DEG_TO_RAD);
-		render_data->projectionCenter.latitude = std::clamp(newLat, -90.0, 90.0);
-		render_data->projectionCenter.longitude = std::clamp(newLon, -180.0, 180.0);
-		render_data->projectionCenter.x = render_data->projectionCenter.longitude * core::MathConstants::DEG_TO_RAD * core::MathConstants::EARTH_RADIUS;
-		render_data->projectionCenter.y = -std::log(std::tan((90.0 + render_data->projectionCenter.latitude) * core::MathConstants::DEG_TO_RAD / 2.0)) * core::MathConstants::EARTH_RADIUS;
+		render_data->screen_center.x = static_cast<int>(event.x - worldX / newMPP);
+		render_data->screen_center.y = static_cast<int>(event.y - worldY / newMPP);
 
 		update_map_positioning();
 	}
@@ -97,38 +82,24 @@ namespace tjs::visualization {
 			return;
 		}
 
-		core::Coordinates current = render_data->projectionCenter;
-		double step = get_changed_step(render_data->metersPerPixel);
-		double lonStep = step / std::cos(current.latitude * core::MathConstants::DEG_TO_RAD);
+		int step = 50; // pixels to move
 
 		switch (event.keyCode) {
 			case SDLK_UP:
-				if (current.latitude < 90.0) {
-					current.latitude += step;
-				}
+				render_data->screen_center.y += step;
 				break;
 			case SDLK_DOWN:
-				if (current.latitude > -90.0) {
-					current.latitude -= step;
-				}
+				render_data->screen_center.y -= step;
 				break;
 			case SDLK_LEFT:
-				if (current.longitude > -180.0) {
-					current.longitude -= lonStep;
-				}
+				render_data->screen_center.x += step;
 				break;
 			case SDLK_RIGHT:
-				if (current.longitude < 180.0) {
-					current.longitude += lonStep;
-				}
+				render_data->screen_center.x -= step;
 				break;
 			default:
 				return;
 		}
-
-		render_data->projectionCenter = current;
-		render_data->projectionCenter.x = current.longitude * core::MathConstants::DEG_TO_RAD * core::MathConstants::EARTH_RADIUS;
-		render_data->projectionCenter.y = -std::log(std::tan((90.0 + current.latitude) * core::MathConstants::DEG_TO_RAD / 2.0)) * core::MathConstants::EARTH_RADIUS;
 
 		update_map_positioning();
 	}
@@ -140,7 +111,7 @@ namespace tjs::visualization {
 		}
 
 		auto& general_settings = _application.settings().general;
-		general_settings.projectionCenter = render_data->projectionCenter;
+		general_settings.screen_center = render_data->screen_center;
 		general_settings.zoomLevel = render_data->metersPerPixel;
 		_application.message_dispatcher().handle_message(events::MapPositioningChanged {}, "map");
 	}

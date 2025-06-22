@@ -72,7 +72,6 @@ namespace tjs::visualization {
 		// Convert coordinates to screen coordinates
 		auto screenPos = tjs::visualization::convert_to_screen(
 			vehicle.coordinates,
-			_mapRendererData.projectionCenter,
 			_mapRendererData.screen_center,
 			_mapRendererData.metersPerPixel);
 		int screenX = screenPos.x;

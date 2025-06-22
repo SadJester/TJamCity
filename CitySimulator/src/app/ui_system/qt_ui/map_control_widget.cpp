@@ -55,11 +55,11 @@ namespace tjs {
 
 			// Create coordinates layout
 			QHBoxLayout* coordsLayout = new QHBoxLayout(infoFrame);
-			_projectCenter = new QLabel("Center: 000, 000", this);
-			_projectCenter->setAlignment(Qt::AlignCenter);
-			_projectCenter->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-			_projectCenter->setStyleSheet("font-size: 12px; font-weight: bold;");
-			infoLayout->addWidget(_projectCenter, 1, 0);
+			_screenCenter = new QLabel("Center: 000, 000", this);
+			_screenCenter->setAlignment(Qt::AlignCenter);
+			_screenCenter->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+			_screenCenter->setStyleSheet("font-size: 12px; font-weight: bold;");
+			infoLayout->addWidget(_screenCenter, 1, 0);
 
 			// Add layer selection
 			createLayerSelection(mainLayout);
@@ -219,7 +219,7 @@ namespace tjs {
 			}
 
 			_zoomLevel->setText(QString("Meters per pixel: %1").arg(render_data->metersPerPixel));
-			_projectCenter->setText(QString("Center: %1, %2").arg(render_data->projectionCenter.latitude).arg(render_data->projectionCenter.longitude));
+			_screenCenter->setText(QString("Center: %1, %2").arg(render_data->screen_center.x).arg(render_data->screen_center.y));
 		}
 
 		void MapControlWidget::onUpdate() {

@@ -20,8 +20,6 @@ namespace tjs::visualization {
 	private:
 		Application& _application;
 		float _maxDistance;
-
-		static double get_changed_step(double metersPerPixel);
 	};
 
 } // namespace tjs::visualization

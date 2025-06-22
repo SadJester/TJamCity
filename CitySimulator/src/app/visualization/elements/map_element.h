@@ -67,7 +67,6 @@ namespace tjs::visualization {
 	int drawThickLine(IRenderer& renderer, const std::vector<Position>& nodes, double metersPerPixel, float thickness, FColor color);
 	Position convert_to_screen(
 		const core::Coordinates& coord,
-		const core::Coordinates& projection_center,
 		const Position& screen_center,
 		double meters_per_pixel);
 } // namespace tjs::visualization

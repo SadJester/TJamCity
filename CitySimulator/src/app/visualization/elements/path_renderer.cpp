@@ -45,7 +45,6 @@ namespace tjs::visualization {
 			renderer.set_draw_color(Constants::PATH_COLOR);
 			auto point = tjs::visualization::convert_to_screen(
 				model->agent->currentGoal->coordinates,
-				_mapRendererData.projectionCenter,
 				_mapRendererData.screen_center,
 				_mapRendererData.metersPerPixel);
 			renderer.draw_rect(Rectangle(point.x - 2.5f, point.y - 2.5f, 5.0f, 5.0f), true);
@@ -68,7 +67,6 @@ namespace tjs::visualization {
 			auto node = visited_path[i];
 			auto point = tjs::visualization::convert_to_screen(
 				node->coordinates,
-				_mapRendererData.projectionCenter,
 				_mapRendererData.screen_center,
 				_mapRendererData.metersPerPixel);
 			visitedPoints.push_back(point);
@@ -80,10 +78,8 @@ namespace tjs::visualization {
 
 		auto current_position = tjs::visualization::convert_to_screen(
 			model->agent->vehicle->coordinates,
-			_mapRendererData.projectionCenter,
 			_mapRendererData.screen_center,
-			_mapRendererData.metersPerPixel
-		);
+			_mapRendererData.metersPerPixel);
 		// Current position is the last of visited and the first for to-visit
 		visitedPoints.push_back(current_position);
 		//toVisitPoints.push_back(current_position);
@@ -94,7 +90,6 @@ namespace tjs::visualization {
 			auto node = path[i]->end_node;
 			auto point = tjs::visualization::convert_to_screen(
 				node->coordinates,
-				_mapRendererData.projectionCenter,
 				_mapRendererData.screen_center,
 				_mapRendererData.metersPerPixel);
 			toVisitPoints.push_back(point);
@@ -113,7 +108,6 @@ namespace tjs::visualization {
 		renderer.set_draw_color(FColor { 0.f, 0.f, 1.0f, 1.0f });
 		auto currentGoal = tjs::visualization::convert_to_screen(
 			model->agent->currentStepGoal,
-			_mapRendererData.projectionCenter,
 			_mapRendererData.screen_center,
 			_mapRendererData.metersPerPixel);
 		renderer.draw_circle(currentGoal.x, currentGoal.y, 4.0f);
