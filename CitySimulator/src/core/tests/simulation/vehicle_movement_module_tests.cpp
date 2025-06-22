@@ -17,6 +17,15 @@
 using namespace tjs::core;
 using namespace tjs::core::simulation;
 
+static Coordinates make_latlon(double lat, double lon) {
+	Coordinates c {};
+	c.latitude = lat;
+	c.longitude = lon;
+	c.x = lon * MathConstants::DEG_TO_RAD * MathConstants::EARTH_RADIUS;
+	c.y = -std::log(std::tan((90.0 + lat) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS;
+	return c;
+}
+
 class VehicleMovementModuleTest : public ::testing::Test, public tjs::core::tests::DataLoaderMixin {
 protected:
 	WorldData world;
@@ -67,9 +76,8 @@ TEST_F(VehicleMovementModuleTest, NoMovementWhenCurrentGoalIsNullptr) {
 	
 	// Set up vehicle with a valid lane
 	auto testLane = createTestLane(
-		Coordinates{0.0, 0.0},
-		Coordinates{0.001, 0.001}
-	);
+		make_latlon(0.0, 0.0),
+		make_latlon(0.001, 0.001));
 	agent.vehicle->current_lane = &testLane;
 	
 	// Record initial position
@@ -136,9 +144,8 @@ TEST_F(VehicleMovementModuleTest, MovementOccursWithValidGoalAndLane) {
 	
 	// Create a test lane
 	auto testLane = createTestLane(
-		Coordinates{0.0, 0.0},
-		Coordinates{0.001, 0.001}
-	);
+		make_latlon(0.0, 0.0),
+		make_latlon(0.001, 0.001));
 	agent.vehicle->current_lane = &testLane;
 	
 	// Record initial position
@@ -163,9 +170,8 @@ TEST_F(VehicleMovementModuleTest, SpeedIsSetToDefaultWhenMoving) {
 	
 	// Create a test lane
 	auto testLane = createTestLane(
-		Coordinates{0.0, 0.0},
-		Coordinates{0.001, 0.001}
-	);
+		make_latlon(0.0, 0.0),
+		make_latlon(0.001, 0.001));
 	agent.vehicle->current_lane = &testLane;
 	
 	// Set initial speed to 0
@@ -187,9 +193,8 @@ TEST_F(VehicleMovementModuleTest, SpeedIsCappedAtMaxSpeed) {
 	
 	// Create a test lane
 	auto testLane = createTestLane(
-		Coordinates{0.0, 0.0},
-		Coordinates{0.001, 0.001}
-	);
+		make_latlon(0.0, 0.0),
+		make_latlon(0.001, 0.001));
 	agent.vehicle->current_lane = &testLane;
 	
 	// Set max speed lower than default speed
@@ -211,8 +216,8 @@ TEST_F(VehicleMovementModuleTest, RotationAngleIsCalculatedCorrectly) {
 	
 	// Create a test lane with known direction
 	auto testLane = createTestLane(
-		Coordinates{0.0, 0.0},
-		Coordinates{0.001, 0.001} // 45-degree angle
+		make_latlon(0.0, 0.0),
+		make_latlon(0.001, 0.001) // 45-degree angle
 	);
 	agent.vehicle->current_lane = &testLane;
 	
@@ -232,9 +237,8 @@ TEST_F(VehicleMovementModuleTest, LaneTransitionWhenReachingEnd) {
 	
 	// Create a test lane
 	auto testLane = createTestLane(
-		Coordinates{0.0, 0.0},
-		Coordinates{0.001, 0.001}
-	);
+		make_latlon(0.0, 0.0),
+		make_latlon(0.001, 0.001));
 	agent.vehicle->current_lane = &testLane;
 	
 	// Set s_on_lane to almost reach the end of the lane
@@ -243,9 +247,8 @@ TEST_F(VehicleMovementModuleTest, LaneTransitionWhenReachingEnd) {
 	
 	// Create a target lane
 	auto targetLane = createTestLane(
-		Coordinates{0.001, 0.001},
-		Coordinates{0.002, 0.002}
-	);
+		make_latlon(0.001, 0.001),
+		make_latlon(0.002, 0.002));
 	agent.target_lane = &targetLane;
 	
 	// Update time and run movement
@@ -265,9 +268,8 @@ TEST_F(VehicleMovementModuleTest, NoLaneTransitionWhenNoTargetLane) {
 	
 	// Create a test lane
 	auto testLane = createTestLane(
-		Coordinates{0.0, 0.0},
-		Coordinates{0.001, 0.001}
-	);
+		make_latlon(0.0, 0.0),
+		make_latlon(0.001, 0.001));
 	agent.vehicle->current_lane = &testLane;
 	
 	// Set s_on_lane to almost reach the end of the lane
@@ -294,8 +296,8 @@ TEST_F(VehicleMovementModuleTest, MovementDistanceIsLimitedByLaneLength) {
 	
 	// Create a very short test lane
 	auto testLane = createTestLane(
-		Coordinates{0.0, 0.0},
-		Coordinates{0.0001, 0.0001} // Very short lane
+		make_latlon(0.0, 0.0),
+		make_latlon(0.0001, 0.0001) // Very short lane
 	);
 	agent.vehicle->current_lane = &testLane;
 	
@@ -318,7 +320,7 @@ TEST_F(VehicleMovementModuleTest, MultipleAgentsWithDifferentStates) {
 	v2.type = VehicleType::SimpleCar;
 	v2.currentSpeed = 0.0f;
 	v2.maxSpeed = 60.0f;
-	v2.coordinates = Coordinates{0.1, 0.1};
+	v2.coordinates = make_latlon(0.1, 0.1);
 	v2.currentWay = nullptr;
 	v2.currentSegmentIndex = 0;
 	v2.current_lane = nullptr;
@@ -334,12 +336,12 @@ TEST_F(VehicleMovementModuleTest, MultipleAgentsWithDifferentStates) {
 	
 	// Set up agent1 with goal and lane (should move)
 	agent1.currentGoal = world.segments().front()->nodes.begin()->second.get();
-	auto lane1 = createTestLane(Coordinates{0.0, 0.0}, Coordinates{0.001, 0.001});
+	auto lane1 = createTestLane(make_latlon(0.0, 0.0), make_latlon(0.001, 0.001));
 	agent1.vehicle->current_lane = &lane1;
 	
 	// Set up agent2 with no goal (should not move)
 	agent2.currentGoal = nullptr;
-	auto lane2 = createTestLane(Coordinates{0.1, 0.1}, Coordinates{0.101, 0.101});
+	auto lane2 = createTestLane(make_latlon(0.1, 0.1), make_latlon(0.101, 0.101));
 	agent2.vehicle->current_lane = &lane2;
 	
 	// Record initial positions
