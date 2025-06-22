@@ -26,6 +26,7 @@ target_link_libraries(TJC_TJamApp PRIVATE
     Qt6::Gui
     Qt6::Widgets
     SDL3::SDL3
+    TracyClient
 )
 
 add_subdirectory(
@@ -38,11 +39,12 @@ SET(CMAKE_AUTOMOC   ON)
 SET(CMAKE_AUTOMOC_MOC_OPTIONS "-nw")
 
 # Specify the include directories for app
-target_include_directories(TJC_TJamApp PRIVATE 
+target_include_directories(TJC_TJamApp PRIVATE
     "${CMAKE_SOURCE_DIR}/CitySimulator/src/app"
     "${CMAKE_SOURCE_DIR}/CitySimulator/src/core/include"
     "${CMAKE_SOURCE_DIR}/CitySimulator/src/common/include"
     ${JSON_INCLUDE_DIR}
+    ${TRACY_INCLUDE_DIR}
 )
 
 # Set platform-specific flags for app if necessary
@@ -51,3 +53,5 @@ if(WIN32)
 elseif(APPLE)
     target_compile_definitions(TJC_TJamApp PRIVATE "PLATFORM_MAC")
 endif()
+
+target_compile_definitions(TJC_TJamApp PRIVATE TRACY_ENABLE)

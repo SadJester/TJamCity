@@ -16,3 +16,7 @@
 #include <ranges>
 #include <concepts>
 #include <utility>
+
+#ifdef TRACY_ENABLE
+# include <Tracy.hpp>
+#endif
