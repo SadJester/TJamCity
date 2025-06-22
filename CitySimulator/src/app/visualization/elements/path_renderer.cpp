@@ -35,6 +35,7 @@ namespace tjs::visualization {
 	}
 
 	void PathRenderer::render(IRenderer& renderer) {
+		TJS_TRACY_NAMED("PathRenderer_Render");
 		core::model::VehicleAnalyzeData* model = _application.stores().get_model<core::model::VehicleAnalyzeData>();
 		if (model->agent == nullptr) {
 			return;

@@ -45,6 +45,7 @@ namespace tjs::visualization {
 	}
 
 	void VehicleRenderer::render(IRenderer& renderer) {
+		TJS_TRACY_NAMED("BehicleRenderer_Render");
 		for (auto& info : _cache.vehicles) {
 			render(renderer, *info.vehicle, info.screenPos);
 		}

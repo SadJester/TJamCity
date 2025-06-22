@@ -9,22 +9,25 @@ file(GLOB_RECURSE CORE_SOURCES
 add_library(TJC_Core STATIC ${CORE_SOURCES})
 
 # Specify the include directories for core
-target_include_directories(TJC_Core PRIVATE 
+target_include_directories(TJC_Core PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
-	"${CMAKE_CURRENT_SOURCE_DIR}/../common/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../common/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
-	"${PUGI_INCLUDE_DIR}"
-	"${JSON_INCLUDE_DIR}"
+        "${PUGI_INCLUDE_DIR}"
+        "${JSON_INCLUDE_DIR}"
+        ${TRACY_INCLUDE_DIR}
 )
 
 # Link against the common library
-target_link_libraries(TJC_Core PUBLIC TJS_Common)
+target_link_libraries(TJC_Core PUBLIC TJS_Common TracyClient)
 
 if (WIN32)
 	target_link_libraries(TJC_Core PUBLIC ${PUGI_LIB_DIR}/pugixml.lib)
 elseif(APPLE) 
 	target_link_libraries(TJC_Core PUBLIC ${PUGI_LIB_DIR}/libpugixml.a)
 endif()
+
+target_compile_definitions(TJC_Core PRIVATE TRACY_ENABLED)
 
 target_precompile_headers(TJC_Core PRIVATE "include/core/stdafx.h")
 
