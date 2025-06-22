@@ -56,6 +56,10 @@ namespace tjs::visualization {
 		float max_lat = 0.0f;
 		float min_lon = 0.0f;
 		float max_lon = 0.0f;
+		double min_x = 0.0;
+		double max_x = 0.0;
+		double min_y = 0.0;
+		double max_y = 0.0;
 
 		std::string _current_file;
 	};

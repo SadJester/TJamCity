@@ -81,6 +81,8 @@ namespace tjs::visualization {
 		double newLon = lonAtPoint - (event.x - render_data->screen_center.x) * newMPP / (core::MathConstants::EARTH_RADIUS * core::MathConstants::DEG_TO_RAD);
 		render_data->projectionCenter.latitude = std::clamp(newLat, -90.0, 90.0);
 		render_data->projectionCenter.longitude = std::clamp(newLon, -180.0, 180.0);
+		render_data->projectionCenter.x = render_data->projectionCenter.longitude * core::MathConstants::DEG_TO_RAD * core::MathConstants::EARTH_RADIUS;
+		render_data->projectionCenter.y = -std::log(std::tan((90.0 + render_data->projectionCenter.latitude) * core::MathConstants::DEG_TO_RAD / 2.0)) * core::MathConstants::EARTH_RADIUS;
 
 		update_map_positioning();
 	}
@@ -125,6 +127,8 @@ namespace tjs::visualization {
 		}
 
 		render_data->projectionCenter = current;
+		render_data->projectionCenter.x = current.longitude * core::MathConstants::DEG_TO_RAD * core::MathConstants::EARTH_RADIUS;
+		render_data->projectionCenter.y = -std::log(std::tan((90.0 + current.latitude) * core::MathConstants::DEG_TO_RAD / 2.0)) * core::MathConstants::EARTH_RADIUS;
 
 		update_map_positioning();
 	}

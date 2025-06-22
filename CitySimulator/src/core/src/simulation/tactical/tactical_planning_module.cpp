@@ -176,7 +176,7 @@ namespace tjs::core::simulation {
 				agent.currentStepGoal = agent.current_goal->start_node->coordinates; // agent.target_lane->centerLine.back();
 				agent.visitedNodes.push_back(agent.current_goal->start_node);
 				agent.path.erase(agent.path.begin());
-				
+
 				agent.last_segment = agent.path.empty();
 			} else {
 				// Final segment distance
@@ -226,14 +226,16 @@ namespace tjs::core::simulation {
 
 		// Calculate projection (simplified for geographic coordinates)
 		// Note: This is an approximation as we're working with spherical coordinates
-		double u = ((point.latitude - segStart.latitude) * (segEnd.latitude - segStart.latitude) + (point.longitude - segStart.longitude) * (segEnd.longitude - segStart.longitude)) / (segLength * segLength);
+		double u = ((point.x - segStart.x) * (segEnd.x - segStart.x) + (point.y - segStart.y) * (segEnd.y - segStart.y)) / (segLength * segLength);
 
 		u = std::clamp(u, 0.0, 1.0);
 
 		Coordinates projection {
-			segStart.latitude + u * (segEnd.latitude - segStart.latitude),
-			segStart.longitude + u * (segEnd.longitude - segStart.longitude)
+			0.0,
+			0.0
 		};
+		projection.x = segStart.x + u * (segEnd.x - segStart.x);
+		projection.y = segStart.y + u * (segEnd.y - segStart.y);
 
 		return core::algo::haversine_distance(point, projection);
 	}
