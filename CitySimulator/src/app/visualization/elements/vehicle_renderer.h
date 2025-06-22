@@ -11,7 +11,6 @@ namespace tjs {
 
 		namespace model {
 			struct MapRendererData;
-			struct PersistentRenderData;
 		} // namespace model
 
 	} // namespace core
@@ -31,11 +30,10 @@ namespace tjs::visualization {
 		virtual void render(IRenderer& renderer) override;
 
 	private:
-		void render(IRenderer& renderer, const core::Vehicle& vehicle, const tjs::Position& pos);
+		void render(IRenderer& renderer, const core::Vehicle& vehicle);
 
 	private:
 		core::model::MapRendererData& _mapRendererData;
-		core::model::PersistentRenderData& _cache;
 		Application& _application;
 	};
 } // namespace tjs::visualization

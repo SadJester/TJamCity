@@ -10,8 +10,8 @@ namespace tjs::core {
 
 		for (auto& node : way->nodes) {
 			auto gridKey = std::make_pair(
-				static_cast<int>(node->coordinates.latitude / cellSize),
-				static_cast<int>(node->coordinates.longitude / cellSize));
+				static_cast<int>(node->coordinates.x / cellSize),
+				static_cast<int>(node->coordinates.y / cellSize));
 			auto& cell = spatialGrid[gridKey];
 			if (std::ranges::find(cell, way) == cell.end()) {
 				cell.emplace_back(way);
@@ -21,8 +21,8 @@ namespace tjs::core {
 
 	std::optional<std::reference_wrapper<const SpatialGrid::WaysInCell>> SpatialGrid::get_ways_in_cell(Coordinates coordinates) const {
 		return get_ways_in_cell(
-			static_cast<int>(coordinates.latitude / cellSize),
-			static_cast<int>(coordinates.longitude / cellSize));
+			static_cast<int>(coordinates.x / cellSize),
+			static_cast<int>(coordinates.y / cellSize));
 	}
 
 	std::optional<std::reference_wrapper<const SpatialGrid::WaysInCell>> SpatialGrid::get_ways_in_cell(int x, int y) const {
@@ -34,6 +34,7 @@ namespace tjs::core {
 	}
 
 	void WorldSegment::rebuild_grid() {
+		spatialGrid.cellSize = 50.0;
 		for (const auto& [_, way] : ways) {
 			spatialGrid.add_way(way.get());
 		}

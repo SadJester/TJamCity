@@ -22,9 +22,9 @@ namespace tjs::core::simulation {
 			return nullptr;
 		}
 
-		// Calculate grid coordinates of the origin cell
-		int origin_x = static_cast<int>(coord.latitude / grid.cellSize);
-		int origin_y = static_cast<int>(coord.longitude / grid.cellSize);
+		// Calculate grid coordinates of the origin cell in cartesian space
+		int origin_x = static_cast<int>(coord.x / grid.cellSize);
+		int origin_y = static_cast<int>(coord.y / grid.cellSize);
 
 		// Step 2: Find another random cell within radius range
 		// Convert radius to grid cells

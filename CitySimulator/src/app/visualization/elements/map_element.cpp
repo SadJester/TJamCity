@@ -181,11 +181,8 @@ namespace tjs::visualization {
 		const Coordinates& projection_center,
 		const Position& screen_center,
 		double meters_per_pixel) {
-		// Convert geographic coordinates to meters using Mercator projection
-		double x = (coord.longitude - projection_center.longitude) * MathConstants::DEG_TO_RAD * MathConstants::EARTH_RADIUS;
-		double y = -std::log(std::tan((90.0 + coord.latitude) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS;
-		double yCenter = -std::log(std::tan((90.0 + projection_center.latitude) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS;
-		y -= yCenter;
+		double x = coord.x - projection_center.x;
+		double y = coord.y - projection_center.y;
 
 		// Scale to screen coordinates
 		int screenX = static_cast<int>(screen_center.x + x / meters_per_pixel);
@@ -219,12 +216,10 @@ namespace tjs::visualization {
 		double minY = std::numeric_limits<double>::max();
 		double maxY = std::numeric_limits<double>::lowest();
 
-		double yCenter = -std::log(std::tan((90.0 + _render_data.projectionCenter.latitude) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS;
-
 		for (const auto& pair : nodes) {
 			const auto& node = pair.second;
-			double x = (node->coordinates.longitude - _render_data.projectionCenter.longitude) * MathConstants::DEG_TO_RAD * MathConstants::EARTH_RADIUS;
-			double y = -std::log(std::tan((90.0 + node->coordinates.latitude) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS - yCenter;
+			double x = node->coordinates.x - _render_data.projectionCenter.x;
+			double y = node->coordinates.y - _render_data.projectionCenter.y;
 
 			minX = std::min(minX, x);
 			maxX = std::max(maxX, x);
@@ -254,6 +249,10 @@ namespace tjs::visualization {
 		max_lat = std::numeric_limits<float>::lowest();
 		min_lon = std::numeric_limits<float>::max();
 		max_lon = std::numeric_limits<float>::lowest();
+		min_x = std::numeric_limits<double>::max();
+		max_x = std::numeric_limits<double>::lowest();
+		min_y = std::numeric_limits<double>::max();
+		max_y = std::numeric_limits<double>::lowest();
 
 		// Iterate through all nodes to find min/max coordinates
 		for (const auto& pair : nodes) {
@@ -263,11 +262,17 @@ namespace tjs::visualization {
 			max_lat = std::max(max_lat, static_cast<float>(node->coordinates.latitude));
 			min_lon = std::min(min_lon, static_cast<float>(node->coordinates.longitude));
 			max_lon = std::max(max_lon, static_cast<float>(node->coordinates.longitude));
+			min_x = std::min(min_x, node->coordinates.x);
+			max_x = std::max(max_x, node->coordinates.x);
+			min_y = std::min(min_y, node->coordinates.y);
+			max_y = std::max(max_y, node->coordinates.y);
 		}
 
 		// Calculate the center of the bounding box
 		_render_data.projectionCenter.latitude = (min_lat + max_lat) / 2.0f;
 		_render_data.projectionCenter.longitude = (min_lon + max_lon) / 2.0f;
+		_render_data.projectionCenter.x = (min_x + max_x) / 2.0;
+		_render_data.projectionCenter.y = (min_y + max_y) / 2.0;
 	}
 
 	FColor MapElement::get_way_color(WayType type) const {
@@ -324,7 +329,7 @@ namespace tjs::visualization {
 
 		const FColor color = get_way_color(way.way->type);
 
-		const float lane_width = way.way->is_car_accessible() ? way.way->lanes * way.way->laneWidth : way.way->laneWidth/ 2;
+		const float lane_width = way.way->is_car_accessible() ? way.way->lanes * way.way->laneWidth : way.way->laneWidth / 2;
 
 		int segmentsRendered = drawThickLine(_application.renderer(), screenPoints, _render_data.metersPerPixel, lane_width, color);
 
@@ -463,10 +468,10 @@ namespace tjs::visualization {
 
 	void MapElement::render_bounding_box() const {
 		// Convert all corners of the bounding box to screen coordinates
-		Position topLeft = convert_to_screen({ min_lat, min_lon });
-		Position topRight = convert_to_screen({ min_lat, max_lon });
-		Position bottomLeft = convert_to_screen({ max_lat, min_lon });
-		Position bottomRight = convert_to_screen({ max_lat, max_lon });
+		Position topLeft = convert_to_screen(Coordinates { 0.0, 0.0, min_x, min_y });
+		Position topRight = convert_to_screen(Coordinates { 0.0, 0.0, max_x, min_y });
+		Position bottomLeft = convert_to_screen(Coordinates { 0.0, 0.0, min_x, max_y });
+		Position bottomRight = convert_to_screen(Coordinates { 0.0, 0.0, max_x, max_y });
 
 		auto& renderer = _application.renderer();
 
@@ -597,7 +602,6 @@ namespace tjs::visualization {
 		}
 	}
 
-
 	static std::vector<const Edge*> edges;
 	static Node* selected_prev = nullptr;
 
@@ -614,7 +618,6 @@ namespace tjs::visualization {
 				}
 			}
 
-			
 			selected_prev = selected->node;
 		}
 
@@ -629,16 +632,16 @@ namespace tjs::visualization {
 				if (lane.centerLine.size() >= 2) {
 					std::vector<Position> centerlinePoints;
 					centerlinePoints.reserve(lane.centerLine.size());
-					
+
 					for (const auto& coord : lane.centerLine) {
 						centerlinePoints.push_back(convert_to_screen(coord));
 					}
-					
+
 					// Draw centerline in white
 					renderer.set_draw_color({ 1.0f, 1.0f, 1.0f, 0.8f });
 					//drawThickLine(renderer, centerlinePoints, _render_data.metersPerPixel, 0.5f, { 1.0f, 1.0f, 1.0f, 0.8f });
 				}
-				
+
 				// Render outgoing connections
 				for (const auto& outgoing_lane : lane.outgoing_connections) {
 					if (outgoing_lane && outgoing_lane->centerLine.size() >= 2) {
@@ -650,7 +653,7 @@ namespace tjs::visualization {
 								break;
 							}
 						}
-						
+
 						// Choose color based on connection type
 						FColor connectionColor;
 						if (is_bidirectional) {
@@ -658,12 +661,12 @@ namespace tjs::visualization {
 						} else {
 							connectionColor = { 1.0f, 0.0f, 0.0f, 0.6f }; // Red for unidirectional
 						}
-						
+
 						// Draw connection line from end of current lane to start of outgoing lane
 						if (!lane.centerLine.empty() && !outgoing_lane->centerLine.empty()) {
 							Position start = convert_to_screen(lane.centerLine.front());
 							Position end = convert_to_screen(outgoing_lane->centerLine.front());
-							
+
 							// Only draw if both points are visible
 							if (!line_outside_screen(start, end, renderer.screen_width(), renderer.screen_height())) {
 								renderer.set_draw_color(connectionColor);
