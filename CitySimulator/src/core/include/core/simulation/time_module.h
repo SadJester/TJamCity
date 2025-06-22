@@ -27,6 +27,7 @@ namespace tjs::core {
 
 		void speed_up();
 		void slow_down();
+		void set_time_multiplier(double value);
 
 		const TimeState& state() const;
 

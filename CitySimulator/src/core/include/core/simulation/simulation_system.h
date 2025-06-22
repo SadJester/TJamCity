@@ -28,6 +28,7 @@ namespace tjs::core::simulation {
 		void initialize();
 		void release();
 		void update(double realTimeDelta);
+		void step();
 
 		TimeModule& timeModule() {
 			return _timeModule;

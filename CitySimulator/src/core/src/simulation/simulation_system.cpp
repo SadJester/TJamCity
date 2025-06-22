@@ -41,7 +41,7 @@ namespace tjs::core::simulation {
 				false,
 				0.0,
 				false,
-				0});
+				0 });
 		}
 
 		_strategicModule.initialize();
@@ -57,6 +57,18 @@ namespace tjs::core::simulation {
 
 	void TrafficSimulationSystem::update(double realTimeDelta) {
 		_timeModule.update(realTimeDelta);
+
+		if (_timeModule.state().isPaused) {
+			return;
+		}
+
+		_strategicModule.update();
+		_tacticalModule.update();
+		_vehicleMovementModule.update();
+	}
+
+	void TrafficSimulationSystem::step() {
+		_timeModule.step();
 
 		_strategicModule.update();
 		_tacticalModule.update();

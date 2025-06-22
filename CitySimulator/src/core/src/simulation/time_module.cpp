@@ -29,6 +29,10 @@ namespace tjs::core {
 		_timeState.timeMultiplier /= 1.1;
 	}
 
+	void TimeModule::set_time_multiplier(double value) {
+		_timeState.timeMultiplier = value;
+	}
+
 	const TimeState& TimeModule::state() const {
 		return _timeState;
 	}
@@ -43,6 +47,7 @@ namespace tjs::core {
 		_timeState.isPaused = false;
 	}
 	void TimeModule::step() {
+		_timeState.stepRequested = true;
 		update(_stepDelta);
 	}
 
