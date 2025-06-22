@@ -87,12 +87,14 @@ namespace tjs::visualization {
 		const float widthInPixels = scaler * settings.width / metersPerPixel;
 		const float lengthInPixels = scaler * settings.length / metersPerPixel;
 
-		// Define vertices for the rectangle
+		// Define vertices for the rectangle. The vehicle length is aligned
+		// with the X-axis so that a rotation angle of 0 corresponds to
+		// a vehicle facing to the right.
 		Vertex vertices[4] = {
-			{ { screenX - widthInPixels / 2.0f, screenY - lengthInPixels / 2.0f }, settings.color, { 0.f, 0.f } }, // bottom-left
-			{ { screenX + widthInPixels / 2.0f, screenY - lengthInPixels / 2.0f }, settings.color, { 0.f, 0.f } }, // top-left
-			{ { screenX + widthInPixels / 2.0f, screenY + lengthInPixels / 2.0f }, settings.color, { 0.f, 0.f } }, // top-right
-			{ { screenX - widthInPixels / 2.0f, screenY + lengthInPixels / 2.0f }, settings.color, { 0.f, 0.f } }  // bottom-right
+			{ { screenX - lengthInPixels / 2.0f, screenY - widthInPixels / 2.0f }, settings.color, { 0.f, 0.f } }, // bottom-left
+			{ { screenX + lengthInPixels / 2.0f, screenY - widthInPixels / 2.0f }, settings.color, { 0.f, 0.f } }, // bottom-right
+			{ { screenX + lengthInPixels / 2.0f, screenY + widthInPixels / 2.0f }, settings.color, { 0.f, 0.f } }, // top-right
+			{ { screenX - lengthInPixels / 2.0f, screenY + widthInPixels / 2.0f }, settings.color, { 0.f, 0.f } }  // top-left
 		};
 
 		const float angle = vehicle.rotationAngle;
