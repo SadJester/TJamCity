@@ -48,12 +48,12 @@ namespace tjs {
 		auto lastFrameTime = std::chrono::high_resolution_clock::now();
 		int currentFPS = 0.0;
 
-        auto lastTimeSaveSettings = lastFrameTime;
-        auto prevFrameStart = lastFrameTime;
-        while (!isFinished()) {
-                TJS_TRACY_NAMED("MainLoop");
-                // Record the start time of this frame
-                auto frameStart = std::chrono::high_resolution_clock::now();
+		auto lastTimeSaveSettings = lastFrameTime;
+		auto prevFrameStart = lastFrameTime;
+		while (!isFinished()) {
+			TJS_TRACY_NAMED("MainLoop");
+			// Record the start time of this frame
+			auto frameStart = std::chrono::high_resolution_clock::now();
 
 			// Calculate time elapsed since last simulation update for simulation calculations
 			const double durationInSeconds = std::chrono::duration_cast<std::chrono::duration<double>>(
@@ -108,14 +108,14 @@ namespace tjs {
 			_frameStats.fps().update(fps);
 			_frameStats.set_frame_time(frameDuration);
 
+			TJS_FRAME_MARK;
 			// Calculate how long to sleep to maintain target FPS
 			duration sleepTime = targetFrameTime - frameDuration;
 			// If we're running faster than the target FPS, sleep for the remaining time
-                        if (sleepTime.count() > 0) {
-                                std::this_thread::sleep_for(std::chrono::duration_cast<std::chrono::milliseconds>(sleepTime));
-                        }
-                        TJS_FRAME_MARK;
-                }
+			if (sleepTime.count() > 0) {
+				std::this_thread::sleep_for(std::chrono::duration_cast<std::chrono::milliseconds>(sleepTime));
+			}
+		}
 
 		// Save settings before quit
 		_settings.save();

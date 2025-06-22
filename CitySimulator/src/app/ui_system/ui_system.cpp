@@ -11,6 +11,7 @@ namespace tjs {
 	}
 
 	void UISystem::update() {
+		TJS_TRACY_NAMED("UISystem_Update");
 		_controller->update();
 	}
 } // namespace tjs

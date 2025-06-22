@@ -65,6 +65,7 @@ namespace tjs::visualization {
 	}
 
 	void MapElement::render(IRenderer& renderer) {
+		TJS_TRACY_NAMED("MapElement_Render");
 		auto& world = _application.worldData();
 		auto& segments = world.segments();
 
@@ -100,6 +101,7 @@ namespace tjs::visualization {
 	}
 
 	void MapElement::render_network_graph(IRenderer& renderer, const core::RoadNetwork& network) {
+		TJS_TRACY_NAMED("MapElement_Render_Graph");
 		// Set color for network graph edges
 		renderer.set_draw_color({ 0.0f, 0.8f, 0.8f, 0.5f }); // Semi-transparent cyan
 
