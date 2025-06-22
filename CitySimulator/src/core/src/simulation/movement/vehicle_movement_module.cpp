@@ -137,10 +137,24 @@ namespace tjs::core::simulation {
 				}
 			}
 
+
 			if (next_lane) {
+				auto prev_lane = vehicle->current_lane;
 				auto dist = core::algo::haversine_distance(vehicle->coordinates, next_lane->parent->start_node->coordinates);
-				vehicle->current_lane = next_lane;
-				vehicle->s_on_lane = 0.0;
+				if (vehicle->current_lane == next_lane) {
+					vehicle->s_on_lane = 0.0f;
+				}
+				else {
+					vehicle->current_lane = next_lane;
+					vehicle->s_on_lane = 0.0;
+				}
+				auto s = next_lane->centerLine[0];
+				auto e = next_lane->centerLine[1];
+				auto coords = move_towards(s, e, agent.vehicle->s_on_lane, lane->length);
+				auto diff = core::algo::haversine_distance(vehicle->coordinates, coords);
+				if (diff > move) {
+					s = e;
+				}
 			} else {
 				if (vehicle->current_lane == agent.target_lane) {
 					vehicle->s_on_lane = 1.0f;
