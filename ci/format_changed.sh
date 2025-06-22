@@ -10,9 +10,10 @@ fi
 
 cd "$REPOSITORY_DIR" || exit 1
 
-# Collect staged and changed (but unstaged) .cpp and .h files in CitySimulator
+# Collect staged, unstaged, and untracked .cpp and .h files in CitySimulator
 staged_files=$(git diff --staged --name-only)
 unstaged_files=$(git diff --name-only)
+untracked_files=$(git ls-files --others --exclude-standard)
 
 all_files=$(echo -e "${staged_files}\n${unstaged_files}\n${untracked_files}" | sort -u | grep -E '^CitySimulator/.*\.(cpp|h)$')
 
