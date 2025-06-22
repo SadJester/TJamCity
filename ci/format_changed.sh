@@ -14,10 +14,10 @@ cd "$REPOSITORY_DIR" || exit 1
 staged_files=$(git diff --staged --name-only)
 unstaged_files=$(git diff --name-only)
 
-all_files=$(echo -e "${staged_files}\n${unstaged_files}" | sort -u | grep -E '^CitySimulator/.*\.(cpp|h)$')
+all_files=$(echo -e "${staged_files}\n${unstaged_files}\n${untracked_files}" | sort -u | grep -E '^CitySimulator/.*\.(cpp|h)$')
 
 if [ -z "$all_files" ]; then
-    echo "No changed or staged .cpp/.h files found in CitySimulator."
+    echo "No changed, staged, or untracked .cpp/.h files found in CitySimulator."
     exit 0
 fi
 

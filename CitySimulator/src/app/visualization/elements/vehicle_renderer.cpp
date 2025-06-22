@@ -19,14 +19,17 @@ namespace tjs::visualization {
 	VehicleRenderer::VehicleRenderer(Application& application)
 		: SceneNode("VehicleRenderer")
 		, _application(application)
-		, _mapRendererData(*application.stores().get_model<core::model::MapRendererData>()) {
+		, _mapRendererData(*application.stores().get_model<core::model::MapRendererData>())
+		, _vehicleTargeting(application) {
 	}
 
 	VehicleRenderer::~VehicleRenderer() {
+		_application.renderer().unregister_event_listener(&_vehicleTargeting);
 	}
 
 	void VehicleRenderer::init() {
 		_mapRendererData = *_application.stores().get_model<core::model::MapRendererData>();
+		_application.renderer().register_event_listener(&_vehicleTargeting);
 	}
 
 	void VehicleRenderer::update() {

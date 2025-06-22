@@ -1,6 +1,7 @@
 #pragma once
 
 #include <visualization/scene_node.h>
+#include <logic/map/vehicle_targeting.h>
 
 namespace tjs {
 	class Application;
@@ -19,6 +20,7 @@ namespace tjs {
 
 namespace tjs::visualization {
 	class MapElement;
+	class VehicleTargeting;
 
 	class VehicleRenderer : public SceneNode {
 	public:
@@ -35,5 +37,6 @@ namespace tjs::visualization {
 	private:
 		core::model::MapRendererData& _mapRendererData;
 		Application& _application;
+		VehicleTargeting _vehicleTargeting;
 	};
 } // namespace tjs::visualization

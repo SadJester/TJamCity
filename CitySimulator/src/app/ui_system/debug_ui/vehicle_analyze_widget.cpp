@@ -11,24 +11,47 @@
 #include <core/store_models/vehicle_analyze_data.h>
 #include <core/simulation/agent/agent_data.h>
 #include <core/simulation/simulation_system.h>
+#include <events/vehicle_events.h>
 
 namespace tjs::ui {
 	VehicleAnalyzeWidget::VehicleAnalyzeWidget(Application& app)
 		: _application(app)
 		, _agentComboBox(nullptr)
-		, _detailsGroup(nullptr) {
+		, _detailsGroup(nullptr)
+		, _pathTreeWidget(nullptr) {
 		initialize();
 
 		_application.simulationSystem().message_dispatcher().register_handler(*this, &VehicleAnalyzeWidget::handle_simulation_initialized, "VehicleAnalyzeWidget");
+		_application.message_dispatcher().register_handler(*this, &VehicleAnalyzeWidget::handle_agent_selected, "VehicleAnalyzeWidget");
 	}
 
 	VehicleAnalyzeWidget::~VehicleAnalyzeWidget() {
 		_application.simulationSystem().message_dispatcher().unregister_handler<core::events::SimulationInitialized>("VehicleAnalyzeWidget");
+		_application.message_dispatcher().unregister_handler<events::AgentSelected>("VehicleAnalyzeWidget");
 	}
 
 	void VehicleAnalyzeWidget::handle_simulation_initialized(const core::events::SimulationInitialized& event) {
 		_application.stores().get_model<core::model::VehicleAnalyzeData>()->agent = nullptr;
 		initialize();
+	}
+
+	void VehicleAnalyzeWidget::handle_agent_selected(const events::AgentSelected& event) {
+		core::model::VehicleAnalyzeData* model = _application.stores().get_model<core::model::VehicleAnalyzeData>();
+		model->set_agent(event.agent);
+		if (event.agent) {
+			// Update combo box to selected agent
+			for (int i = 0; i < _agentComboBox->count(); ++i) {
+				if (_agentComboBox->itemData(i).value<uint64_t>() == event.agent->id) {
+					_agentComboBox->setCurrentIndex(i);
+					break;
+				}
+			}
+			updateAgentDetails(event.agent);
+			_detailsGroup->setVisible(true);
+		} else {
+			_agentComboBox->setCurrentIndex(0);
+			_detailsGroup->setVisible(false);
+		}
 	}
 
 	void VehicleAnalyzeWidget::initialize() {
@@ -77,6 +100,11 @@ namespace tjs::ui {
 		_currentGoalValue = new QLabel(_detailsGroup);
 		_currentStepGoalValue = new QLabel(_detailsGroup);
 		_pathNodeCountValue = new QLabel(_detailsGroup);
+		_pathTreeWidget = new QTreeWidget(_detailsGroup);
+		_pathTreeWidget->setHeaderHidden(true);
+		QTreeWidgetItem* rootItem = new QTreeWidgetItem(_pathTreeWidget);
+		rootItem->setText(0, "Path Nodes");
+		rootItem->setExpanded(false);
 
 		formLayout->addRow("Agent ID:", _agentIdValue);
 		formLayout->addRow("Vehicle ID:", _vehicleIdValue);
@@ -84,6 +112,7 @@ namespace tjs::ui {
 		formLayout->addRow("Current Goal Node:", _currentGoalValue);
 		formLayout->addRow("Current Step Goal:", _currentStepGoalValue);
 		formLayout->addRow("Path Nodes:", _pathNodeCountValue);
+		formLayout->addRow("", _pathTreeWidget);
 
 		_detailsGroup->setLayout(formLayout);
 		mainLayout->addWidget(_detailsGroup);
@@ -159,5 +188,17 @@ namespace tjs::ui {
 			QString("(%1, %2)").arg(agent->currentStepGoal.latitude).arg(agent->currentStepGoal.longitude));
 
 		_pathNodeCountValue->setText(QString::number(agent->path.size()));
+		_pathTreeWidget->clear();
+		QTreeWidgetItem* rootItem = new QTreeWidgetItem(_pathTreeWidget);
+		rootItem->setText(0, "Path Nodes");
+		rootItem->setExpanded(false);
+		for (const core::Edge* edge : agent->path) {
+			if (!edge || !edge->end_node) {
+				continue;
+			}
+			QTreeWidgetItem* item = new QTreeWidgetItem();
+			item->setText(0, QString::number(edge->end_node->uid));
+			rootItem->addChild(item);
+		}
 	}
 } // namespace tjs::ui
