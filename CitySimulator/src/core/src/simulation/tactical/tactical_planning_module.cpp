@@ -173,7 +173,7 @@ namespace tjs::core::simulation {
 
 				agent.current_goal = agent.path.front();
 				agent.target_lane = &agent.current_goal->lanes[0];
-				agent.currentStepGoal = agent.current_goal->start_node->coordinates; // agent.target_lane->centerLine.back();
+				agent.currentStepGoal = agent.current_goal->end_node->coordinates; // agent.target_lane->centerLine.back();
 				agent.visitedNodes.push_back(agent.current_goal->start_node);
 				agent.path.erase(agent.path.begin());
 

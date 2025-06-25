@@ -566,6 +566,11 @@ namespace tjs::visualization {
 
 	void draw_node(IRenderer& renderer, const NodeRenderInfo& node) {
 		const float circle_size = node.selected ? 5.0f : 3.0f;
+
+		if (!point_inside_screen(node.screenPos, renderer.screen_width(), renderer.screen_height())) {
+			return;
+		}
+
 		renderer.draw_circle(node.screenPos.x, node.screenPos.y, circle_size, true);
 	}
 
