@@ -36,7 +36,7 @@ namespace tjs::core::simulation {
 			return start;
 		}
 
-		//const double total_dist = core::algo::haversine_distance(start, end);
+		//const double total_dist = core::algo::euclidean_distance(start, end);
 		if (total_distance <= 1e-3) {
 			return end;
 		}
@@ -57,7 +57,7 @@ namespace tjs::core::simulation {
 		const Lane* candidate = nullptr;
 		for (auto& edge : network.edges) {
 			for (auto& lane : edge.lanes) {
-				double distance = core::algo::haversine_distance(lane.parent->start_node->coordinates, coordinates);
+				double distance = core::algo::euclidean_distance(lane.parent->start_node->coordinates, coordinates);
 				if (distance > 15.0 && distance < min_distance) {
 					min_distance = distance;
 					candidate = &lane;
@@ -141,7 +141,7 @@ namespace tjs::core::simulation {
 
 			if (next_lane) {
 				auto prev_lane = vehicle->current_lane;
-				auto dist = core::algo::haversine_distance(vehicle->coordinates, next_lane->parent->start_node->coordinates);
+				auto dist = core::algo::euclidean_distance(vehicle->coordinates, next_lane->parent->start_node->coordinates);
 				if (vehicle->current_lane == next_lane) {
 					vehicle->s_on_lane = 0.0f;
 				} else {
@@ -151,7 +151,7 @@ namespace tjs::core::simulation {
 				auto s = next_lane->centerLine[0];
 				auto e = next_lane->centerLine[1];
 				auto coords = move_towards(s, e, agent.vehicle->s_on_lane, lane->length);
-				auto diff = core::algo::haversine_distance(vehicle->coordinates, coords);
+				auto diff = core::algo::euclidean_distance(vehicle->coordinates, coords);
 				if (diff > move) {
 					s = e;
 				}

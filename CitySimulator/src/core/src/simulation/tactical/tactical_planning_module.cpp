@@ -101,8 +101,8 @@ namespace tjs::core::simulation {
 				}
 
 				// Use haversine distance
-				double dist_first = core::algo::haversine_distance(way->nodes.front()->coordinates, vehicle.coordinates);
-				double dist_last = core::algo::haversine_distance(way->nodes.back()->coordinates, vehicle.coordinates);
+				double dist_first = core::algo::euclidean_distance(way->nodes.front()->coordinates, vehicle.coordinates);
+				double dist_last = core::algo::euclidean_distance(way->nodes.back()->coordinates, vehicle.coordinates);
 				double current_min = std::min(dist_first, dist_last);
 
 				if (current_min < min_distance) {
@@ -160,7 +160,7 @@ namespace tjs::core::simulation {
 		}
 
 		// Step 3: Check if vehicle reached current step goal using haversine distance
-		const double distance_to_target = core::algo::haversine_distance(vehicle.coordinates, agent.currentStepGoal);
+		const double distance_to_target = core::algo::euclidean_distance(vehicle.coordinates, agent.currentStepGoal);
 
 		const bool is_expected_lane = vehicle.current_lane != nullptr && vehicle.current_lane->parent == agent.current_goal;
 		if (distance_to_target < SimulationConstants::ARRIVAL_THRESHOLD && is_expected_lane) {
@@ -168,7 +168,7 @@ namespace tjs::core::simulation {
 				// Update distance traveled with the segment we just completed
 				if (!agent.visitedNodes.empty()) {
 					auto last_visited = agent.visitedNodes.back();
-					agent.distanceTraveled += core::algo::haversine_distance(last_visited->coordinates, agent.currentStepGoal);
+					agent.distanceTraveled += core::algo::euclidean_distance(last_visited->coordinates, agent.currentStepGoal);
 				}
 
 				agent.current_goal = agent.path.front();
@@ -180,7 +180,7 @@ namespace tjs::core::simulation {
 				agent.last_segment = agent.path.empty();
 			} else {
 				// Final segment distance
-				agent.distanceTraveled += core::algo::haversine_distance(vehicle.coordinates, agent.currentStepGoal);
+				agent.distanceTraveled += core::algo::euclidean_distance(vehicle.coordinates, agent.currentStepGoal);
 
 				// Reached final destination
 				agent.currentGoal = nullptr;
@@ -219,9 +219,9 @@ namespace tjs::core::simulation {
 		const Coordinates& segStart,
 		const Coordinates& segEnd) {
 		// First check if the point projects onto the segment
-		double segLength = core::algo::haversine_distance(segStart, segEnd);
+		double segLength = core::algo::euclidean_distance(segStart, segEnd);
 		if (segLength < 1e-6) { // Very short segment
-			return core::algo::haversine_distance(point, segStart);
+			return core::algo::euclidean_distance(point, segStart);
 		}
 
 		// Calculate projection (simplified for geographic coordinates)
@@ -237,7 +237,7 @@ namespace tjs::core::simulation {
 		projection.x = segStart.x + u * (segEnd.x - segStart.x);
 		projection.y = segStart.y + u * (segEnd.y - segStart.y);
 
-		return core::algo::haversine_distance(point, projection);
+		return core::algo::euclidean_distance(point, projection);
 	}
 
 	Node* TacticalPlanningModule::find_nearest_node(const Coordinates& coords, RoadNetwork& road_network) {
@@ -245,7 +245,7 @@ namespace tjs::core::simulation {
 		double min_distance = std::numeric_limits<double>::max();
 
 		for (const auto& [id, node] : road_network.nodes) {
-			double dist = core::algo::haversine_distance(node->coordinates, coords);
+			double dist = core::algo::euclidean_distance(node->coordinates, coords);
 			if (dist < min_distance) {
 				min_distance = dist;
 				nearest = node;

@@ -242,7 +242,7 @@ TEST_F(VehicleMovementModuleTest, LaneTransitionWhenReachingEnd) {
 	agent.vehicle->current_lane = &testLane;
 
 	// Set s_on_lane to almost reach the end of the lane
-	double laneLength = tjs::core::algo::haversine_distance(testLane.centerLine.front(), testLane.centerLine.back());
+	double laneLength = tjs::core::algo::euclidean_distance(testLane.centerLine.front(), testLane.centerLine.back());
 	agent.vehicle->s_on_lane = laneLength - 0.0001; // Almost at the end
 
 	// Create a target lane
@@ -273,7 +273,7 @@ TEST_F(VehicleMovementModuleTest, NoLaneTransitionWhenNoTargetLane) {
 	agent.vehicle->current_lane = &testLane;
 
 	// Set s_on_lane to almost reach the end of the lane
-	double laneLength = tjs::core::algo::haversine_distance(testLane.centerLine.front(), testLane.centerLine.back());
+	double laneLength = tjs::core::algo::euclidean_distance(testLane.centerLine.front(), testLane.centerLine.back());
 	agent.vehicle->s_on_lane = laneLength - 0.0001; // Almost at the end
 
 	// No target lane set
@@ -302,7 +302,7 @@ TEST_F(VehicleMovementModuleTest, MovementDistanceIsLimitedByLaneLength) {
 	agent.vehicle->current_lane = &testLane;
 
 	// Set s_on_lane to middle of lane
-	double laneLength = tjs::core::algo::haversine_distance(testLane.centerLine.front(), testLane.centerLine.back());
+	double laneLength = tjs::core::algo::euclidean_distance(testLane.centerLine.front(), testLane.centerLine.back());
 	agent.vehicle->s_on_lane = laneLength / 2.0;
 
 	// Update time with large delta to try to move beyond lane

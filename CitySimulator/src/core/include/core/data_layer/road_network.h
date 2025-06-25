@@ -26,25 +26,28 @@ namespace tjs::core {
 		Backward };
 
 	struct Lane {
-		Edge* parent;
-		LaneOrientation orientation;
-		double width;
-		double length;
+		Edge* parent = nullptr;
+		LaneOrientation orientation = LaneOrientation::Forward;
+		double width = 0.0;
+		double length = 0.0;
 		std::vector<Coordinates> centerLine;
-		TurnDirection turn;
+		TurnDirection turn = TurnDirection::None;
 		std::vector<Lane*> outgoing_connections;
 		std::vector<Lane*> incoming_connections;
-
-		int id;
 		Lane() {
 			static int __id = 0;
-			this->id = __id++;
+			this->_id = __id++;
 		}
 		Lane(Lane&&) = default;
 		Lane& operator=(Lane&&) = default;
 		Lane(const Lane&) = default;
 		Lane& operator=(const Lane&) = default;
 		~Lane() = default;
+
+	int get_id() const { return _id; }
+
+	private:
+		int _id;
 	};
 
 	struct Edge {

@@ -12,7 +12,7 @@ namespace tjs::core::algo {
 		return radians * MathConstants::RAD_TO_DEG;
 	}
 
-	double haversine_distance(const Coordinates& a, const Coordinates& b) {
+	double euclidean_distance(const Coordinates& a, const Coordinates& b) {
 		double dx = b.x - a.x;
 		double dy = b.y - a.y;
 		return std::sqrt(dx * dx + dy * dy);

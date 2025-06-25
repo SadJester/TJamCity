@@ -1,34 +1,25 @@
 #include <stdafx.h>
 #include <common/message_dispatcher/message_dispatcher.h>
 #include <common/message_dispatcher/connection.h>
+
+#include <message_dispatcher/test_events.h>
+
 #include <gtest/gtest.h>
 
 using namespace tjs::common;
 
 // Test event types
-struct TestEvent : public Event {
-	int value = 0;
 
-	TestEvent(int value)
-		: value(value) {}
-};
-
-struct AnotherEvent : public Event {
-	std::string message;
-
-	AnotherEvent(const std::string& message)
-		: message(message) {}
-};
 
 // Test handler class
 class TestHandler {
 public:
-	void HandleTestEvent(const TestEvent& event) {
+	void HandleTestEvent(const tests::TestEvent& event) {
 		last_value = event.value;
 		call_count++;
 	}
 
-	void HandleAnotherEvent(const AnotherEvent& event) {
+	void HandleAnotherEvent(const tests::AnotherEvent& event) {
 		last_message = event.message;
 		call_count++;
 	}
@@ -49,7 +40,7 @@ TEST(ConnectionTest, BasicConnection) {
 	EXPECT_TRUE(conn.is_connected());
 
 	// Create and dispatch event
-	TestEvent event { 42 };
+	tests::TestEvent event { 42 };
 	dispatcher.handle_message(event, "");
 
 	// Verify handler was called
@@ -68,7 +59,7 @@ TEST(ConnectionTest, AutomaticDisconnection) {
 	} // Connection should be automatically disis_connected here
 
 	// Create and dispatch event
-	TestEvent event { 42 };
+	tests::TestEvent event { 42 };
 	dispatcher.handle_message(event, "");
 
 	// Verify handler was not called (connection was disis_connected)
@@ -88,7 +79,7 @@ TEST(ConnectionTest, ManualDisconnection) {
 	EXPECT_FALSE(conn.is_connected());
 
 	// Create and dispatch event
-	TestEvent event { 42 };
+	tests::TestEvent event { 42 };
 	dispatcher.handle_message(event, "");
 
 	// Verify handler was not called
@@ -109,7 +100,7 @@ TEST(ConnectionTest, MoveConstruction) {
 	EXPECT_TRUE(moved.is_connected());     // New connection should be active
 
 	// Create and dispatch event
-	TestEvent event { 42 };
+	tests::TestEvent event { 42 };
 	dispatcher.handle_message(event, "");
 
 	// Verify handler was called through the moved connection
@@ -132,7 +123,7 @@ TEST(ConnectionTest, MoveAssignment) {
 	EXPECT_TRUE(conn1.is_connected());  // Destination should be active
 
 	// Create and dispatch event
-	TestEvent event { 42 };
+	tests::TestEvent event { 42 };
 	dispatcher.handle_message(event, "");
 
 	// Verify only handler2 was called (handler1's connection was replaced)
@@ -150,7 +141,7 @@ TEST(ConnectionTest, PublisherSpecificConnection) {
 	EXPECT_TRUE(conn.is_connected());
 
 	// Create event
-	TestEvent event { 42 };
+	tests::TestEvent event { 42 };
 
 	// Dispatch from matching publisher
 	dispatcher.handle_message(event, "publisher1");
@@ -172,8 +163,8 @@ TEST(ConnectionTest, MultipleConnections) {
 	Connection conn2(dispatcher, handler, &TestHandler::HandleAnotherEvent, "another_handler", "");
 
 	// Create and dispatch events
-	TestEvent test_event { 42 };
-	AnotherEvent another_event { "test message" };
+	tests::TestEvent test_event { 42 };
+	tests::AnotherEvent another_event { "test message" };
 
 	dispatcher.handle_message(test_event, "");
 	dispatcher.handle_message(another_event, "");

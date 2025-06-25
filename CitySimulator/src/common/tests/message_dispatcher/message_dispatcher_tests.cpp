@@ -1,32 +1,19 @@
 #include <common/stdafx.h>
 #include <common/message_dispatcher/message_dispatcher.h>
 
+#include <message_dispatcher/test_events.h>
+
 using namespace tjs::common;
-
-// Test event types
-struct TestEvent : public Event {
-	int value = 0;
-
-	TestEvent(int value)
-		: value(value) {}
-};
-
-struct AnotherEvent : public Event {
-	std::string message;
-
-	AnotherEvent(const std::string& message)
-		: message(message) {}
-};
 
 // Test handler class
 class TestHandler {
 public:
-	void HandleTestEvent(const TestEvent& event) {
+	void HandleTestEvent(const tests::TestEvent& event) {
 		last_value = event.value;
 		call_count++;
 	}
 
-	void HandleAnotherEvent(const AnotherEvent& event) {
+	void HandleAnotherEvent(const tests::AnotherEvent& event) {
 		last_message = event.message;
 		call_count++;
 	}
@@ -37,7 +24,7 @@ public:
 };
 
 // Free function handler
-void FreeFunctionHandler(const TestEvent& event) {
+void FreeFunctionHandler(const tests::TestEvent& event) {
 	static int last_value = 0;
 	last_value = event.value;
 }
@@ -50,7 +37,7 @@ TEST(MessageDispatcherTest, RegisterAndHandleMemberFunction) {
 	dispatcher.register_handler(handler, &TestHandler::HandleTestEvent, "test_handler");
 
 	// Create and dispatch event
-	TestEvent event { 42 };
+	tests::TestEvent event { 42 };
 	dispatcher.handle_message(event, "");
 
 	// Verify handler was called
@@ -67,8 +54,8 @@ TEST(MessageDispatcherTest, RegisterAndHandleMultipleEvents) {
 	dispatcher.register_handler(handler, &TestHandler::HandleAnotherEvent, "another_handler");
 
 	// Create and dispatch events
-	TestEvent test_event { 42 };
-	AnotherEvent another_event { "test message" };
+	tests::TestEvent test_event { 42 };
+	tests::AnotherEvent another_event { "test message" };
 
 	dispatcher.handle_message(test_event, "");
 	dispatcher.handle_message(another_event, "");
@@ -86,7 +73,7 @@ TEST(MessageDispatcherTest, RegisterAndHandleFreeFunction) {
 	dispatcher.register_handler(&FreeFunctionHandler, "free_handler", "");
 
 	// Create and dispatch event
-	TestEvent event { 42 };
+	tests::TestEvent event { 42 };
 	dispatcher.handle_message(event, "");
 
 	// Note: We can't easily verify the free function was called
@@ -102,7 +89,7 @@ TEST(MessageDispatcherTest, PublisherSpecificHandling) {
 	dispatcher.register_handler(handler, &TestHandler::HandleTestEvent, "test_handler", "publisher1");
 
 	// Create event
-	TestEvent event { 42 };
+	tests::TestEvent event { 42 };
 
 	// Dispatch from matching publisher
 	dispatcher.handle_message(event, "publisher1");
@@ -123,10 +110,10 @@ TEST(MessageDispatcherTest, unregister_handler) {
 	dispatcher.register_handler(handler, &TestHandler::HandleTestEvent, "test_handler");
 
 	// Unregister handler
-	dispatcher.unregister_handler<TestEvent>("test_handler");
+	dispatcher.unregister_handler<tests::TestEvent>("test_handler");
 
 	// Create and dispatch event
-	TestEvent event { 42 };
+	tests::TestEvent event { 42 };
 	dispatcher.handle_message(event, "");
 
 	// Verify handler was not called
@@ -141,10 +128,10 @@ TEST(MessageDispatcherTest, UnregisterPublisherSpecificHandler) {
 	dispatcher.register_handler(handler, &TestHandler::HandleTestEvent, "test_handler", "publisher1");
 
 	// Unregister handler
-	dispatcher.unregister_handler<TestEvent>("test_handler", "publisher1");
+	dispatcher.unregister_handler<tests::TestEvent>("test_handler", "publisher1");
 
 	// Create and dispatch event
-	TestEvent event { 42 };
+	tests::TestEvent event { 42 };
 	dispatcher.handle_message(event, "publisher1");
 
 	// Verify handler was not called
@@ -161,7 +148,7 @@ TEST(MessageDispatcherTest, MultipleHandlersForSameEvent) {
 	dispatcher.register_handler(handler2, &TestHandler::HandleTestEvent, "handler2");
 
 	// Create and dispatch event
-	TestEvent event { 42 };
+	tests::TestEvent event { 42 };
 	dispatcher.handle_message(event, "");
 
 	// Verify both handlers were called
@@ -180,7 +167,7 @@ TEST(MessageDispatcherTest, DuplicateRegistration) {
 	dispatcher.register_handler(handler, &TestHandler::HandleTestEvent, "test_handler");
 
 	// Create and dispatch event
-	TestEvent event { 42 };
+	tests::TestEvent event { 42 };
 	dispatcher.handle_message(event, "");
 
 	// Verify handler was called only once

@@ -18,7 +18,7 @@ namespace tjs::core::algo {
 		std::unordered_set<Node*> closed_set;
 
 		g_score[source] = 0.0;
-		double h_start = core::algo::haversine_distance(source->coordinates, target->coordinates);
+		double h_start = core::algo::euclidean_distance(source->coordinates, target->coordinates);
 		open_set.emplace(h_start, source);
 
 		while (!open_set.empty()) {
@@ -54,7 +54,7 @@ namespace tjs::core::algo {
 				if (!g_score.count(neighbor) || tentative_g < g_score[neighbor]) {
 					came_from[neighbor] = current;
 					g_score[neighbor] = tentative_g;
-					double h = core::algo::haversine_distance(neighbor->coordinates, target->coordinates);
+					double h = core::algo::euclidean_distance(neighbor->coordinates, target->coordinates);
 					open_set.emplace(tentative_g + h, neighbor);
 				}
 			}
@@ -104,7 +104,7 @@ namespace tjs::core::algo {
 		std::unordered_set<Node*> closed_set;
 
 		g_score[source] = 0.0;
-		double h_start = core::algo::haversine_distance(source->coordinates, target->coordinates);
+		double h_start = core::algo::euclidean_distance(source->coordinates, target->coordinates);
 		open_set.emplace(h_start, source);
 
 		while (!open_set.empty()) {
@@ -139,7 +139,7 @@ namespace tjs::core::algo {
 					came_from[neighbor] = current;
 					came_by_edge[neighbor] = edge;
 					g_score[neighbor] = tentative_g;
-					double h = core::algo::haversine_distance(neighbor->coordinates, target->coordinates);
+					double h = core::algo::euclidean_distance(neighbor->coordinates, target->coordinates);
 					open_set.emplace(tentative_g + h, neighbor);
 				}
 			}

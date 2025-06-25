@@ -36,7 +36,9 @@ namespace tjs {
 			_speedSpinBox->setRange(0.1, 100.0);
 			_speedSpinBox->setSingleStep(0.5);
 			_speedSpinBox->setValue(_application.simulationSystem().timeModule().state().timeMultiplier);
-			connect(_speedSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &TimeControlWidget::onMultiplierChanged);
+			connect(_speedSpinBox, &QDoubleSpinBox::editingFinished, [this]() {
+				onMultiplierChanged(_speedSpinBox->value());
+			});
 			layout->addWidget(_speedSpinBox);
 
 			// Create time label

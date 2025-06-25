@@ -27,7 +27,7 @@ namespace tjs::core::algo {
 			Coordinates start = offset_coordinate(start_node->coordinates, heading, offset);
 			Coordinates end = offset_coordinate(end_node->coordinates, heading, offset);
 			lane.centerLine = { start, end };
-			lane.length = haversine_distance(start, end);
+			lane.length = euclidean_distance(start, end);
 
 			auto turn_direction = core::TurnDirection::None;
 			if (orientation == LaneOrientation::Backward) {
@@ -67,7 +67,7 @@ namespace tjs::core::algo {
 				Node* next = nodes[i + 1];
 
 				// Calculate distance between nodes
-				double dist = haversine_distance(current->coordinates, next->coordinates);
+				double dist = euclidean_distance(current->coordinates, next->coordinates);
 
 				// Add edges based on way direction and lanes
 				if (way->isOneway) {

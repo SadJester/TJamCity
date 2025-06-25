@@ -16,8 +16,6 @@ namespace tjs::core {
 
 			_timeState.simulationTime += _timeState.timeDelta;
 			_timeState.unscaledsimulationTime += realTimeDelta;
-
-			_timeState.stepRequested = false;
 		}
 	}
 
@@ -30,6 +28,10 @@ namespace tjs::core {
 	}
 
 	void TimeModule::set_time_multiplier(double value) {
+		if (value <= 0.0) {
+			// TODO: algo error handling
+			throw std::invalid_argument("Time multiplier must be positive");
+		}
 		_timeState.timeMultiplier = value;
 	}
 
@@ -49,6 +51,7 @@ namespace tjs::core {
 	void TimeModule::step() {
 		_timeState.stepRequested = true;
 		update(_stepDelta);
+		_timeState.stepRequested = false;
 	}
 
 } // namespace tjs::core
