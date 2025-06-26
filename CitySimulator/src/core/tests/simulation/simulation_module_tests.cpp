@@ -1,41 +1,23 @@
 #include "stdafx.h"
 
-#include <data_loader_mixin.h>
-#include <core/data_layer/world_creator.h>
-#include <core/data_layer/world_data.h>
 #include <core/simulation/simulation_system.h>
-#include <core/store_models/vehicle_analyze_data.h>
-#include <core/random_generator.h>
+#include <core/data_layer/world_creator.h>
+
+#include <data_loader_mixin.h>
+#include <simulation/simulation_tests_common.h>
 
 using namespace tjs::core;
 using namespace tjs::core::simulation;
 
-class SimulationModuleTest : public ::testing::Test, tjs::core::tests::DataLoaderMixin {
+class SimulationModuleTest 
+	: public ::testing::Test
+	, public ::tests::DataLoaderMixin
+	, public ::tests::SimulationTestsCommon {
 protected:
-	WorldData world;
-	model::DataModelStore store;
-	std::unique_ptr<TrafficSimulationSystem> system;
-
 	void SetUp() override {
 		ASSERT_TRUE(WorldCreator::loadOSMData(world, data_file("simple_grid.osmx").string()));
 
-		Vehicle v {};
-		v.uid = 1;
-		v.type = VehicleType::SimpleCar;
-		v.currentSpeed = 0.0f;
-		v.maxSpeed = 60.0f;
-		v.coordinates = world.segments().front()->nodes.begin()->second->coordinates;
-		v.currentWay = nullptr;
-		v.currentSegmentIndex = 0;
-		v.current_lane = nullptr;
-		v.s_on_lane = 0.0;
-		v.lateral_offset = 0.0;
-		world.vehicles().push_back(v);
-
-		store.add_model<model::VehicleAnalyzeData>();
-		system = std::make_unique<TrafficSimulationSystem>(world, store);
-		system->initialize();
-		RandomGenerator::set_seed(42);
+		create_basic_system();
 	}
 };
 

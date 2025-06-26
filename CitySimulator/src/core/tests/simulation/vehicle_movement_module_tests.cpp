@@ -1,18 +1,15 @@
 #include "stdafx.h"
 
-#include <data_loader_mixin.h>
-
 #include <core/data_layer/world_creator.h>
-#include <core/data_layer/world_data.h>
 #include <core/simulation/simulation_system.h>
 #include <core/simulation/movement/vehicle_movement_module.h>
-#include <core/store_models/vehicle_analyze_data.h>
-#include <core/random_generator.h>
 #include <core/data_layer/road_network.h>
 #include <core/math_constants.h>
 #include <core/map_math/earth_math.h>
 
-#include <filesystem>
+#include <simulation/simulation_tests_common.h>
+#include <data_loader_mixin.h>
+
 
 using namespace tjs::core;
 using namespace tjs::core::simulation;
@@ -26,32 +23,15 @@ static Coordinates make_latlon(double lat, double lon) {
 	return c;
 }
 
-class VehicleMovementModuleTest : public ::testing::Test, public tjs::core::tests::DataLoaderMixin {
+class VehicleMovementModuleTest 
+	: public ::testing::Test
+	, public ::tests::DataLoaderMixin
+	, public ::tests::SimulationTestsCommon {
 protected:
-	WorldData world;
-	model::DataModelStore store;
-	std::unique_ptr<TrafficSimulationSystem> system;
-
 	void SetUp() override {
 		ASSERT_TRUE(WorldCreator::loadOSMData(world, data_file("simple_grid.osmx").string()));
 
-		Vehicle v {};
-		v.uid = 1;
-		v.type = VehicleType::SimpleCar;
-		v.currentSpeed = 0.0f;
-		v.maxSpeed = 60.0f;
-		v.coordinates = world.segments().front()->nodes.begin()->second->coordinates;
-		v.currentWay = nullptr;
-		v.currentSegmentIndex = 0;
-		v.current_lane = nullptr;
-		v.s_on_lane = 0.0;
-		v.lateral_offset = 0.0;
-		world.vehicles().push_back(v);
-
-		store.add_model<model::VehicleAnalyzeData>();
-		system = std::make_unique<TrafficSimulationSystem>(world, store);
-		system->initialize();
-		RandomGenerator::set_seed(42);
+		create_basic_system();
 	}
 
 	// Helper method to create a simple lane for testing
