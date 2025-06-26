@@ -19,6 +19,7 @@ namespace tjs::core::simulation {
 	}
 
 	void VehicleMovementModule::update() {
+		TJS_TRACY_NAMED("VehicleMovement_Update");
 		auto& agents = _system.agents();
 
 		for (size_t i = 0; i < agents.size(); ++i) {

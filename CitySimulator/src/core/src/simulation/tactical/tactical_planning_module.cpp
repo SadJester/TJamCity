@@ -22,6 +22,7 @@ namespace tjs::core::simulation {
 	}
 
 	void TacticalPlanningModule::update() {
+		TJS_TRACY_NAMED("TacticalPlanning_Update");
 		auto& agents = _system.agents();
 		for (size_t i = 0; i < agents.size(); ++i) {
 			update_agent_tactics(agents[i]);
@@ -58,6 +59,7 @@ namespace tjs::core::simulation {
 	}
 
 	void TacticalPlanningModule::update_agent_tactics(core::AgentData& agent) {
+		TJS_TRACY_NAMED("TacticalPlanning_UpdateAgent");
 		using namespace tjs::core;
 
 		if (agent.vehicle == nullptr || agent.currentGoal == nullptr) {

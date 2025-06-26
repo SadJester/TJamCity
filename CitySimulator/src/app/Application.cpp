@@ -51,6 +51,7 @@ namespace tjs {
 		auto lastTimeSaveSettings = lastFrameTime;
 		auto prevFrameStart = lastFrameTime;
 		while (!isFinished()) {
+			TJS_TRACY_NAMED("MainLoop");
 			// Record the start time of this frame
 			auto frameStart = std::chrono::high_resolution_clock::now();
 
@@ -107,6 +108,7 @@ namespace tjs {
 			_frameStats.fps().update(fps);
 			_frameStats.set_frame_time(frameDuration);
 
+			TJS_FRAME_MARK;
 			// Calculate how long to sleep to maintain target FPS
 			duration sleepTime = targetFrameTime - frameDuration;
 			// If we're running faster than the target FPS, sleep for the remaining time
