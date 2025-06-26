@@ -95,6 +95,10 @@ namespace tjs::render {
 					RendererMouseEvent mouseEvent;
 					mouseEvent.x = event.button.x;
 					mouseEvent.y = event.button.y;
+					SDL_Keymod mods = SDL_GetModState();
+					mouseEvent.shift = (mods & SDL_KMOD_SHIFT) != 0;
+					mouseEvent.ctrl = (mods & SDL_KMOD_CTRL) != 0;
+					mouseEvent.alt = (mods & SDL_KMOD_ALT) != 0;
 
 					if (event.type == SDL_EVENT_MOUSE_MOTION) {
 						// Handle motion separately if needed

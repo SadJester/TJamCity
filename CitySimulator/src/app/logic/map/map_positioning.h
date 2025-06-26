@@ -8,18 +8,18 @@ namespace tjs {
 
 namespace tjs::visualization {
 
-	class MapRenderEventsListener : public render::IRenderEventListener {
+	class MapPositioning : public render::IRenderEventListener {
 	public:
-		explicit MapRenderEventsListener(Application& app);
+		explicit MapPositioning(Application& app);
 		void on_mouse_event(const render::RendererMouseEvent& event) override;
 		void on_mouse_wheel_event(const render::RendererMouseWheelEvent& event) override;
 		void on_key_event(const render::RendererKeyEvent& event) override;
 
+		void update_map_positioning();
+
 	private:
 		Application& _application;
 		float _maxDistance;
-
-		static double get_changed_step(double metersPerPixel);
 	};
 
 } // namespace tjs::visualization

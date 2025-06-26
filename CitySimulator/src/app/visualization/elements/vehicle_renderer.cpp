@@ -20,34 +20,25 @@ namespace tjs::visualization {
 		: SceneNode("VehicleRenderer")
 		, _application(application)
 		, _mapRendererData(*application.stores().get_model<core::model::MapRendererData>())
-		, _cache(*application.stores().get_model<core::model::PersistentRenderData>()) {
+		, _vehicleTargeting(application) {
 	}
 
 	VehicleRenderer::~VehicleRenderer() {
+		_application.renderer().unregister_event_listener(&_vehicleTargeting);
 	}
 
 	void VehicleRenderer::init() {
 		_mapRendererData = *_application.stores().get_model<core::model::MapRendererData>();
+		_application.renderer().register_event_listener(&_vehicleTargeting);
 	}
 
 	void VehicleRenderer::update() {
-		_cache.vehicles.clear();
-		for (auto& vehicle : _application.worldData().vehicles()) {
-			VehicleRenderInfo info;
-			info.vehicle = &vehicle;
-			info.screenPos = tjs::visualization::convert_to_screen(
-				vehicle.coordinates,
-				_mapRendererData.projectionCenter,
-				_mapRendererData.screen_center,
-				_mapRendererData.metersPerPixel);
-			_cache.vehicles.push_back(info);
-		}
 	}
 
 	void VehicleRenderer::render(IRenderer& renderer) {
 		TJS_TRACY_NAMED("BehicleRenderer_Render");
-		for (auto& info : _cache.vehicles) {
-			render(renderer, *info.vehicle, info.screenPos);
+		for (auto& vehicle : _application.worldData().vehicles()) {
+			render(renderer, vehicle);
 		}
 	}
 
@@ -73,7 +64,7 @@ namespace tjs::visualization {
 		}
 	};
 
-	void VehicleRenderer::render(IRenderer& renderer, const core::Vehicle& vehicle, const tjs::Position& cachedPos) {
+	void VehicleRenderer::render(IRenderer& renderer, const core::Vehicle& vehicle) {
 		const float metersPerPixel = _mapRendererData.metersPerPixel;
 
 		// Get the settings for the vehicle based on its type
@@ -83,8 +74,12 @@ namespace tjs::visualization {
 		renderer.set_draw_color(settings.color);
 
 		// Convert coordinates to screen coordinates
-		int screenX = cachedPos.x;
-		int screenY = cachedPos.y;
+		auto screenPos = tjs::visualization::convert_to_screen(
+			vehicle.coordinates,
+			_mapRendererData.screen_center,
+			_mapRendererData.metersPerPixel);
+		int screenX = screenPos.x;
+		int screenY = screenPos.y;
 
 		if (!_application.renderer().is_point_visible(screenX, screenY)) {
 			return;
@@ -95,12 +90,14 @@ namespace tjs::visualization {
 		const float widthInPixels = scaler * settings.width / metersPerPixel;
 		const float lengthInPixels = scaler * settings.length / metersPerPixel;
 
-		// Define vertices for the rectangle
+		// Define vertices for the rectangle. The vehicle length is aligned
+		// with the X-axis so that a rotation angle of 0 corresponds to
+		// a vehicle facing to the right.
 		Vertex vertices[4] = {
-			{ { screenX - widthInPixels / 2.0f, screenY - lengthInPixels / 2.0f }, settings.color, { 0.f, 0.f } }, // bottom-left
-			{ { screenX + widthInPixels / 2.0f, screenY - lengthInPixels / 2.0f }, settings.color, { 0.f, 0.f } }, // top-left
-			{ { screenX + widthInPixels / 2.0f, screenY + lengthInPixels / 2.0f }, settings.color, { 0.f, 0.f } }, // top-right
-			{ { screenX - widthInPixels / 2.0f, screenY + lengthInPixels / 2.0f }, settings.color, { 0.f, 0.f } }  // bottom-right
+			{ { screenX - lengthInPixels / 2.0f, screenY - widthInPixels / 2.0f }, settings.color, { 0.f, 0.f } }, // bottom-left
+			{ { screenX + lengthInPixels / 2.0f, screenY - widthInPixels / 2.0f }, settings.color, { 0.f, 0.f } }, // bottom-right
+			{ { screenX + lengthInPixels / 2.0f, screenY + widthInPixels / 2.0f }, settings.color, { 0.f, 0.f } }, // top-right
+			{ { screenX - lengthInPixels / 2.0f, screenY + widthInPixels / 2.0f }, settings.color, { 0.f, 0.f } }  // top-left
 		};
 
 		const float angle = vehicle.rotationAngle;

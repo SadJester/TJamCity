@@ -1,14 +1,28 @@
 #pragma once
 
+#include <nlohmann/json.hpp>
+
 namespace tjs {
 	struct Position {
 		int x = 0;
 		int y = 0;
+
+		Position() = default;
+		Position(int x_, int y_)
+			: x(x_)
+			, y(y_) {}
+		NLOHMANN_DEFINE_TYPE_INTRUSIVE(Position,
+			x,
+			y)
 	};
 
 	struct FPoint {
 		float x;
 		float y;
+
+		NLOHMANN_DEFINE_TYPE_INTRUSIVE(FPoint,
+			x,
+			y)
 	};
 	static_assert(sizeof(FPoint) == 8, "FPoint should be 8 bytes");
 	static_assert(std::is_pod<FPoint>::value, "FPoint should be POD");
@@ -18,6 +32,11 @@ namespace tjs {
 		float g;
 		float b;
 		float a; // Default alpha value is 1.0 (fully opaque)
+		NLOHMANN_DEFINE_TYPE_INTRUSIVE(FColor,
+			r,
+			g,
+			b,
+			a)
 	};
 	static_assert(sizeof(FColor) == 16, "FColor should be 16 bytes");
 	static_assert(std::is_pod<FColor>::value, "FColor should be POD");

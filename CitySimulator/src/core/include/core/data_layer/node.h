@@ -1,15 +1,20 @@
 #pragma once
 #include <core/enum_flags.h>
 #include <nlohmann/json.hpp>
+#include <vector>
 
 namespace tjs::core {
 	struct Coordinates {
 		double latitude;
 		double longitude;
+		double x;
+		double y;
 
 		NLOHMANN_DEFINE_TYPE_INTRUSIVE(Coordinates,
 			latitude,
-			longitude)
+			longitude,
+			x,
+			y)
 	};
 
 	ENUM_FLAG(NodeTags, char, None, TrafficLight, StopSign, Crosswalk, Way);
@@ -36,5 +41,11 @@ namespace tjs::core {
 		}
 	};
 	// static_assert(std::is_pod<Node>::value, "Data object expect to be POD");
+
+	struct Junction {
+		uint64_t uid;
+		Node* node;
+		std::vector<WayInfo*> connectedWays;
+	};
 
 } // namespace tjs::core

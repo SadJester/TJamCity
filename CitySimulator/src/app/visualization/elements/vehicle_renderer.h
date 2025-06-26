@@ -1,6 +1,7 @@
 #pragma once
 
 #include <visualization/scene_node.h>
+#include <logic/map/vehicle_targeting.h>
 
 namespace tjs {
 	class Application;
@@ -11,7 +12,6 @@ namespace tjs {
 
 		namespace model {
 			struct MapRendererData;
-			struct PersistentRenderData;
 		} // namespace model
 
 	} // namespace core
@@ -20,6 +20,7 @@ namespace tjs {
 
 namespace tjs::visualization {
 	class MapElement;
+	class VehicleTargeting;
 
 	class VehicleRenderer : public SceneNode {
 	public:
@@ -31,11 +32,11 @@ namespace tjs::visualization {
 		virtual void render(IRenderer& renderer) override;
 
 	private:
-		void render(IRenderer& renderer, const core::Vehicle& vehicle, const tjs::Position& pos);
+		void render(IRenderer& renderer, const core::Vehicle& vehicle);
 
 	private:
 		core::model::MapRendererData& _mapRendererData;
-		core::model::PersistentRenderData& _cache;
 		Application& _application;
+		VehicleTargeting _vehicleTargeting;
 	};
 } // namespace tjs::visualization

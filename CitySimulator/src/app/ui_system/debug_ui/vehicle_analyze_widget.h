@@ -3,6 +3,7 @@
 #include <QtWidgets>
 
 #include <core/events/simulation_events.h>
+#include <events/vehicle_events.h>
 
 namespace tjs::model {
 	struct VehicleAnalyzeData;
@@ -28,6 +29,7 @@ namespace tjs {
 		private:
 			void updateAgentDetails(const tjs::core::AgentData* agent);
 			void handle_simulation_initialized(const core::events::SimulationInitialized& event);
+			void handle_agent_selected(const events::AgentSelected& event);
 
 			Application& _application;
 			tjs::model::VehicleAnalyzeData* _model;
@@ -41,6 +43,7 @@ namespace tjs {
 			QLabel* _currentGoalValue;
 			QLabel* _currentStepGoalValue;
 			QLabel* _pathNodeCountValue;
+			QTreeWidget* _pathTreeWidget;
 		};
 	} // namespace ui
 } // namespace tjs

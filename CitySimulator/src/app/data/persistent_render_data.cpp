@@ -36,7 +36,6 @@ namespace tjs::visualization {
 			info.node = nodePtr.get();
 			info.screenPos = convert_to_screen(
 				nodePtr->coordinates,
-				render->projectionCenter,
 				render->screen_center,
 				render->metersPerPixel);
 			cache->nodes.emplace(uid, info);
@@ -50,7 +49,6 @@ namespace tjs::visualization {
 			for (auto* node : wayPtr->nodes) {
 				info.screenPoints.push_back(convert_to_screen(
 					node->coordinates,
-					render->projectionCenter,
 					render->screen_center,
 					render->metersPerPixel));
 
@@ -66,7 +64,6 @@ namespace tjs::visualization {
 			info.vehicle = &vehicle;
 			info.screenPos = convert_to_screen(
 				vehicle.coordinates,
-				render->projectionCenter,
 				render->screen_center,
 				render->metersPerPixel);
 			cache->vehicles.push_back(info);

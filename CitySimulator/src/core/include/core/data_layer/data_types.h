@@ -18,6 +18,10 @@ namespace tjs::core {
 		Count
 	};
 
+	ENUM(VehicleState, uint8_t,
+		Undefined, Stopped, Moving
+	)
+
 	struct Vehicle {
 		uint64_t uid;
 		float currentSpeed;
@@ -27,6 +31,10 @@ namespace tjs::core {
 		WayInfo* currentWay;
 		int currentSegmentIndex;
 		float rotationAngle; // orientation in radians
+		const Lane* current_lane;
+		double s_on_lane;
+		double lateral_offset;
+		VehicleState state;
 	};
 	static_assert(std::is_pod<Vehicle>::value, "Data object expect to be POD");
 
@@ -75,6 +83,7 @@ namespace tjs::core {
 		SegmentBoundingBox boundingBox;
 		std::unordered_map<uint64_t, std::unique_ptr<Node>> nodes;
 		std::unordered_map<uint64_t, std::unique_ptr<WayInfo>> ways;
+		std::unordered_map<uint64_t, std::unique_ptr<Junction>> junctions;
 
 		std::unique_ptr<RoadNetwork> road_network;
 		SpatialGrid spatialGrid;

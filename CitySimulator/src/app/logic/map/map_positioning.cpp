@@ -1,0 +1,119 @@
+#include "stdafx.h"
+#include "logic/map/map_positioning.h"
+#include "Application.h"
+#include "data/persistent_render_data.h"
+#include "data/simulation_debug_data.h"
+#include "data/map_renderer_data.h"
+#include <events/map_events.h>
+
+#include <cmath>
+#include <SDL3/SDL.h>
+#include <algorithm>
+#include <core/math_constants.h>
+
+namespace tjs::visualization {
+
+	MapPositioning::MapPositioning(Application& app)
+		: _application(app)
+		, _maxDistance(app.settings().render.map.selectionDistance) {}
+
+	void MapPositioning::on_mouse_event(const render::RendererMouseEvent& event) {
+		if (event.button != render::RendererMouseEvent::ButtonType::Left || event.state != render::RendererMouseEvent::ButtonState::Pressed) {
+			return;
+		}
+
+		auto* cache = _application.stores().get_model<core::model::PersistentRenderData>();
+		auto* debug = _application.stores().get_model<core::model::SimulationDebugData>();
+		if (!cache || !debug) {
+			return;
+		}
+
+		NodeRenderInfo* nearest = nullptr;
+		float bestDist = _maxDistance;
+		for (auto& [id, info] : cache->nodes) {
+			float dx = static_cast<float>(info.screenPos.x - event.x);
+			float dy = static_cast<float>(info.screenPos.y - event.y);
+			float dist = std::sqrt(dx * dx + dy * dy);
+			if (dist < bestDist) {
+				bestDist = dist;
+				nearest = &info;
+			}
+		}
+
+		if (debug->selectedNode) {
+			debug->selectedNode->selected = false;
+		}
+
+		if (nearest) {
+			nearest->selected = true;
+			debug->selectedNode = nearest;
+		} else {
+			debug->selectedNode = nullptr;
+		}
+
+		update_map_positioning();
+	}
+
+	void MapPositioning::on_mouse_wheel_event(const render::RendererMouseWheelEvent& event) {
+		auto* render_data = _application.stores().get_model<core::model::MapRendererData>();
+		if (!render_data) {
+			return;
+		}
+
+		double oldMPP = render_data->metersPerPixel;
+		double scale = event.deltaY > 0 ? 0.9 : 1.1;
+		double worldX = (event.x - render_data->screen_center.x) * oldMPP;
+		double worldY = (event.y - render_data->screen_center.y) * oldMPP;
+		double newMPP = oldMPP * scale;
+		render_data->set_meters_per_pixel(newMPP);
+		render_data->screen_center.x = static_cast<int>(event.x - worldX / newMPP);
+		render_data->screen_center.y = static_cast<int>(event.y - worldY / newMPP);
+
+		update_map_positioning();
+	}
+
+	void MapPositioning::on_key_event(const render::RendererKeyEvent& event) {
+		if (event.state != render::RendererKeyEvent::KeyState::Pressed) {
+			return;
+		}
+
+		auto* render_data = _application.stores().get_model<core::model::MapRendererData>();
+		if (!render_data) {
+			return;
+		}
+
+		int step = 50; // pixels to move
+
+		switch (event.keyCode) {
+			case SDLK_UP:
+				render_data->screen_center.y += step;
+				break;
+			case SDLK_DOWN:
+				render_data->screen_center.y -= step;
+				break;
+			case SDLK_LEFT:
+				render_data->screen_center.x += step;
+				break;
+			case SDLK_RIGHT:
+				render_data->screen_center.x -= step;
+				break;
+			default:
+				return;
+		}
+
+		update_map_positioning();
+	}
+
+	void MapPositioning::update_map_positioning() {
+		auto* render_data = _application.stores().get_model<core::model::MapRendererData>();
+		if (render_data) {
+			visualization::recalculate_map_data(_application);
+		}
+
+		auto& general_settings = _application.settings().general;
+		general_settings.screen_center = render_data->screen_center;
+		general_settings.zoomLevel = render_data->metersPerPixel;
+		_application.message_dispatcher().handle_message(events::MapPositioningChanged {}, "map");
+	}
+
+} // namespace tjs::visualization

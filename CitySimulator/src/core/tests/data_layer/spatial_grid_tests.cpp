@@ -4,21 +4,30 @@
 
 using namespace tjs::core;
 
+static Coordinates make_xy(double x, double y) {
+	Coordinates c {};
+	c.latitude = 0.0;
+	c.longitude = 0.0;
+	c.x = x;
+	c.y = y;
+	return c;
+}
+
 class SpatialGridTest : public ::testing::Test {
 protected:
 	void SetUp() override {
 		// Create test nodes
 		node1 = std::make_unique<Node>();
 		node1->uid = 1;
-		node1->coordinates = { 10.0, 20.0 };
+		node1->coordinates = make_xy(10.0, 20.0);
 
 		node2 = std::make_unique<Node>();
 		node2->uid = 2;
-		node2->coordinates = { 15.0, 25.0 };
+		node2->coordinates = make_xy(15.0, 25.0);
 
 		node3 = std::make_unique<Node>();
 		node3->uid = 3;
-		node3->coordinates = { 11.5, 22.5 };
+		node3->coordinates = make_xy(11.5, 22.5);
 
 		// Create test ways
 		way1 = std::make_unique<WayInfo>();
@@ -86,12 +95,12 @@ TEST_F(SpatialGridTest, AddMultipleWays) {
 
 /*
 =======================================
-Edge cases
+Edge_Contract cases
 ======================================
 */
 TEST_F(SpatialGridTest, NegativeCoordinates) {
 	auto negativeNode = std::make_unique<Node>();
-	negativeNode->coordinates = { -5.5, -10.5 };
+	negativeNode->coordinates = make_xy(-5.5, -10.5);
 
 	auto negativeWay = std::make_unique<WayInfo>();
 	negativeWay->nodes.push_back(negativeNode.get());
@@ -172,10 +181,9 @@ TEST_F(SpatialGridTest, AddManyWaysPerformance) {
 	// Create a grid of nodes
 	for (int i = 0; i < NUM_WAYS * NODES_PER_WAY; i++) {
 		auto node = std::make_unique<Node>();
-		node->coordinates = {
+		node->coordinates = make_xy(
 			static_cast<double>(i % 100),
-			static_cast<double>(i / 100)
-		};
+			static_cast<double>(i / 100));
 		nodes.push_back(std::move(node));
 	}
 
@@ -264,7 +272,7 @@ TEST_F(SpatialGridTest, GetWaysInCellMultipleWays) {
 
 TEST_F(SpatialGridTest, GetWaysInCellNegativeCoords) {
 	auto negativeNode = std::make_unique<Node>();
-	negativeNode->coordinates = { -5.5, -10.5 };
+	negativeNode->coordinates = make_xy(-5.5, -10.5);
 
 	auto negativeWay = std::make_unique<WayInfo>();
 	negativeWay->nodes.push_back(negativeNode.get());
@@ -297,7 +305,7 @@ TEST_F(SpatialGridTest, GetWaysByCoordinatesExisting) {
 	grid.add_way(way1.get());
 
 	// Test with node1's exact coordinates
-	Coordinates coords { 10.0, 20.0 };
+	Coordinates coords = make_xy(10.0, 20.0);
 	auto result = grid.get_ways_in_cell(coords);
 
 	ASSERT_TRUE(result.has_value());
@@ -309,7 +317,7 @@ TEST_F(SpatialGridTest, GetWaysByCoordinatesWithinCell) {
 	grid.add_way(way1.get());
 
 	// Coordinates that should map to same cell as node1 (10,20)
-	Coordinates coords { 10.7, 20.3 }; // Within (10.0-11.0, 20.0-21.0)
+	Coordinates coords = make_xy(10.7, 20.3); // Within (10.0-11.0, 20.0-21.0)
 	auto result = grid.get_ways_in_cell(coords);
 
 	ASSERT_TRUE(result.has_value());
@@ -319,13 +327,13 @@ TEST_F(SpatialGridTest, GetWaysByCoordinatesWithinCell) {
 
 TEST_F(SpatialGridTest, GetWaysByCoordinatesNonExisting) {
 	// Empty grid case
-	Coordinates coords { 0.0, 0.0 };
+	Coordinates coords = make_xy(0.0, 0.0);
 	auto result = grid.get_ways_in_cell(coords);
 	EXPECT_FALSE(result.has_value());
 
 	// Non-existent coordinates in non-empty grid
 	grid.add_way(way1.get());
-	coords = { 100.0, 100.0 };
+	coords = make_xy(100.0, 100.0);
 	result = grid.get_ways_in_cell(coords);
 	EXPECT_FALSE(result.has_value());
 }
@@ -334,14 +342,14 @@ TEST_F(SpatialGridTest, GetWaysByCoordinatesCellBoundary) {
 	grid.cellSize = 10.0; // Larger cells for boundary testing
 
 	auto boundaryNode = std::make_unique<Node>();
-	boundaryNode->coordinates = { 15.0, 25.0 };
+	boundaryNode->coordinates = make_xy(15.0, 25.0);
 
 	auto boundaryWay = std::make_unique<WayInfo>();
 	boundaryWay->nodes.push_back(boundaryNode.get());
 	grid.add_way(boundaryWay.get());
 
 	// Test right on cell boundary (15/10=1.5 → cell 1)
-	Coordinates coords { 15.0, 25.0 };
+	Coordinates coords = make_xy(15.0, 25.0);
 	auto result = grid.get_ways_in_cell(coords);
 
 	ASSERT_TRUE(result.has_value());
@@ -353,14 +361,14 @@ TEST_F(SpatialGridTest, GetWaysByCoordinatesNegativeValues) {
 	grid.cellSize = 5.0;
 
 	auto negativeNode = std::make_unique<Node>();
-	negativeNode->coordinates = { -12.3, -7.8 };
+	negativeNode->coordinates = make_xy(-12.3, -7.8);
 
 	auto negativeWay = std::make_unique<WayInfo>();
 	negativeWay->nodes.push_back(negativeNode.get());
 	grid.add_way(negativeWay.get());
 
 	// Should map to cell (-3,-2)
-	Coordinates coords { -12.3, -7.8 };
+	Coordinates coords = make_xy(-12.3, -7.8);
 	auto result = grid.get_ways_in_cell(coords);
 
 	ASSERT_TRUE(result.has_value());
@@ -372,7 +380,7 @@ TEST_F(SpatialGridTest, GetWaysByCoordinatesConstCorrectness) {
 	grid.add_way(way1.get());
 
 	const auto& constGrid = grid;
-	Coordinates coords { 10.0, 20.0 };
+	Coordinates coords = make_xy(10.0, 20.0);
 	auto result = constGrid.get_ways_in_cell(coords);
 
 	ASSERT_TRUE(result.has_value());

@@ -3,6 +3,7 @@
 #include <QWidget>
 #include <QPushButton>
 #include <QLabel>
+#include <QDoubleSpinBox>
 
 namespace tjs {
 	class Application;
@@ -17,8 +18,7 @@ namespace tjs {
 
 		private slots:
 			void onStartPauseClicked();
-			void onSpeedUpClicked();
-			void onSlowDownClicked();
+			void onMultiplierChanged(double value);
 			void onStepClicked();
 			void updateTimeLabel();
 			void updateButtonStates();
@@ -26,8 +26,7 @@ namespace tjs {
 		private:
 			Application& _application;
 			QPushButton* _startPauseButton;
-			QPushButton* _speedUpButton;
-			QPushButton* _slowDownButton;
+			QDoubleSpinBox* _speedSpinBox;
 			QPushButton* _stepButton;
 			QLabel* _timeLabel;
 			bool _isRunning = false;

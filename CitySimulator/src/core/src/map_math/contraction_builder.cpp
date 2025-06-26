@@ -1,11 +1,57 @@
 #include <core/stdafx.h>
 
 #include <core/map_math/contraction_builder.h>
+#include <core/map_math/earth_math.h>
 
 namespace tjs::core::algo {
+
+	Edge create_edge(Node* start_node, Node* end_node, WayInfo* way, double dist, core::LaneOrientation orientation) {
+		Edge edge;
+		edge.start_node = start_node;
+		edge.end_node = end_node;
+		edge.way = way;
+		edge.orientation = orientation;
+		edge.length = dist;
+
+		const size_t reserved_size = orientation == LaneOrientation::Forward ? way->lanesForward : way->lanesBackward;
+		edge.lanes.resize(reserved_size);
+
+		double heading = bearing(start_node->coordinates, end_node->coordinates);
+		const size_t lane_count = edge.lanes.size();
+		for (size_t l = 0; l < reserved_size; ++l) {
+			auto& lane = edge.lanes[l];
+			lane.parent = nullptr;
+			lane.orientation = orientation;
+			lane.width = way->laneWidth;
+			double offset = (static_cast<double>(l) - (static_cast<double>(lane_count - 1) / 2.0)) * lane.width;
+			Coordinates start = offset_coordinate(start_node->coordinates, heading, offset);
+			Coordinates end = offset_coordinate(end_node->coordinates, heading, offset);
+			lane.centerLine = { start, end };
+			lane.length = euclidean_distance(start, end);
+
+			auto turn_direction = core::TurnDirection::None;
+			if (orientation == LaneOrientation::Backward) {
+				if (l < way->forwardTurns.size()) {
+					turn_direction = way->forwardTurns[l];
+				}
+			}
+			else if (orientation == LaneOrientation::Forward) {
+				if (l < way->backwardTurns.size()) {
+					turn_direction = way->backwardTurns[l];
+				}
+			}
+			lane.turn = turn_direction;
+		}
+		return edge;
+	}
+
 	void ContractionBuilder::build_graph(core::RoadNetwork& network) {
 		// Clear previous data
 		network.adjacency_list.clear();
+		network.edges.clear();
+		network.edge_graph.clear();
+
+		std::unordered_map<Node*, std::vector<size_t>> edge_graph_indices;
 
 		for (const auto& [way_id, way] : network.ways) {
 			// Skip ways that are not suitable for cars
@@ -21,16 +67,14 @@ namespace tjs::core::algo {
 				Node* next = nodes[i + 1];
 
 				// Calculate distance between nodes
-				double dist = haversine_distance(current->coordinates, next->coordinates);
+				double dist = euclidean_distance(current->coordinates, next->coordinates);
 
 				// Add edges based on way direction and lanes
 				if (way->isOneway) {
-					// For one-way roads, only add forward direction
 					if (way->lanesForward > 0) {
 						network.adjacency_list[current].emplace_back(next, dist);
 					}
 				} else {
-					// For bidirectional roads, add edges based on lane count
 					if (way->lanesForward > 0) {
 						network.adjacency_list[current].emplace_back(next, dist);
 					}
@@ -38,121 +82,34 @@ namespace tjs::core::algo {
 						network.adjacency_list[next].emplace_back(current, dist);
 					}
 				}
+
+				if (way->lanesForward > 0) {
+					network.edges.push_back(create_edge(current, next, way, dist, LaneOrientation::Forward));
+					edge_graph_indices[current].push_back(network.edges.size() - 1);
+				}
+
+				if (!way->isOneway && way->lanesBackward > 0) {
+					network.edges.push_back(create_edge(next, current, way, dist, LaneOrientation::Backward));
+					edge_graph_indices[next].push_back(network.edges.size() - 1);
+				}
+
 				current->tags = current->tags | NodeTags::Way;
 				next->tags = current->tags | NodeTags::Way;
 			}
 		}
-	}
 
-	void ContractionBuilder::build_contraction_hierarchy(core::RoadNetwork& network) {
-		compute_node_priorities(network);
 
-		while (!priority_queue.empty()) {
-			auto node_id = get_next_node();
-			contract_node(network, node_id);
-		}
-	}
-
-	uint64_t ContractionBuilder::get_next_node() {
-		auto node = priority_queue.top();
-		priority_queue.pop();
-		return node.second;
-	}
-
-	int ContractionBuilder::calculate_required_shortcuts(RoadNetwork& network, uint64_t node_id) {
-		const auto& upward_edges = network.upward_graph[node_id];
-		const auto& downward_edges = network.downward_graph[node_id];
-
-		int shortcuts = 0;
-		for (const auto& in_edge : downward_edges) {
-			for (const auto& out_edge : upward_edges) {
-				if (should_add_shortcut(network, in_edge, out_edge)) {
-					shortcuts++;
-				}
-			}
-		}
-		return shortcuts;
-	}
-
-	void ContractionBuilder::compute_node_priorities(core::RoadNetwork& network) {
-		for (const auto& [node_id, node] : network.nodes) {
-			double priority = compute_edge_difference(network, node_id);
-			priority_queue.emplace(-priority, node_id); // Min-heap
-		}
-	}
-
-	double ContractionBuilder::compute_edge_difference(core::RoadNetwork& network, uint64_t node_id) {
-		// Рассчитываем разницу между добавляемыми shortcuts и удаляемыми ребрами
-		int original_edges = network.upward_graph[node_id].size() + network.downward_graph[node_id].size();
-
-		int shortcuts_needed = calculate_required_shortcuts(network, node_id);
-
-		return shortcuts_needed - original_edges;
-	}
-
-	void ContractionBuilder::contract_node(core::RoadNetwork& network, uint64_t node_id) {
-		auto& edges = network.upward_graph[node_id];
-		std::vector<Edge> downward_edges = network.downward_graph[node_id];
-
-		// Обрабатываем входящие и исходящие ребра
-		for (const auto& in_edge : downward_edges) {
-			for (const auto& out_edge : edges) {
-				if (should_add_shortcut(network, in_edge, out_edge)) {
-					add_shortcut(network, in_edge, out_edge, node_id);
-				}
+		for (auto& edge : network.edges) {
+			for (auto& lane : edge.lanes) {
+				lane.parent = &edge;
 			}
 		}
 
-		// Помечаем узел как обработанный
-		network.node_levels[node_id] = network.nodes.size() - priority_queue.size();
-
-		// Удаляем узел из графов
-		network.upward_graph.erase(node_id);
-		network.downward_graph.erase(node_id);
-	}
-
-	bool ContractionBuilder::should_add_shortcut(core::RoadNetwork& network,
-		const core::Edge& in_edge,
-		const core::Edge& out_edge) {
-		// Проверяем существование более короткого пути через другие ребра
-		return !has_witness_path(network, in_edge.target, out_edge.target,
-			in_edge.weight + out_edge.weight);
-	}
-
-	void ContractionBuilder::add_shortcut(core::RoadNetwork& network,
-		const core::Edge& in_edge,
-		const core::Edge& out_edge,
-		uint64_t contracted_node) {
-		double weight = in_edge.weight + out_edge.weight;
-		uint64_t shortcut_id = network.next_shortcut_id++;
-
-		// Добавляем shortcut в upward graph
-		network.upward_graph[in_edge.target].emplace_back(
-			out_edge.target,
-			weight,
-			true,
-			in_edge.is_shortcut ? in_edge.shortcut_id1 : in_edge.target,
-			out_edge.is_shortcut ? out_edge.shortcut_id2 : out_edge.target);
-
-		// Добавляем обратное ребро в downward graph
-		network.downward_graph[out_edge.target].emplace_back(
-			in_edge.target,
-			weight,
-			true,
-			in_edge.is_shortcut ? in_edge.shortcut_id1 : in_edge.target,
-			out_edge.is_shortcut ? out_edge.shortcut_id2 : out_edge.target);
-	}
-
-	bool ContractionBuilder::has_witness_path(core::RoadNetwork& network,
-		uint64_t from,
-		uint64_t to,
-		double limit) {
-		// Реализация witness search с использованием Dijkstra или A*
-		// Возвращает true, если найден путь короче limit
-		// Упрощенная реализация:
-		return haversine_distance(network.nodes[from]->coordinates,
-				   network.nodes[to]->coordinates)
-			   < limit;
+		for (const auto& [node, indices] : edge_graph_indices) {
+			for (const auto& index : indices) {
+				network.edge_graph[node].push_back(&network.edges[index]);
+			}
+		}
 	}
 
 } // namespace tjs::core::algo

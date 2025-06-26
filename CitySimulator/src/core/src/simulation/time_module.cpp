@@ -16,8 +16,6 @@ namespace tjs::core {
 
 			_timeState.simulationTime += _timeState.timeDelta;
 			_timeState.unscaledsimulationTime += realTimeDelta;
-
-			_timeState.stepRequested = false;
 		}
 	}
 
@@ -27,6 +25,14 @@ namespace tjs::core {
 
 	void TimeModule::slow_down() {
 		_timeState.timeMultiplier /= 1.1;
+	}
+
+	void TimeModule::set_time_multiplier(double value) {
+		if (value <= 0.0) {
+			// TODO: algo error handling
+			throw std::invalid_argument("Time multiplier must be positive");
+		}
+		_timeState.timeMultiplier = value;
 	}
 
 	const TimeState& TimeModule::state() const {
@@ -43,7 +49,9 @@ namespace tjs::core {
 		_timeState.isPaused = false;
 	}
 	void TimeModule::step() {
+		_timeState.stepRequested = true;
 		update(_stepDelta);
+		_timeState.stepRequested = false;
 	}
 
 } // namespace tjs::core

@@ -17,9 +17,11 @@ namespace tjs::core {
 		uint64_t id;
 		TacticalBehaviour behaviour;
 		core::Node* currentGoal;
+		core::Edge* current_goal;
 		core::Coordinates currentStepGoal;
 		tjs::core::Vehicle* vehicle;
-		std::deque<core::Node*> path; // Path to follow
+		std::vector<core::Edge*> path; // Path to follow
+		core::Lane* target_lane = nullptr;
 		std::vector<core::Node*> visitedNodes;
 		bool last_segment = false;
 		double distanceTraveled = 0.0; // Total distance traveled

@@ -32,9 +32,11 @@ namespace tjs::core::simulation {
 			_agents.push_back({ vehicles[i].uid,
 				TacticalBehaviour::Normal,
 				nullptr,
+				nullptr,
 				core::Coordinates { 0.0, 0.0 },
 				&vehicles[i],
 				{},
+				nullptr,
 				{},
 				false,
 				0.0,
@@ -55,6 +57,18 @@ namespace tjs::core::simulation {
 
 	void TrafficSimulationSystem::update(double realTimeDelta) {
 		_timeModule.update(realTimeDelta);
+
+		if (_timeModule.state().isPaused) {
+			return;
+		}
+
+		_strategicModule.update();
+		_tacticalModule.update();
+		_vehicleMovementModule.update();
+	}
+
+	void TrafficSimulationSystem::step() {
+		_timeModule.step();
 
 		_strategicModule.update();
 		_tacticalModule.update();

@@ -2,19 +2,19 @@
 
 #include <nlohmann/json.hpp>
 
-#include <core/data_layer/data_types.h>
+#include <render/render_primitives.h>
 
 namespace tjs::settings {
 
 	struct GeneralSettings {
 		std::string selectedFile;
-		core::Coordinates projectionCenter;
+		tjs::Position screen_center;
 		double zoomLevel;
 
 		static constexpr const char* NAME = "General";
 		NLOHMANN_DEFINE_TYPE_INTRUSIVE(GeneralSettings,
 			selectedFile,
-			projectionCenter,
+			screen_center,
 			zoomLevel)
 	};
 } // namespace tjs::settings

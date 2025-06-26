@@ -3,7 +3,6 @@
 #include "visualization/elements/map_element.h"
 
 #include "data/persistent_render_data.h"
-#include "visualization/map_render_events_listener.h"
 #include "data/simulation_debug_data.h"
 
 #include <render/render_base.h>
@@ -15,9 +14,49 @@
 #include <core/data_layer/world_data.h>
 #include <core/data_layer/data_types.h>
 #include <core/math_constants.h>
+#include <core/map_math/path_finder.h>
 
 namespace tjs::visualization {
 	using namespace tjs::core;
+
+	bool point_inside_screen(const Position& p, int w, int h) {
+		return p.x >= 0 && p.x <= w && p.y >= 0 && p.y <= h;
+	}
+
+	bool line_outside_screen(const Position& sp1, const Position& sp2, int w, int h) {
+		// Step 1: Check if either endpoint is inside screen
+		if (point_inside_screen(sp1, w, h) || point_inside_screen(sp2, w, h)) {
+			return false;
+		}
+
+		// Step 2: Check for intersection with any screen edge
+		// Define screen rectangle as lines
+		Position top_left = { 0, 0 };
+		Position top_right = { w, 0 };
+		Position bottom_left = { 0, h };
+		Position bottom_right = { w, h };
+
+		auto intersects = [](Position a1, Position a2, Position b1, Position b2) {
+			auto cross = [](Position p1, Position p2) {
+				return p1.x * p2.y - p1.y * p2.x;
+			};
+			Position r = { a2.x - a1.x, a2.y - a1.y };
+			Position s = { b2.x - b1.x, b2.y - b1.y };
+			Position diff = { b1.x - a1.x, b1.y - a1.y };
+			int denom = cross(r, s);
+			int num1 = cross(diff, s);
+			int num2 = cross(diff, r);
+			if (denom == 0) {
+				return false; // Parallel
+			}
+			double t = (double)num1 / denom;
+			double u = (double)num2 / denom;
+			return t >= 0 && t <= 1 && u >= 0 && u <= 1;
+		};
+
+		return !(
+			intersects(sp1, sp2, top_left, top_right) || intersects(sp1, sp2, top_right, bottom_right) || intersects(sp1, sp2, bottom_right, bottom_left) || intersects(sp1, sp2, bottom_left, top_left));
+	}
 
 	MapElement::MapElement(Application& application)
 		: SceneNode("MapElement")
@@ -25,11 +64,11 @@ namespace tjs::visualization {
 		, _render_data(*application.stores().get_model<model::MapRendererData>())
 		, _cache(*application.stores().get_model<core::model::PersistentRenderData>())
 		, _debugData(*application.stores().get_model<core::model::SimulationDebugData>())
-		, _listener(application) {
+		, _map_positioning(application) {
 	}
 
 	MapElement::~MapElement() {
-		_application.renderer().unregister_event_listener(&_listener);
+		_application.renderer().unregister_event_listener(&_map_positioning);
 	}
 
 	void MapElement::on_map_updated() {
@@ -40,24 +79,19 @@ namespace tjs::visualization {
 			auto_zoom(segments.front()->nodes);
 		}
 
+		auto& general_settings = _application.settings().general;
+
 		if (_current_file.empty()) {
 			_current_file = _application.settings().general.selectedFile;
-
-			auto render_data = _application.stores().get_model<core::model::MapRendererData>();
-			if (render_data) {
-				if (const auto& projectionCenter = _application.settings().general.projectionCenter;
-					projectionCenter.latitude != 0.0 || projectionCenter.longitude != 0.0) {
-					render_data->projectionCenter = _application.settings().general.projectionCenter;
-				}
-				render_data->metersPerPixel = _application.settings().general.zoomLevel;
-			}
+			_render_data.screen_center = general_settings.screen_center;
+			_render_data.metersPerPixel = general_settings.zoomLevel;
 		}
 
-		visualization::recalculate_map_data(_application);
+		_map_positioning.update_map_positioning();
 	}
 
 	void MapElement::init() {
-		_application.renderer().register_event_listener(&_listener);
+		_application.renderer().register_event_listener(&_map_positioning);
 		_application.message_dispatcher().register_handler(*this, &MapElement::handle_open_map_simulation_reinit, "project");
 	}
 
@@ -95,7 +129,9 @@ namespace tjs::visualization {
 		// Render network graph if enabled
 		if (draw_network) {
 			if (segment->road_network) {
+				render_lanes(renderer, *segment->road_network);
 				render_network_graph(renderer, *segment->road_network);
+				draw_network_nodes(*segment->road_network);
 			}
 		}
 	}
@@ -108,8 +144,8 @@ namespace tjs::visualization {
 		const auto& nodes = _cache.nodes;
 		bool filter = _render_data.networkOnlyForSelected && !_debugData.reachableNodes.empty();
 
-		// Render edges from adjacency list
-		for (const auto& [node, neighbors] : network.adjacency_list) {
+		// Render edges from edge graph
+		for (const auto& [node, edges] : network.edge_graph) {
 			const bool is_node_filtered = filter && !_debugData.reachableNodes.contains(node->uid);
 
 			auto it = nodes.find(node->uid);
@@ -118,7 +154,8 @@ namespace tjs::visualization {
 			}
 
 			const Position& start = it->second.screenPos;
-			for (const auto& [neighbor, weight] : neighbors) {
+			for (const Edge* edge : edges) {
+				Node* neighbor = edge->end_node;
 				const bool is_neighbor_filtered = filter && !_debugData.reachableNodes.contains(neighbor->uid);
 
 				auto itNeighbor = nodes.find(neighbor->uid);
@@ -126,27 +163,23 @@ namespace tjs::visualization {
 					continue;
 				}
 				const Position& end = itNeighbor->second.screenPos;
+				if (line_outside_screen(start, end, renderer.screen_width(), renderer.screen_height())) {
+					continue;
+				}
 
 				// Draw edge as a thin line
 				const FColor color = (is_node_filtered || is_neighbor_filtered) ? FColor { 0.8f, 0.0f, 0.0f, 0.5f } : FColor { 0.0f, 0.8f, 0.8f, 0.5f };
-
 				drawThickLine(renderer, { start, end }, _render_data.metersPerPixel, 0.8f, color);
 			}
 		}
-
-		draw_network_nodes(network);
 	}
 
 	Position convert_to_screen(
 		const Coordinates& coord,
-		const Coordinates& projection_center,
 		const Position& screen_center,
 		double meters_per_pixel) {
-		// Convert geographic coordinates to meters using Mercator projection
-		double x = (coord.longitude - projection_center.longitude) * MathConstants::DEG_TO_RAD * MathConstants::EARTH_RADIUS;
-		double y = -std::log(std::tan((90.0 + coord.latitude) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS;
-		double yCenter = -std::log(std::tan((90.0 + projection_center.latitude) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS;
-		y -= yCenter;
+		double x = coord.x;
+		double y = coord.y;
 
 		// Scale to screen coordinates
 		int screenX = static_cast<int>(screen_center.x + x / meters_per_pixel);
@@ -162,7 +195,6 @@ namespace tjs::visualization {
 	Position MapElement::convert_to_screen(const Coordinates& coord) const {
 		return tjs::visualization::convert_to_screen(
 			coord,
-			_render_data.projectionCenter,
 			_render_data.screen_center,
 			_render_data.metersPerPixel);
 	}
@@ -180,12 +212,10 @@ namespace tjs::visualization {
 		double minY = std::numeric_limits<double>::max();
 		double maxY = std::numeric_limits<double>::lowest();
 
-		double yCenter = -std::log(std::tan((90.0 + _render_data.projectionCenter.latitude) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS;
-
 		for (const auto& pair : nodes) {
 			const auto& node = pair.second;
-			double x = (node->coordinates.longitude - _render_data.projectionCenter.longitude) * MathConstants::DEG_TO_RAD * MathConstants::EARTH_RADIUS;
-			double y = -std::log(std::tan((90.0 + node->coordinates.latitude) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS - yCenter;
+			double x = node->coordinates.x;
+			double y = node->coordinates.y;
 
 			minX = std::min(minX, x);
 			maxX = std::max(maxX, x);
@@ -204,11 +234,11 @@ namespace tjs::visualization {
 
 		_render_data.set_meters_per_pixel(std::min(zoomX, zoomY));
 
-		// Recalculate screen center based on the new zoom level
-		_render_data.screen_center.x = renderer.screen_width() / 2.0;
-		_render_data.screen_center.y = renderer.screen_height() / 2.0;
+		double center_x = (minX + maxX) / 2.0;
+		double center_y = (minY + maxY) / 2.0;
 
-		_application.message_dispatcher().handle_message(events::MapPositioningChanged {}, "map");
+		_render_data.screen_center.x = static_cast<int>(renderer.screen_width() / 2.0 - center_x / _render_data.metersPerPixel);
+		_render_data.screen_center.y = static_cast<int>(renderer.screen_height() / 2.0 - center_y / _render_data.metersPerPixel);
 	}
 
 	void MapElement::calculate_map_bounds(const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {
@@ -217,6 +247,10 @@ namespace tjs::visualization {
 		max_lat = std::numeric_limits<float>::lowest();
 		min_lon = std::numeric_limits<float>::max();
 		max_lon = std::numeric_limits<float>::lowest();
+		min_x = std::numeric_limits<double>::max();
+		max_x = std::numeric_limits<double>::lowest();
+		min_y = std::numeric_limits<double>::max();
+		max_y = std::numeric_limits<double>::lowest();
 
 		// Iterate through all nodes to find min/max coordinates
 		for (const auto& pair : nodes) {
@@ -226,11 +260,11 @@ namespace tjs::visualization {
 			max_lat = std::max(max_lat, static_cast<float>(node->coordinates.latitude));
 			min_lon = std::min(min_lon, static_cast<float>(node->coordinates.longitude));
 			max_lon = std::max(max_lon, static_cast<float>(node->coordinates.longitude));
+			min_x = std::min(min_x, node->coordinates.x);
+			max_x = std::max(max_x, node->coordinates.x);
+			min_y = std::min(min_y, node->coordinates.y);
+			max_y = std::max(max_y, node->coordinates.y);
 		}
-
-		// Calculate the center of the bounding box
-		_render_data.projectionCenter.latitude = (min_lat + max_lat) / 2.0f;
-		_render_data.projectionCenter.longitude = (min_lon + max_lon) / 2.0f;
 	}
 
 	FColor MapElement::get_way_color(WayType type) const {
@@ -256,9 +290,9 @@ namespace tjs::visualization {
 				break;
 			case WayType::Emergency_Bay:
 			case WayType::Emergency_Access:
-			case WayType::Parking:
 				roadColor = Constants::EMERGENCY_COLOR;
 				break;
+			case WayType::Parking:
 			case WayType::Rest_Area:
 			case WayType::Services:
 				roadColor = Constants::SERVICE_AREA_COLOR;
@@ -283,18 +317,11 @@ namespace tjs::visualization {
 		screenPoints.reserve(way.nodes.size());
 		for (auto node : way.nodes) {
 			screenPoints.emplace_back(node->screenPos);
-
-			if (_application.renderer().is_point_visible(node->screenPos.x, node->screenPos.y)) {
-				hasVisiblePoints = true;
-			}
-		}
-
-		if (!hasVisiblePoints) {
-			return 0;
 		}
 
 		const FColor color = get_way_color(way.way->type);
-		const float lane_width = way.way->is_car_accessible() ? way.way->lanes * Constants::LANE_WIDTH : Constants::LANE_WIDTH / 2;
+
+		const float lane_width = way.way->is_car_accessible() ? way.way->lanes * way.way->laneWidth : way.way->laneWidth / 2;
 
 		int segmentsRendered = drawThickLine(_application.renderer(), screenPoints, _render_data.metersPerPixel, lane_width, color);
 
@@ -433,10 +460,10 @@ namespace tjs::visualization {
 
 	void MapElement::render_bounding_box() const {
 		// Convert all corners of the bounding box to screen coordinates
-		Position topLeft = convert_to_screen({ min_lat, min_lon });
-		Position topRight = convert_to_screen({ min_lat, max_lon });
-		Position bottomLeft = convert_to_screen({ max_lat, min_lon });
-		Position bottomRight = convert_to_screen({ max_lat, max_lon });
+		Position topLeft = convert_to_screen(Coordinates { 0.0, 0.0, min_x, min_y });
+		Position topRight = convert_to_screen(Coordinates { 0.0, 0.0, max_x, min_y });
+		Position bottomLeft = convert_to_screen(Coordinates { 0.0, 0.0, min_x, max_y });
+		Position bottomRight = convert_to_screen(Coordinates { 0.0, 0.0, max_x, max_y });
 
 		auto& renderer = _application.renderer();
 
@@ -470,6 +497,10 @@ namespace tjs::visualization {
 				Position p1 = nodes[i];
 				Position p2 = nodes[i + 1];
 
+				if (line_outside_screen(p1, p2, renderer.screen_width(), renderer.screen_height())) {
+					continue;
+				}
+
 				// Calculate perpendicular vector
 				float dx = p2.x - p1.x;
 				float dy = p2.y - p1.y;
@@ -482,10 +513,9 @@ namespace tjs::visualization {
 				float perpy = dx / len * offset;
 
 				// Draw dashed lane markers
-				float segmentLength = 5.0f; // meters
-				int segments = static_cast<int>(len / (segmentLength * _render_data.metersPerPixel));
-
-				for (int s = 0; s < segments; s += 2) {
+				static const float segmentLength = 5.0f; // meters
+				int segments = static_cast<int>(len / segmentLength);
+				for (int s = 0; s < segments; s += 3) {
 					float t1 = s / static_cast<float>(segments);
 					float t2 = (s + 1) / static_cast<float>(segments);
 
@@ -497,6 +527,10 @@ namespace tjs::visualization {
 						static_cast<int>(p1.x + t2 * dx + perpx),
 						static_cast<int>(p1.y + t2 * dy + perpy)
 					};
+
+					if (line_outside_screen(sp1, sp2, renderer.screen_width(), renderer.screen_height())) {
+						continue;
+					}
 
 					renderer.draw_line(sp1.x, sp1.y, sp2.x, sp2.y);
 
@@ -534,6 +568,11 @@ namespace tjs::visualization {
 
 	void draw_node(IRenderer& renderer, const NodeRenderInfo& node) {
 		const float circle_size = node.selected ? 5.0f : 3.0f;
+
+		if (!point_inside_screen(node.screenPos, renderer.screen_width(), renderer.screen_height())) {
+			return;
+		}
+
 		renderer.draw_circle(node.screenPos.x, node.screenPos.y, circle_size, true);
 	}
 
@@ -556,6 +595,83 @@ namespace tjs::visualization {
 				const FColor color = is_filtered ? FColor { 1.0f, 0.0f, 0.0f, 1.0f } : FColor { 0.0f, 1.0f, 0.0f, 1.0f };
 				renderer.set_draw_color(color);
 				draw_node(renderer, it->second);
+			}
+		}
+	}
+
+	static std::vector<const Edge*> edges;
+	static Node* selected_prev = nullptr;
+
+	void MapElement::render_lanes(IRenderer& renderer, const core::RoadNetwork& network) {
+		auto selected = _debugData.selectedNode;
+
+		if (selected && selected->node != selected_prev) {
+			edges.clear();
+
+			for (const auto& edge : network.edges) {
+				auto r = core::algo::PathFinder::find_edge_path_a_star(network, selected->node, edge.end_node);
+				if (!r.empty()) {
+					edges.push_back(&edge);
+				}
+			}
+
+			selected_prev = selected->node;
+		}
+
+		// Render lane centerlines and outgoing connections
+		for (const auto& edge : network.edges) {
+			if (selected && std::ranges::find(edges, &edge) == edges.end()) {
+				continue;
+			}
+
+			for (const auto& lane : edge.lanes) {
+				// Render lane centerline
+				if (lane.centerLine.size() >= 2) {
+					std::vector<Position> centerlinePoints;
+					centerlinePoints.reserve(lane.centerLine.size());
+
+					for (const auto& coord : lane.centerLine) {
+						centerlinePoints.push_back(convert_to_screen(coord));
+					}
+
+					// Draw centerline in white
+					renderer.set_draw_color({ 1.0f, 1.0f, 1.0f, 0.8f });
+					//drawThickLine(renderer, centerlinePoints, _render_data.metersPerPixel, 0.5f, { 1.0f, 1.0f, 1.0f, 0.8f });
+				}
+
+				// Render outgoing connections
+				for (const auto& outgoing_lane : lane.outgoing_connections) {
+					if (outgoing_lane && outgoing_lane->centerLine.size() >= 2) {
+						// Check if this connection is bidirectional (in incoming_connections)
+						bool is_bidirectional = false;
+						for (const auto& incoming_lane : outgoing_lane->incoming_connections) {
+							if (incoming_lane == &lane) {
+								is_bidirectional = true;
+								break;
+							}
+						}
+
+						// Choose color based on connection type
+						FColor connectionColor;
+						if (is_bidirectional) {
+							connectionColor = { 0.0f, 1.0f, 0.0f, 0.6f }; // Green for bidirectional
+						} else {
+							connectionColor = { 1.0f, 0.0f, 0.0f, 0.6f }; // Red for unidirectional
+						}
+
+						// Draw connection line from end of current lane to start of outgoing lane
+						if (!lane.centerLine.empty() && !outgoing_lane->centerLine.empty()) {
+							Position start = convert_to_screen(lane.centerLine.front());
+							Position end = convert_to_screen(outgoing_lane->centerLine.front());
+
+							// Only draw if both points are visible
+							if (!line_outside_screen(start, end, renderer.screen_width(), renderer.screen_height())) {
+								renderer.set_draw_color(connectionColor);
+								drawThickLine(renderer, { start, end }, _render_data.metersPerPixel, 0.5f, connectionColor);
+							}
+						}
+					}
+				}
 			}
 		}
 	}

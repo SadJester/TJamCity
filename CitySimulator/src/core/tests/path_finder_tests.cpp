@@ -1,20 +1,13 @@
 #include "stdafx.h"
 
+#include <data_loader_mixin.h>
 #include <core/data_layer/world_creator.h>
 #include <core/data_layer/world_data.h>
 #include <core/map_math/path_finder.h>
 
-#include <filesystem>
-
 using namespace tjs::core;
 
-namespace {
-	std::filesystem::path data_file(const char* name) {
-		return std::filesystem::path(__FILE__).parent_path() / "test_data" / name;
-	}
-} // namespace
-
-class PathFinderTest : public ::testing::Test {
+class PathFinderTest : public ::testing::Test, tjs::core::tests::DataLoaderMixin {
 protected:
 	WorldData world;
 
@@ -23,7 +16,7 @@ protected:
 	}
 };
 
-class ComplexStreetsTest : public ::testing::Test {
+class ComplexStreetsTest : public ::testing::Test, tjs::core::tests::DataLoaderMixin {
 protected:
 	WorldData world;
 

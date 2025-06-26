@@ -7,6 +7,7 @@
 #include <QTimer>
 #include <QWidget>
 #include <QHBoxLayout>
+#include <QDoubleSpinBox>
 
 #include <core/simulation/simulation_system.h>
 
@@ -30,14 +31,15 @@ namespace tjs {
 			connect(_stepButton, &QPushButton::clicked, this, &TimeControlWidget::onStepClicked);
 			layout->addWidget(_stepButton);
 
-			// Create speed control buttons
-			_speedUpButton = new QPushButton("Speed Up", this);
-			connect(_speedUpButton, &QPushButton::clicked, this, &TimeControlWidget::onSpeedUpClicked);
-			layout->addWidget(_speedUpButton);
-
-			_slowDownButton = new QPushButton("Slow Down", this);
-			connect(_slowDownButton, &QPushButton::clicked, this, &TimeControlWidget::onSlowDownClicked);
-			layout->addWidget(_slowDownButton);
+			// Create speed control spin box
+			_speedSpinBox = new QDoubleSpinBox(this);
+			_speedSpinBox->setRange(0.1, 100.0);
+			_speedSpinBox->setSingleStep(0.5);
+			_speedSpinBox->setValue(_application.simulationSystem().timeModule().state().timeMultiplier);
+			connect(_speedSpinBox, &QDoubleSpinBox::editingFinished, [this]() {
+				onMultiplierChanged(_speedSpinBox->value());
+			});
+			layout->addWidget(_speedSpinBox);
 
 			// Create time label
 			_timeLabel = new QLabel("Time: 0.0x", this);
@@ -66,18 +68,13 @@ namespace tjs {
 			updateButtonStates();
 		}
 
-		void TimeControlWidget::onSpeedUpClicked() {
-			_application.simulationSystem().timeModule().speed_up();
-			updateTimeLabel();
-		}
-
-		void TimeControlWidget::onSlowDownClicked() {
-			_application.simulationSystem().timeModule().slow_down();
+		void TimeControlWidget::onMultiplierChanged(double value) {
+			_application.simulationSystem().timeModule().set_time_multiplier(value);
 			updateTimeLabel();
 		}
 
 		void TimeControlWidget::onStepClicked() {
-			_application.simulationSystem().timeModule().step();
+			_application.simulationSystem().step();
 			updateTimeLabel();
 		}
 
@@ -87,8 +84,6 @@ namespace tjs {
 		}
 
 		void TimeControlWidget::updateButtonStates() {
-			_speedUpButton->setEnabled(_isRunning);
-			_slowDownButton->setEnabled(_isRunning);
 			_stepButton->setEnabled(!_isRunning); // Step only enabled when paused
 		}
 	} // namespace ui

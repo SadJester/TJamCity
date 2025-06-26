@@ -55,7 +55,7 @@ namespace tjs {
 			QPushButton* _regenerateVehiclesButton = nullptr;
 
 			QLabel* _zoomLevel = nullptr;
-			QLabel* _projectCenter = nullptr;
+			QLabel* _screenCenter = nullptr;
 			QLabel* _longtitude = nullptr;
 			QListWidget* _layerList = nullptr;
 		};

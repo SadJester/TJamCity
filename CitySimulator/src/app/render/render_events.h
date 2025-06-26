@@ -23,6 +23,9 @@ namespace tjs::render {
 		ButtonState state;
 		int x;
 		int y;
+		bool shift = false;
+		bool ctrl = false;
+		bool alt = false;
 	};
 
 	// Mouse wheel event

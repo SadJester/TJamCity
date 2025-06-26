@@ -1,7 +1,6 @@
 #pragma once
 
 #include <core/store_models/idata_model.h>
-#include <core/data_layer/data_types.h>
 #include <render/render_primitives.h>
 
 namespace tjs::core::model {
@@ -20,7 +19,6 @@ namespace tjs::core::model {
 		}
 
 		// View settings
-		core::Coordinates projectionCenter;
 		double metersPerPixel = 1.0;
 
 		// Layer visibility flags

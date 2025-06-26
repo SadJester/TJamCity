@@ -6,7 +6,8 @@
 #include <data/persistent_render_data.h>
 #include <data/simulation_debug_data.h>
 #include <core/data_layer/road_network.h>
-#include <visualization/map_render_events_listener.h>
+
+#include <logic/map/map_positioning.h>
 
 #include <events/project_events.h>
 
@@ -40,6 +41,7 @@ namespace tjs::visualization {
 		void draw_path_nodes(const WayRenderInfo& way);
 		void draw_network_nodes(const core::RoadNetwork& network);
 		void render_network_graph(IRenderer& renderer, const core::RoadNetwork& network);
+		void render_lanes(IRenderer& renderer, const core::RoadNetwork& network);
 		void draw_direction_arrows(const std::vector<Position>& nodes, bool reverse);
 		FColor get_way_color(core::WayType type) const;
 
@@ -47,13 +49,17 @@ namespace tjs::visualization {
 		core::model::MapRendererData& _render_data;
 		core::model::PersistentRenderData& _cache;
 		core::model::SimulationDebugData& _debugData;
-		MapRenderEventsListener _listener;
+		MapPositioning _map_positioning;
 
 		// Bounding box coordinates
 		float min_lat = 0.0f;
 		float max_lat = 0.0f;
 		float min_lon = 0.0f;
 		float max_lon = 0.0f;
+		double min_x = 0.0;
+		double max_x = 0.0;
+		double min_y = 0.0;
+		double max_y = 0.0;
 
 		std::string _current_file;
 	};
@@ -61,7 +67,6 @@ namespace tjs::visualization {
 	int drawThickLine(IRenderer& renderer, const std::vector<Position>& nodes, double metersPerPixel, float thickness, FColor color);
 	Position convert_to_screen(
 		const core::Coordinates& coord,
-		const core::Coordinates& projection_center,
 		const Position& screen_center,
 		double meters_per_pixel);
 } // namespace tjs::visualization

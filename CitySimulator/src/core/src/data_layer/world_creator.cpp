@@ -3,8 +3,12 @@
 #include <core/data_layer/world_creator.h>
 #include <core/data_layer/world_data.h>
 #include <core/map_math/contraction_builder.h>
+#include <core/map_math/lane_connector_builder.h>
+#include <core/math_constants.h>
 
 #include <core/random_generator.h>
+#include <sstream>
+#include <limits>
 
 namespace tjs::core {
 	bool WorldCreator::loadOSMData(WorldData& data, std::string_view osmFilename) {
@@ -16,6 +20,21 @@ namespace tjs::core {
 		// Prepare data
 		for (auto& segment : data.segments()) {
 			segment->rebuild_grid();
+
+			// Build junctions information
+			segment->junctions.clear();
+			for (auto& [nid, node] : segment->nodes) {
+				if (node->ways.size() > 1) {
+					auto junc = std::make_unique<Junction>();
+					junc->uid = nid;
+					junc->node = node.get();
+					junc->connectedWays.reserve(node->ways.size());
+					for (auto* w : node->ways) {
+						junc->connectedWays.push_back(w);
+					}
+					segment->junctions[nid] = std::move(junc);
+				}
+			}
 
 			auto& road_network = segment->road_network;
 			for (auto& [uid, way] : segment->ways) {
@@ -29,8 +48,8 @@ namespace tjs::core {
 			}
 
 			algo::ContractionBuilder builder;
-			builder.build_contraction_hierarchy(*segment->road_network);
 			builder.build_graph(*segment->road_network);
+			algo::LaneConnectorBuilder::build_lane_connections(*segment->road_network);
 		}
 
 		return result;
@@ -45,19 +64,11 @@ namespace tjs::core {
 		// Get all nodes from the road network
 		auto& segment = data.segments()[0];
 
-		std::vector<core::Node*> allNodes;
-		allNodes.reserve(segment->nodes.size());
+		std::vector<core::Edge*> all_edges;
+		all_edges.reserve(segment->road_network->edges.size());
 
-		auto& ways = segment->ways;
-		// TODO: create with view
-		// allNodes = std::views::join(ways | std::ranges::view::transform([](const core::WayInfo& way) {
-		//    return way.nodes;
-		//})) | std::ranges::to<std::vector>();
-
-		for (auto& way : ways) {
-			for (auto node : way.second->nodes) {
-				allNodes.push_back(node);
-			}
+		for (auto& edge : segment->road_network->edges) {
+			all_edges.push_back(&edge);
 		}
 
 		// TODO: RandomGenerator<Context>
@@ -65,21 +76,11 @@ namespace tjs::core {
 			RandomGenerator::set_seed(settings.seedValue);
 		}
 
-		auto find_way = [&](Node* node) -> core::WayInfo* {
-			auto it = std::ranges::find_if(ways, [&](const auto& way) {
-				return std::ranges::find(way.second->nodes, node) != way.second->nodes.end();
-			});
-			if (it != ways.end()) {
-				return it->second.get();
-			}
-			return nullptr;
-		};
-
 		// Generate vehicles
 		for (size_t i = 0; i < settings.vehiclesCount; ++i) {
 			// Randomly select a node for the vehicle's coordinates
-			auto nodeIt = std::next(allNodes.begin(), RandomGenerator::get().next_int(0, allNodes.size() - 1));
-			const Coordinates& coordinates = (*nodeIt)->coordinates;
+			auto edge_it = std::next(all_edges.begin(), RandomGenerator::get().next_int(0, all_edges.size() - 1));
+			const Coordinates& coordinates = (*edge_it)->start_node->coordinates;
 
 			// Create a vehicle with random attributes and the selected node's coordinates
 			Vehicle vehicle;
@@ -89,7 +90,10 @@ namespace tjs::core {
 			vehicle.maxSpeed = RandomGenerator::get().next_float(0.0f, 100.0f);
 			vehicle.coordinates = coordinates;
 			vehicle.currentSegmentIndex = 0;
-			vehicle.currentWay = find_way(*nodeIt);
+			//vehicle.currentWay = find_way(*nodeIt);
+			vehicle.current_lane = &(*edge_it)->lanes[0];
+			vehicle.s_on_lane = 0.0;
+			vehicle.lateral_offset = 0.0;
 
 			vehicles.push_back(vehicle);
 		}
@@ -110,9 +114,33 @@ namespace tjs::core {
 					return nullptr;
 				}
 
+				double minLat = std::numeric_limits<double>::max();
+				double maxLat = std::numeric_limits<double>::lowest();
+				double minLon = std::numeric_limits<double>::max();
+				double maxLon = std::numeric_limits<double>::lowest();
+
 				// First pass: parse all nodes
 				for (pugi::xml_node xml_node : doc.child("osm").children("node")) {
-					parseNode(xml_node, *world);
+					parseNode(xml_node, *world, minLat, maxLat, minLon, maxLon);
+				}
+
+				// Compute projection center from bounds
+				Coordinates center {};
+				if (!world->nodes.empty()) {
+					center.latitude = (minLat + maxLat) / 2.0;
+					center.longitude = (minLon + maxLon) / 2.0;
+					center.x = center.longitude * MathConstants::DEG_TO_RAD * MathConstants::EARTH_RADIUS;
+					center.y = -std::log(std::tan((90.0 + center.latitude) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS;
+
+					for (auto& [uid, node] : world->nodes) {
+						node->coordinates.x -= center.x;
+						node->coordinates.y -= center.y;
+					}
+
+					world->boundingBox.left = { center.latitude, minLon, minLon * MathConstants::DEG_TO_RAD * MathConstants::EARTH_RADIUS - center.x, 0.0 };
+					world->boundingBox.right = { center.latitude, maxLon, maxLon * MathConstants::DEG_TO_RAD * MathConstants::EARTH_RADIUS - center.x, 0.0 };
+					world->boundingBox.top = { maxLat, center.longitude, 0.0, -std::log(std::tan((90.0 + maxLat) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS - center.y };
+					world->boundingBox.bottom = { minLat, center.longitude, 0.0, -std::log(std::tan((90.0 + minLat) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS - center.y };
 				}
 
 				// Second pass: parse all ways
@@ -124,7 +152,13 @@ namespace tjs::core {
 			}
 
 		private:
-			static void parseNode(const pugi::xml_node& xml_node, WorldSegment& world) {
+			static void parseNode(
+				const pugi::xml_node& xml_node,
+				WorldSegment& world,
+				double& minLat,
+				double& maxLat,
+				double& minLon,
+				double& maxLon) {
 				uint64_t id = xml_node.attribute("id").as_ullong();
 				double lat = xml_node.attribute("lat").as_double();
 				double lon = xml_node.attribute("lon").as_double();
@@ -141,7 +175,17 @@ namespace tjs::core {
 				}
 
 				if (!(std::abs(lat) > 90.0 || std::abs(lon) > 180.0)) {
-					world.nodes[id] = Node::create(id, Coordinates { lat, lon }, tags);
+					Coordinates coords {};
+					coords.latitude = lat;
+					coords.longitude = lon;
+					coords.x = lon * MathConstants::DEG_TO_RAD * MathConstants::EARTH_RADIUS;
+					coords.y = -std::log(std::tan((90.0 + lat) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS;
+					world.nodes[id] = Node::create(id, coords, tags);
+
+					minLat = std::min(minLat, lat);
+					maxLat = std::max(maxLat, lat);
+					minLon = std::min(minLon, lon);
+					maxLon = std::max(maxLon, lon);
 				}
 			}
 
@@ -167,6 +211,9 @@ namespace tjs::core {
 				bool isOneway = false;
 				int maxSpeed = 50; // Default speed in km/h
 				WayType type = WayType::None;
+				double laneWidth = 3.0;
+				std::vector<TurnDirection> turnsForward;
+				std::vector<TurnDirection> turnsBackward;
 
 				// Default speeds by road type (in km/h)
 				static const std::unordered_map<std::string, std::pair<WayType, int>> roadDefaults = {
@@ -258,6 +305,12 @@ namespace tjs::core {
 					} else if (key == "lanes:backward") {
 						lanesBackward = tag.attribute("v").as_int();
 						lanes_found = true;
+					} else if (key == "lane_width" || key == "lanes:width") {
+						laneWidth = std::stod(value);
+					} else if (key == "turn:lanes:forward") {
+						turnsForward = parseTurnLanes(value);
+					} else if (key == "turn:lanes:backward") {
+						turnsBackward = parseTurnLanes(value);
 					} else if (key == "oneway") {
 						isOneway = (value == "yes" || value == "1" || value == "true");
 					} else if (key == "maxspeed") {
@@ -297,6 +350,9 @@ namespace tjs::core {
 				way->isOneway = isOneway;
 				way->lanesForward = lanesForward;
 				way->lanesBackward = lanesBackward;
+				way->laneWidth = laneWidth;
+				way->forwardTurns = std::move(turnsForward);
+				way->backwardTurns = std::move(turnsBackward);
 
 				std::vector<Node*> nodes;
 				nodes.reserve(nodeRefs.size());
@@ -312,6 +368,26 @@ namespace tjs::core {
 				way->nodeRefs = std::move(nodeRefs);
 				way->nodes = std::move(nodes);
 				world.ways[id] = std::move(way);
+			}
+
+			static std::vector<TurnDirection> parseTurnLanes(const std::string& value) {
+				std::vector<TurnDirection> result;
+				std::stringstream ss(value);
+				std::string token;
+				while (std::getline(ss, token, '|')) {
+					if (token == "left") {
+						result.push_back(TurnDirection::Left);
+					} else if (token == "right") {
+						result.push_back(TurnDirection::Right);
+					} else if (token == "through" || token == "straight") {
+						result.push_back(TurnDirection::Straight);
+					} else if (token == "reverse") {
+						result.push_back(TurnDirection::UTurn);
+					} else {
+						result.push_back(TurnDirection::None);
+					}
+				}
+				return result;
 			}
 
 			static int parseSpeedValue(const std::string& speedStr) {

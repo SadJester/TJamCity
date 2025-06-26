@@ -29,8 +29,33 @@ namespace tjs::core::simulation {
 		}
 	}
 
-	std::deque<Node*> findPath(Node* start, Node* goal, RoadNetwork& road_network) {
-		return core::algo::PathFinder::find_path_a_star(road_network, start, goal);
+	std::vector<Edge*> findEdgePath(Node* start, Node* goal, RoadNetwork& road_network) {
+		std::vector<Edge*> result;
+		auto edge_path = core::algo::PathFinder::find_edge_path_a_star(road_network, start, goal);
+
+		result.reserve(edge_path.size());
+		for (const auto* edge : edge_path) {
+			result.push_back(const_cast<Edge*>(edge));
+		}
+
+		return result;
+	}
+
+	static const Lane* choose_next_lane(const Lane* current_lane, Edge* next_edge) {
+		if (current_lane && next_edge) {
+			// First try to find a lane that connects directly to the next edge
+			for (const Lane* l : current_lane->outgoing_connections) {
+				if (l && l->parent == next_edge) {
+					return l;
+				}
+			}
+		}
+
+		// If no direct connection found, return the first lane of the next edge
+		if (next_edge && !next_edge->lanes.empty()) {
+			return &next_edge->lanes.front();
+		}
+		return nullptr;
 	}
 
 	void TacticalPlanningModule::update_agent_tactics(core::AgentData& agent) {
@@ -58,7 +83,7 @@ namespace tjs::core::simulation {
 		// 3. if rich destination: nullptr for currentGoal
 
 		// Step 1: If vehicle has no current way, find the nearest way
-		if (vehicle.currentWay == nullptr) {
+		/*if (vehicle.currentWay == nullptr) {
 			auto ways_opt = spatial_grid.get_ways_in_cell(vehicle.coordinates);
 			if (!ways_opt.has_value()) {
 				return;
@@ -78,8 +103,8 @@ namespace tjs::core::simulation {
 				}
 
 				// Use haversine distance
-				double dist_first = core::algo::haversine_distance(way->nodes.front()->coordinates, vehicle.coordinates);
-				double dist_last = core::algo::haversine_distance(way->nodes.back()->coordinates, vehicle.coordinates);
+				double dist_first = core::algo::euclidean_distance(way->nodes.front()->coordinates, vehicle.coordinates);
+				double dist_last = core::algo::euclidean_distance(way->nodes.back()->coordinates, vehicle.coordinates);
 				double current_min = std::min(dist_first, dist_last);
 
 				if (current_min < min_distance) {
@@ -94,7 +119,7 @@ namespace tjs::core::simulation {
 			} else {
 				return;
 			}
-		}
+		}*/
 
 		// Step 2: If we don't have a path to the goal, find one
 		if (!agent.last_segment && agent.path.empty()) {
@@ -102,16 +127,20 @@ namespace tjs::core::simulation {
 			Node* goal_node = agent.currentGoal;
 
 			if (start_node && goal_node) {
-				agent.path = findPath(start_node, goal_node, road_network);
+				agent.path = findEdgePath(start_node, goal_node, road_network);
 				agent.visitedNodes.clear();
 				if (!agent.path.empty()) {
-					agent.currentStepGoal = agent.path.front()->coordinates;
-					agent.visitedNodes.push_back(agent.path.front());
-					agent.path.pop_front();
+					agent.current_goal = agent.path.front();
+					agent.target_lane = &agent.current_goal->lanes[0];
+					agent.currentStepGoal = agent.current_goal->end_node->coordinates; // agent.target_lane->centerLine.back();
+					agent.visitedNodes.push_back(agent.current_goal->start_node);
+					agent.path.erase(agent.path.begin());
 					agent.distanceTraveled = 0.0; // Reset distance for new path
 					agent.goalFailCount = 0;
 				} else {
 					agent.currentGoal = nullptr;
+					agent.current_goal = nullptr;
+					agent.target_lane = nullptr;
 					agent.last_segment = false;
 					agent.goalFailCount++;
 					if (agent.goalFailCount >= 5) {
@@ -121,6 +150,8 @@ namespace tjs::core::simulation {
 				}
 			} else {
 				agent.currentGoal = nullptr;
+				agent.current_goal = nullptr;
+				agent.target_lane = nullptr;
 				agent.last_segment = false;
 				agent.goalFailCount++;
 				if (agent.goalFailCount >= 5) {
@@ -131,26 +162,32 @@ namespace tjs::core::simulation {
 		}
 
 		// Step 3: Check if vehicle reached current step goal using haversine distance
-		const double distance_to_target = core::algo::haversine_distance(vehicle.coordinates, agent.currentStepGoal);
-		if (distance_to_target < SimulationConstants::ARRIVAL_THRESHOLD) {
+		const double distance_to_target = core::algo::euclidean_distance(vehicle.coordinates, agent.currentStepGoal);
+
+		const bool is_expected_lane = vehicle.current_lane != nullptr && vehicle.current_lane->parent == agent.current_goal;
+		if (distance_to_target < SimulationConstants::ARRIVAL_THRESHOLD && is_expected_lane) {
 			if (!agent.path.empty()) {
 				// Update distance traveled with the segment we just completed
 				if (!agent.visitedNodes.empty()) {
 					auto last_visited = agent.visitedNodes.back();
-					agent.distanceTraveled += core::algo::haversine_distance(last_visited->coordinates, agent.currentStepGoal);
+					agent.distanceTraveled += core::algo::euclidean_distance(last_visited->coordinates, agent.currentStepGoal);
 				}
 
-				// Move to next point in path
-				agent.currentStepGoal = agent.path.front()->coordinates;
-				agent.visitedNodes.push_back(agent.path.front());
-				agent.path.pop_front();
+				agent.current_goal = agent.path.front();
+				agent.target_lane = &agent.current_goal->lanes[0];
+				agent.currentStepGoal = agent.current_goal->end_node->coordinates; // agent.target_lane->centerLine.back();
+				agent.visitedNodes.push_back(agent.current_goal->start_node);
+				agent.path.erase(agent.path.begin());
+
 				agent.last_segment = agent.path.empty();
 			} else {
 				// Final segment distance
-				agent.distanceTraveled += core::algo::haversine_distance(vehicle.coordinates, agent.currentStepGoal);
+				agent.distanceTraveled += core::algo::euclidean_distance(vehicle.coordinates, agent.currentStepGoal);
 
 				// Reached final destination
 				agent.currentGoal = nullptr;
+				agent.current_goal = nullptr;
+				agent.target_lane = nullptr;
 				agent.last_segment = false;
 				agent.goalFailCount = 0;
 				return;
@@ -184,23 +221,25 @@ namespace tjs::core::simulation {
 		const Coordinates& segStart,
 		const Coordinates& segEnd) {
 		// First check if the point projects onto the segment
-		double segLength = core::algo::haversine_distance(segStart, segEnd);
+		double segLength = core::algo::euclidean_distance(segStart, segEnd);
 		if (segLength < 1e-6) { // Very short segment
-			return core::algo::haversine_distance(point, segStart);
+			return core::algo::euclidean_distance(point, segStart);
 		}
 
 		// Calculate projection (simplified for geographic coordinates)
 		// Note: This is an approximation as we're working with spherical coordinates
-		double u = ((point.latitude - segStart.latitude) * (segEnd.latitude - segStart.latitude) + (point.longitude - segStart.longitude) * (segEnd.longitude - segStart.longitude)) / (segLength * segLength);
+		double u = ((point.x - segStart.x) * (segEnd.x - segStart.x) + (point.y - segStart.y) * (segEnd.y - segStart.y)) / (segLength * segLength);
 
 		u = std::clamp(u, 0.0, 1.0);
 
 		Coordinates projection {
-			segStart.latitude + u * (segEnd.latitude - segStart.latitude),
-			segStart.longitude + u * (segEnd.longitude - segStart.longitude)
+			0.0,
+			0.0
 		};
+		projection.x = segStart.x + u * (segEnd.x - segStart.x);
+		projection.y = segStart.y + u * (segEnd.y - segStart.y);
 
-		return core::algo::haversine_distance(point, projection);
+		return core::algo::euclidean_distance(point, projection);
 	}
 
 	Node* TacticalPlanningModule::find_nearest_node(const Coordinates& coords, RoadNetwork& road_network) {
@@ -208,7 +247,7 @@ namespace tjs::core::simulation {
 		double min_distance = std::numeric_limits<double>::max();
 
 		for (const auto& [id, node] : road_network.nodes) {
-			double dist = core::algo::haversine_distance(node->coordinates, coords);
+			double dist = core::algo::euclidean_distance(node->coordinates, coords);
 			if (dist < min_distance) {
 				min_distance = dist;
 				nearest = node;
