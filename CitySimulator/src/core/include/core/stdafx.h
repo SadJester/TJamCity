@@ -6,7 +6,7 @@
 
 #ifdef TRACY_ENABLED
 #define TRACY_ENABLE
-#include <tracy/tracy/Tracy.hpp>
+#include <tracy/Tracy.hpp>
 
 #define TJS_TRACY ZoneScoped
 #define TJS_TRACY_NAMED(NAME) ZoneScopedN(NAME)

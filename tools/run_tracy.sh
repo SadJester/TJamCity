@@ -33,7 +33,9 @@ URL=$(get_tracy_url "$VERSION" "$os")
 
 echo "Downloading ${URL}..."
 
-if [ ! -d "${TARGET_DIR}" ]; then
+EXECUTABLE_PATH="${TARGET_DIR}/${executable}"
+
+if [ ! -f "${EXECUTABLE_PATH}" ]; then
 	curl -L "$URL" -o "${TARGET_DIR}/${ARCHIVE}.zip" --ssl-no-revoke
 	unzip -o "${TARGET_DIR}/${ARCHIVE}.zip" -d "${TARGET_DIR}"
   	rm "${TARGET_DIR}/${ARCHIVE}.zip"
@@ -43,4 +45,4 @@ else
 fi
 
 
-"${TARGET_DIR}/${executable}"
+"${EXECUTABLE_PATH}"
