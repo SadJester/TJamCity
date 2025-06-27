@@ -640,12 +640,13 @@ namespace tjs::visualization {
 				}
 
 				// Render outgoing connections
-				for (const auto& outgoing_lane : lane.outgoing_connections) {
+				for (const auto& link : lane.outgoing_connections) {
+					const auto* outgoing_lane = link->to;
 					if (outgoing_lane && outgoing_lane->centerLine.size() >= 2) {
 						// Check if this connection is bidirectional (in incoming_connections)
 						bool is_bidirectional = false;
-						for (const auto& incoming_lane : outgoing_lane->incoming_connections) {
-							if (incoming_lane == &lane) {
+						for (const auto& incoming_link : outgoing_lane->incoming_connections) {
+							if (incoming_link->from == &lane) {
 								is_bidirectional = true;
 								break;
 							}

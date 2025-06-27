@@ -44,7 +44,8 @@ namespace tjs::core::simulation {
 	static const Lane* choose_next_lane(const Lane* current_lane, Edge* next_edge) {
 		if (current_lane && next_edge) {
 			// First try to find a lane that connects directly to the next edge
-			for (const Lane* l : current_lane->outgoing_connections) {
+			for (const LaneLinkHandler& link : current_lane->outgoing_connections) {
+				const Lane* l = link->to;
 				if (l && l->parent == next_edge) {
 					return l;
 				}
