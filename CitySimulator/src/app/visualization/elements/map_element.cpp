@@ -169,7 +169,7 @@ namespace tjs::visualization {
 
 				// Draw edge as a thin line
 				const FColor color = (is_node_filtered || is_neighbor_filtered) ? FColor { 0.8f, 0.0f, 0.0f, 0.5f } : FColor { 0.0f, 0.8f, 0.8f, 0.5f };
-				drawThickLine(renderer, { start, end }, _render_data.metersPerPixel, 0.8f, color);
+				//drawThickLine(renderer, { start, end }, _render_data.metersPerPixel, 0.8f, color);
 			}
 		}
 	}

@@ -13,7 +13,10 @@ namespace tjs::core::algo {
 		edge.orientation = orientation;
 		edge.length = dist;
 
-		const size_t reserved_size = orientation == LaneOrientation::Forward ? way->lanesForward : way->lanesBackward;
+		const size_t reserved_size = std::max<size_t>(
+			1,
+			orientation == LaneOrientation::Forward ? way->lanesForward : way->lanesBackward
+		);
 		edge.lanes.resize(reserved_size);
 
 		double heading = bearing(start_node->coordinates, end_node->coordinates);
@@ -23,19 +26,20 @@ namespace tjs::core::algo {
 			lane.parent = nullptr;
 			lane.orientation = orientation;
 			lane.width = way->laneWidth;
-			double offset = (static_cast<double>(l) - (static_cast<double>(lane_count - 1) / 2.0)) * lane.width;
+			double sign = (orientation == LaneOrientation::Forward) ? 1.0 : -1.0;
+			double offset = sign * ((static_cast<double>(l) - (lane_count - 1) * 0.5) * lane.width);
 			Coordinates start = offset_coordinate(start_node->coordinates, heading, offset);
 			Coordinates end = offset_coordinate(end_node->coordinates, heading, offset);
 			lane.centerLine = { start, end };
 			lane.length = euclidean_distance(start, end);
 
 			auto turn_direction = core::TurnDirection::None;
-			if (orientation == LaneOrientation::Backward) {
+			if (orientation == LaneOrientation::Forward) {
 				if (l < way->forwardTurns.size()) {
 					turn_direction = way->forwardTurns[l];
 				}
 			}
-			else if (orientation == LaneOrientation::Forward) {
+			else if (orientation == LaneOrientation::Backward) {
 				if (l < way->backwardTurns.size()) {
 					turn_direction = way->backwardTurns[l];
 				}

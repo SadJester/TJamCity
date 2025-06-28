@@ -29,7 +29,9 @@ namespace tjs::core {
 		Left,
 		Right,
 		Straight,
-		UTurn
+		UTurn,
+		MergeRight,
+		MergeLeft
 	};
 
 	struct WayInfo {
