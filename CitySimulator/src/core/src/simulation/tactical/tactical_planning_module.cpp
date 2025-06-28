@@ -175,8 +175,31 @@ namespace tjs::core::simulation {
 				}
 
 				agent.current_goal = agent.path.front();
-				agent.target_lane = &agent.current_goal->lanes[0];
-				agent.currentStepGoal = agent.current_goal->end_node->coordinates; // agent.target_lane->centerLine.back();
+
+
+				/// Find the best target lane
+				Lane* candidate = nullptr;
+				double dist = std::numeric_limits<double>::max();
+				const auto& pos = agent.vehicle->coordinates;
+				for (const LaneLinkHandler& link : agent.vehicle->current_lane->outgoing_connections) {
+					Lane* candidate_from_v = link->to;
+					for (auto& lane : agent.current_goal->lanes) {
+						if (candidate_from_v == &lane) {
+							candidate = candidate_from_v;
+							break;
+						}
+					}	
+				}
+
+				if (candidate == nullptr) {
+					// TODO: algo error handling
+					// Now just take the first lane and it will be "dancing"
+					agent.target_lane = &agent.current_goal->lanes[0];
+				}
+				else {
+					agent.target_lane = candidate;
+				}
+				agent.currentStepGoal = agent.current_goal->start_node->coordinates; // agent.target_lane->centerLine.back();
 				agent.visitedNodes.push_back(agent.current_goal->start_node);
 				agent.path.erase(agent.path.begin());
 
