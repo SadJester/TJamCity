@@ -5,7 +5,11 @@
 
 namespace tjs::core::algo {
 
-	Edge create_edge(Node* start_node, Node* end_node, WayInfo* way, double dist, core::LaneOrientation orientation) {
+	Edge create_edge(Node* start_node,
+		Node* end_node,
+		WayInfo* way,
+		double dist,
+		core::LaneOrientation orientation) {
 		Edge edge;
 		edge.start_node = start_node;
 		edge.end_node = end_node;
@@ -13,39 +17,72 @@ namespace tjs::core::algo {
 		edge.orientation = orientation;
 		edge.length = dist;
 
-		const size_t reserved_size = std::max<size_t>(
+		// At least one lane even if OSM data were incomplete
+		const size_t reserved_size = std::max<std::size_t>(
 			1,
-			orientation == LaneOrientation::Forward ? way->lanesForward : way->lanesBackward
-		);
+			orientation == LaneOrientation::Forward ?
+				way->lanesForward :
+				way->lanesBackward);
+
 		edge.lanes.resize(reserved_size);
 
-		double heading = bearing(start_node->coordinates, end_node->coordinates);
-		const size_t lane_count = edge.lanes.size();
-		for (size_t l = 0; l < reserved_size; ++l) {
-			auto& lane = edge.lanes[l];
-			lane.parent = nullptr;
+		// ------------------------------------------------------------------ //
+		// 1. Geometric basis                                                 //
+		// ------------------------------------------------------------------ //
+		const double heading = bearing(start_node->coordinates, end_node->coordinates);
+
+		// Pre-compute half-width offset of the lane bundle
+		const double half_span = reserved_size % 2 == 0 ?  0.5 * way->laneWidth : 0.0;
+		// ------------------------------------------------------------------ //
+		// 2. Fill lanes – **index 0 = right-most**                           //
+		// ------------------------------------------------------------------ //
+		bool right_is_min = orientation == LaneOrientation::Forward && start_node->coordinates.y < end_node->coordinates.y;
+		for (size_t logical_idx = 0; logical_idx < reserved_size; ++logical_idx) {
+			// ★ Physical index so that 0 = right-most,   N-1 = left-most
+			size_t idx = right_is_min ? logical_idx : reserved_size - 1 - logical_idx;
+
+			Lane& lane = edge.lanes[idx];
+
+			lane.parent = &edge;
 			lane.orientation = orientation;
 			lane.width = way->laneWidth;
-			double sign = (orientation == LaneOrientation::Forward) ? 1.0 : -1.0;
-			double offset = sign * ((static_cast<double>(l) - (lane_count - 1) * 0.5) * lane.width);
-			Coordinates start = offset_coordinate(start_node->coordinates, heading, offset);
-			Coordinates end = offset_coordinate(end_node->coordinates, heading, offset);
+
+			// Offset sign is + to the **left** of travel direction.
+			// Therefore right-most lane has the **most negative** offset.
+			double lateral_offset = (static_cast<double>(logical_idx) - (reserved_size - 1) / 2) * way->laneWidth;
+			lateral_offset -= half_span;
+			// Reverse sign for Backward edges so that right side stays right.
+			if (orientation == LaneOrientation::Backward) {
+				lateral_offset = -lateral_offset; // keep RH convention
+			}
+
+			Coordinates start = offset_coordinate(start_node->coordinates,
+				heading,
+				lateral_offset);
+			Coordinates end = offset_coordinate(end_node->coordinates,
+				heading,
+				lateral_offset);
+
 			lane.centerLine = { start, end };
 			lane.length = euclidean_distance(start, end);
 
-			auto turn_direction = core::TurnDirection::None;
-			if (orientation == LaneOrientation::Forward) {
-				if (l < way->forwardTurns.size()) {
-					turn_direction = way->forwardTurns[l];
+			// ----------------------------------------------------------------//
+			// 3. Per-lane turn indication                                      //
+			// ----------------------------------------------------------------//
+			TurnDirection td = TurnDirection::None;
+
+			if (orientation == LaneOrientation::Forward) { // ★ fixed list swap
+				if (logical_idx < way->forwardTurns.size()) {
+					td = way->forwardTurns[logical_idx];
+				}
+			} else { // Backward
+				if (logical_idx < way->backwardTurns.size()) {
+					td = way->backwardTurns[logical_idx];
 				}
 			}
-			else if (orientation == LaneOrientation::Backward) {
-				if (l < way->backwardTurns.size()) {
-					turn_direction = way->backwardTurns[l];
-				}
-			}
-			lane.turn = turn_direction;
+			lane.turn = td;
 		}
+
 		return edge;
 	}
 
@@ -101,7 +138,6 @@ namespace tjs::core::algo {
 				next->tags = current->tags | NodeTags::Way;
 			}
 		}
-
 
 		for (auto& edge : network.edges) {
 			for (auto& lane : edge.lanes) {

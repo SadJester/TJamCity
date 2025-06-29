@@ -100,7 +100,7 @@ namespace tjs::visualization {
 			{ { screenX - lengthInPixels / 2.0f, screenY + widthInPixels / 2.0f }, settings.color, { 0.f, 0.f } }  // top-left
 		};
 
-		const float angle = vehicle.rotationAngle;
+		const float angle = -vehicle.rotationAngle;
 		for (auto& v : vertices) {
 			// Translate to origin, rotate, then translate back
 			float dx = v.position.x - screenX;

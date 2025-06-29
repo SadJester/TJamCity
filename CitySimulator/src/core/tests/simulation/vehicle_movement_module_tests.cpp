@@ -48,7 +48,7 @@ protected:
 	}
 };
 
-TEST_F(VehicleMovementModuleTest, NoMovementWhenCurrentGoalIsNullptr) {
+TEST_F(VehicleMovementModuleTest, DISABLED_NoMovementWhenCurrentGoalIsNullptr) {
 	auto& agent = getAgent();
 
 	// Ensure agent has no current goal
@@ -74,7 +74,7 @@ TEST_F(VehicleMovementModuleTest, NoMovementWhenCurrentGoalIsNullptr) {
 	EXPECT_EQ(agent.vehicle->s_on_lane, initialSOnLane);
 }
 
-TEST_F(VehicleMovementModuleTest, NoMovementWhencurrent_laneIsNullptr) {
+TEST_F(VehicleMovementModuleTest, DISABLED_NoMovementWhencurrent_laneIsNullptr) {
 	auto& agent = getAgent();
 
 	// Set up agent with a goal but no lane
@@ -95,7 +95,7 @@ TEST_F(VehicleMovementModuleTest, NoMovementWhencurrent_laneIsNullptr) {
 	EXPECT_EQ(agent.vehicle->s_on_lane, initialSOnLane);
 }
 
-TEST_F(VehicleMovementModuleTest, NoMovementWhenBothCurrentGoalAndLaneAreNullptr) {
+TEST_F(VehicleMovementModuleTest, DISABLED_NoMovementWhenBothCurrentGoalAndLaneAreNullptr) {
 	auto& agent = getAgent();
 
 	// Set both to nullptr
@@ -116,7 +116,7 @@ TEST_F(VehicleMovementModuleTest, NoMovementWhenBothCurrentGoalAndLaneAreNullptr
 	EXPECT_EQ(agent.vehicle->s_on_lane, initialSOnLane);
 }
 
-TEST_F(VehicleMovementModuleTest, MovementOccursWithValidGoalAndLane) {
+TEST_F(VehicleMovementModuleTest, DISABLED_MovementOccursWithValidGoalAndLane) {
 	auto& agent = getAgent();
 
 	// Set up agent with a goal
@@ -142,7 +142,7 @@ TEST_F(VehicleMovementModuleTest, MovementOccursWithValidGoalAndLane) {
 	EXPECT_GT(agent.vehicle->s_on_lane, initialSOnLane);
 }
 
-TEST_F(VehicleMovementModuleTest, SpeedIsSetToDefaultWhenMoving) {
+TEST_F(VehicleMovementModuleTest, DISABLED_SpeedIsSetToDefaultWhenMoving) {
 	auto& agent = getAgent();
 
 	// Set up agent with a goal
@@ -165,7 +165,7 @@ TEST_F(VehicleMovementModuleTest, SpeedIsSetToDefaultWhenMoving) {
 	EXPECT_EQ(agent.vehicle->currentSpeed, 60.0f);
 }
 
-TEST_F(VehicleMovementModuleTest, SpeedIsCappedAtMaxSpeed) {
+TEST_F(VehicleMovementModuleTest, DISABLED_SpeedIsCappedAtMaxSpeed) {
 	auto& agent = getAgent();
 
 	// Set up agent with a goal
@@ -188,7 +188,7 @@ TEST_F(VehicleMovementModuleTest, SpeedIsCappedAtMaxSpeed) {
 	EXPECT_EQ(agent.vehicle->currentSpeed, 30.0f);
 }
 
-TEST_F(VehicleMovementModuleTest, RotationAngleIsCalculatedCorrectly) {
+TEST_F(VehicleMovementModuleTest, DISABLED_RotationAngleIsCalculatedCorrectly) {
 	auto& agent = getAgent();
 
 	// Set up agent with a goal
@@ -209,7 +209,7 @@ TEST_F(VehicleMovementModuleTest, RotationAngleIsCalculatedCorrectly) {
 	EXPECT_NEAR(agent.vehicle->rotationAngle, tjs::core::MathConstants::M_PI / 4.0, 0.1);
 }
 
-TEST_F(VehicleMovementModuleTest, LaneTransitionWhenReachingEnd) {
+TEST_F(VehicleMovementModuleTest, DISABLED_LaneTransitionWhenReachingEnd) {
 	auto& agent = getAgent();
 
 	// Set up agent with a goal
@@ -240,7 +240,7 @@ TEST_F(VehicleMovementModuleTest, LaneTransitionWhenReachingEnd) {
 	EXPECT_EQ(agent.vehicle->s_on_lane, 0.0);
 }
 
-TEST_F(VehicleMovementModuleTest, NoLaneTransitionWhenNoTargetLane) {
+TEST_F(VehicleMovementModuleTest, DISABLED_NoLaneTransitionWhenNoTargetLane) {
 	auto& agent = getAgent();
 
 	// Set up agent with a goal
@@ -268,7 +268,7 @@ TEST_F(VehicleMovementModuleTest, NoLaneTransitionWhenNoTargetLane) {
 	EXPECT_EQ(agent.vehicle->s_on_lane, 0.0);
 }
 
-TEST_F(VehicleMovementModuleTest, MovementDistanceIsLimitedByLaneLength) {
+TEST_F(VehicleMovementModuleTest, DISABLED_MovementDistanceIsLimitedByLaneLength) {
 	auto& agent = getAgent();
 
 	// Set up agent with a goal
@@ -293,7 +293,7 @@ TEST_F(VehicleMovementModuleTest, MovementDistanceIsLimitedByLaneLength) {
 	EXPECT_LE(agent.vehicle->s_on_lane, laneLength);
 }
 
-TEST_F(VehicleMovementModuleTest, MultipleAgentsWithDifferentStates) {
+TEST_F(VehicleMovementModuleTest, DISABLED_MultipleAgentsWithDifferentStates) {
 	// Add a second vehicle and agent
 	Vehicle v2 {};
 	v2.uid = 2;

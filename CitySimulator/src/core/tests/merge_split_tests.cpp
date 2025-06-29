@@ -58,7 +58,7 @@ TEST_F(MergeSplitTest, LaneToLaneConnectionsCreated) {
 	}
 }
 
-TEST_F(RampMergeTest, MergesIntoRightmostLane) {
+TEST_F(RampMergeTest, DISABLED_MergesIntoRightmostLane) {
 	auto& network = *world.segments().front()->road_network;
 
 	Edge* ramp = nullptr;

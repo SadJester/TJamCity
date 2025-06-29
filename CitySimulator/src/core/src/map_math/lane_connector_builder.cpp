@@ -9,11 +9,12 @@ namespace tjs::core::algo {
 
 		// Normalize angle to the [-180,180] range. This is used when
 		// comparing headings between edges.
-		double normalize_angle(double deg) noexcept
-		{
-			double x = std::fmod(deg + 180.0, 360.0);   // now in (-360, 360]
-			if (x < 0) x += 360.0;                      // --> [0, 360)
-			return x - 180.0;                           // --> [-180, 180)
+		double normalize_angle(double deg) noexcept {
+			double x = std::fmod(deg + 180.0, 360.0); // now in (-360, 360]
+			if (x < 0) {
+				x += 360.0; // --> [0, 360)
+			}
+			return x - 180.0; // --> [-180, 180)
 		}
 
 		// Forward declaration for helper below
@@ -21,47 +22,48 @@ namespace tjs::core::algo {
 
 		/// Returns a heading in degrees in the range [-180, 180],
 		/// where 0° points due East ( +X ), positive angles turn CCW (towards +Y).
-		static double heading_deg(const Coordinates& a, const Coordinates& b) noexcept
-		{
+		static double heading_deg(const Coordinates& a, const Coordinates& b) noexcept {
 			const double dx = b.x - a.x;
 			const double dy = b.y - a.y;
-			return std::atan2(dy, dx) * 180.0 / MathConstants::M_PI;   // atan2 already gives signed angle
+			return std::atan2(dy, dx) * 180.0 / MathConstants::M_PI; // atan2 already gives signed angle
 		}
 
 		namespace t {
-			Coordinates operator - (const Coordinates& a, const Coordinates& b) {
-				return {0, 0, a.x - b.x, a.y - b.y};
+			Coordinates operator-(const Coordinates& a, const Coordinates& b) {
+				return { 0, 0, a.x - b.x, a.y - b.y };
 			}
 
-			double signed_angle_deg(const Coordinates& v1, const Coordinates& v2)
-			{
-				double dot  = v1.x * v2.x + v1.y * v2.y;
-				double det  = v1.x * v2.y - v1.y * v2.x;   // = |v1|·|v2|·sinθ
+			double signed_angle_deg(const Coordinates& v1, const Coordinates& v2) {
+				double dot = v1.x * v2.x + v1.y * v2.y;
+				double det = v1.x * v2.y - v1.y * v2.x;                    // = |v1|·|v2|·sinθ
 				return std::atan2(det, dot) * 180.0 / MathConstants::M_PI; // (-180,180]
 			}
 
 			TurnDirection classify(const Coordinates& a, const Coordinates& o,
-                       const Coordinates& b, bool rhs = true)
-			{
-				Coordinates v_in  = a - o;    // back-wards so heading points *into* node
-				Coordinates v_out = b - o;   // usual forward direction
+				const Coordinates& b, bool rhs = true) {
+				Coordinates v_in = o - a;  // back-wards so heading points *into* node
+				Coordinates v_out = b - o; // usual forward direction
 				double θ = signed_angle_deg(v_in, v_out);
 
-				if (std::abs(θ) <= 30.0)   return TurnDirection::Straight;
-				if (θ  >  30.0 && θ <= 150.0) return rhs ? TurnDirection::Left  : TurnDirection::Right;
-				if (θ  < -30.0 && θ >= -150.0) return rhs ? TurnDirection::Right : TurnDirection::Left;
+				// TODO[simulation_algo] Can be Part_Left, Part_Right also
+				if (std::abs(θ) <= 30.0) {
+					return TurnDirection::Straight;
+				}
+				if (θ > 30.0 && θ <= 150.0) {
+					return rhs ? TurnDirection::Left : TurnDirection::Right;
+				}
+				if (θ < -30.0 && θ >= -150.0) {
+					return rhs ? TurnDirection::Right : TurnDirection::Left;
+				}
 				return TurnDirection::UTurn;
 			}
-		}
-
-
+		} // namespace t
 
 		// Determine the turn direction when travelling from in_edge to
 		// out_edge based on their headings.
 		static TurnDirection relative_direction(const Edge* in_edge,
-                                        const Edge* out_edge,
-                                        bool right_hand_traffic = true)
-		{
+			const Edge* out_edge,
+			bool right_hand_traffic = true) {
 			if (!in_edge || !out_edge) {
 				return TurnDirection::None;
 			}
@@ -69,63 +71,38 @@ namespace tjs::core::algo {
 			return t::classify(
 				in_edge->start_node->coordinates,
 				out_edge->start_node->coordinates,
-				out_edge->end_node->coordinates
-			);
-
-			// 1. Signed angle between the edges ------------------------------------
-			const double h_in  = heading_deg(in_edge->start_node->coordinates,
-											in_edge->end_node->coordinates);
-			const double h_out = heading_deg(out_edge->start_node->coordinates,
-											out_edge->end_node->coordinates);
-
-			double diff = h_out - h_in;                // raw difference
-			diff = std::remainder(diff, 360.0);        // wrap to (-180, 180]
-
-			// 2. Classify -----------------------------------------------------------
-			const double abs_d = std::abs(diff);
-
-			// (a) U-turn
-			if (abs_d > 150.0) {
-				return TurnDirection::UTurn;
-			}
-
-			// (b) Straight (allow small wiggle)
-			if (abs_d <= 30.0) {
-				// Optional: detect “ramp → mainline” merge
-				if (is_link_type(in_edge->way->type) && !is_link_type(out_edge->way->type)) {
-					return right_hand_traffic ? TurnDirection::MergeRight
-											: TurnDirection::MergeLeft;
-				}
-				return TurnDirection::Straight;
-			}
-
-			// (c) Left vs Right
-			if (diff > 0.0) {   // positive = CCW in our heading convention
-				return right_hand_traffic ? TurnDirection::Left
-										: TurnDirection::Right;
-			}
-			else {
-				return right_hand_traffic ? TurnDirection::Right
-										: TurnDirection::Left;
-			}
+				out_edge->end_node->coordinates);
 		}
 
 		// Check if the lane declaration explicitly forbids the desired
 		// turning movement.
 		static bool is_turn_allowed(const Lane& lane, TurnDirection desired) {
 			if (lane.turn == TurnDirection::None) {
+				size_t from_index = std::distance(
+					lane.parent->lanes.data(),
+					const_cast<Lane*>(&lane));
+
+				if (desired == TurnDirection::UTurn || desired == TurnDirection::Left) {
+					// Left turn is only allowed on the last lane
+					return from_index == (lane.parent->lanes.size() - 1);
+				} else if (desired == TurnDirection::Right) {
+					// Right turn is only allowed on the first lane
+					return from_index == 0;
+				}
+
 				return true;
 			}
 			if (lane.turn == desired) {
 				return true;
 			}
-			if (lane.turn == TurnDirection::Straight && (desired == TurnDirection::Straight || desired == TurnDirection::MergeRight || desired == TurnDirection::MergeLeft)) {
+
+			if (has_flag(lane.turn, TurnDirection::Straight) && (has_flag(desired, TurnDirection::Straight) || has_flag(desired, TurnDirection::MergeRight) || has_flag(desired, TurnDirection::MergeLeft))) {
 				return true;
 			}
-			if (lane.turn == TurnDirection::Right && desired == TurnDirection::MergeRight) {
+			if (has_flag(lane.turn, TurnDirection::Right) && has_flag(desired, TurnDirection::MergeRight)) {
 				return true;
 			}
-			if (lane.turn == TurnDirection::Left && desired == TurnDirection::MergeLeft) {
+			if (has_flag(lane.turn, TurnDirection::Left) && has_flag(desired, TurnDirection::MergeLeft)) {
 				return true;
 			}
 			return false;
@@ -157,7 +134,6 @@ namespace tjs::core::algo {
 				return nullptr;
 			}
 
-
 			auto check_lane_dist = [](const Lane& from_lane, const Lane& to_lane) {
 				const double dist = euclidean_distance(from_lane.centerLine.back(), to_lane.centerLine.front());
 				if (dist > 1.0) {
@@ -183,7 +159,7 @@ namespace tjs::core::algo {
 				default:
 					break;
 			}
-			
+
 			// Straight/UTurn or fallback: choose lane based on lateral position
 			size_t out_index = processed_lanes;
 			if (out_index < out_lanes.size() - 1) {
@@ -199,6 +175,52 @@ namespace tjs::core::algo {
 
 	} // namespace
 
+	void details::process_node(RoadNetwork& network, Node* node) {
+		// Collect incoming and outgoing edges that touch this
+		// node. We only consider edges with explicit start/end
+		// pointers to this node.
+		std::vector<Edge*> incoming;
+		std::vector<Edge*> outgoing;
+		for (auto& edge : network.edges) {
+			if (edge.end_node == node) {
+				incoming.push_back(&edge);
+			}
+			if (edge.start_node == node) {
+				outgoing.push_back(&edge);
+			}
+		}
+
+		// General case: connect every incoming lane to an
+		// appropriate lane on each outgoing edge respecting
+		// lane turn restrictions.
+		std::unordered_map<Edge*, size_t> outgoing_processed;
+		for (Edge* edge : outgoing) {
+			outgoing_processed[edge] = 0;
+		}
+		for (Edge* in_edge : incoming) {
+			for (Edge* out_edge : outgoing) {
+				size_t& processed_lanes = outgoing_processed[out_edge];
+				TurnDirection desired = relative_direction(in_edge, out_edge);
+				for (Lane& from_lane : in_edge->lanes) {
+					if (!is_turn_allowed(from_lane, desired)) {
+						continue;
+					}
+					Lane* to_lane = get_target_lane(from_lane, out_edge, desired, processed_lanes);
+					if (!to_lane) {
+						continue;
+					}
+					++processed_lanes;
+
+					network.lane_links.push_back({ &from_lane, to_lane, is_link_type(in_edge->way->type) });
+					LaneLinkHandler link_handler { network.lane_links, network.lane_links.size() - 1 };
+					from_lane.outgoing_connections.push_back(link_handler);
+					to_lane->incoming_connections.push_back(link_handler);
+					network.lane_graph[&from_lane].push_back(link_handler);
+				}
+			}
+		}
+	}
+
 	void LaneConnectorBuilder::build_lane_connections(core::RoadNetwork& network) {
 		// Remove any previously generated links so the builder can be
 		// called multiple times without leaking connections.
@@ -212,76 +234,7 @@ namespace tjs::core::algo {
 		network.lane_graph.clear();
 
 		for (const auto& [nid, node] : network.nodes) {
-			// Collect incoming and outgoing edges that touch this
-			// node. We only consider edges with explicit start/end
-			// pointers to this node.
-			std::vector<Edge*> incoming;
-			std::vector<Edge*> outgoing;
-			for (auto& edge : network.edges) {
-				if (edge.end_node == node) {
-					incoming.push_back(&edge);
-				}
-				if (edge.start_node == node) {
-					outgoing.push_back(&edge);
-				}
-			}
-
-			// Special case: exactly one incoming and one outgoing
-			// oneway edge. In this merge/split scenario we simply
-			// connect lanes by their index so that each incoming
-			// lane transitions to the corresponding outgoing lane.
-			if (incoming.size() == 1 && outgoing.size() == 1 && !incoming.front()->lanes.empty() && !outgoing.front()->lanes.empty() && incoming.front()->way->isOneway && outgoing.front()->way->isOneway) {
-				size_t lanes = std::min(incoming.front()->lanes.size(), outgoing.front()->lanes.size());
-				for (size_t i = 0; i < lanes; ++i) {
-					Lane& from_lane = incoming.front()->lanes[i];
-					Lane& to_lane = outgoing.front()->lanes[i];
-					network.lane_links.push_back({ &from_lane, &to_lane, is_link_type(incoming.front()->way->type) });
-					LaneLinkHandler link_handler { network.lane_links, network.lane_links.size() - 1 };
-					from_lane.outgoing_connections.push_back(link_handler);
-					to_lane.incoming_connections.push_back(link_handler);
-					network.lane_graph[&from_lane].push_back(link_handler);
-				}
-				// TODO[simulation algo]: Connect all incoming lanes to the last outgoing lane
-				// This should be deleted because no connection is really set and properely handled in algo
-				if (incoming.front()->lanes.size() > outgoing.front()->lanes.size()) {
-					Lane* to_lane = &outgoing.front()->lanes.back();
-					for (size_t i = lanes; i < incoming.front()->lanes.size(); ++i) {
-						Lane& from_lane = incoming.front()->lanes[i];
-						network.lane_links.push_back({ &from_lane, to_lane, is_link_type(incoming.front()->way->type) });
-						LaneLinkHandler link_handler { network.lane_links, network.lane_links.size() - 1 };
-						from_lane.outgoing_connections.push_back(link_handler);
-						to_lane->incoming_connections.push_back(link_handler);
-						network.lane_graph[&from_lane].push_back(link_handler);
-					}
-				}
-				continue;
-			}
-
-			// General case: connect every incoming lane to an
-			// appropriate lane on each outgoing edge respecting
-			// lane turn restrictions.
-			size_t processed_lanes = 0;
-			for (Edge* in_edge : incoming) {
-				for (Edge* out_edge : outgoing) {
-					TurnDirection desired = relative_direction(in_edge, out_edge);
-					for (Lane& from_lane : in_edge->lanes) {
-						if (!is_turn_allowed(from_lane, desired)) {
-							continue;
-						}
-						Lane* to_lane = get_target_lane(from_lane, out_edge, desired, processed_lanes);
-						if (!to_lane) {
-							continue;
-						}
-						++processed_lanes;
-
-						network.lane_links.push_back({ &from_lane, to_lane, is_link_type(in_edge->way->type) });
-						LaneLinkHandler link_handler { network.lane_links, network.lane_links.size() - 1 };
-						from_lane.outgoing_connections.push_back(link_handler);
-						to_lane->incoming_connections.push_back(link_handler);
-						network.lane_graph[&from_lane].push_back(link_handler);
-					}
-				}
-			}
+			details::process_node(network, node);
 		}
 	}
 

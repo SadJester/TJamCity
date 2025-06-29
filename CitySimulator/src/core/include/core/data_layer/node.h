@@ -37,7 +37,7 @@ namespace tjs::core {
 		}
 
 		bool hasTag(NodeTags tag) const {
-			return hasFlag(tags, tag);
+			return has_flag(tags, tag);
 		}
 	};
 	// static_assert(std::is_pod<Node>::value, "Data object expect to be POD");

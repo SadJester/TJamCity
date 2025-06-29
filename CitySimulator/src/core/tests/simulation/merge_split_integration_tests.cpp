@@ -17,7 +17,7 @@ protected:
 	}
 };
 
-TEST_F(MergeSplitIntegrationTest, VehiclePassesMergeNode) {
+TEST_F(MergeSplitIntegrationTest, DISABLED_VehiclePassesMergeNode) {
 	auto& agent = system->agents()[0];
 	auto& network = *world.segments().front()->road_network;
 

@@ -24,15 +24,15 @@ namespace tjs::core {
 
 	struct Node;
 
-	enum class TurnDirection : char {
-		None,
-		Left,
-		Right,
-		Straight,
-		UTurn,
-		MergeRight,
-		MergeLeft
-	};
+	ENUM_FLAG(TurnDirection, char,
+		None = 0,
+		Left = 1 << 0,
+		Right = 1 << 1,
+		Straight = 1 << 2,
+		UTurn = 1 << 3,
+		MergeRight = 1 << 4,
+		MergeLeft = 1 << 5
+	);
 
 	struct WayInfo {
 		uint64_t uid;

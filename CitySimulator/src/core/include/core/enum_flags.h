@@ -16,8 +16,8 @@
 	inline Type operator&(Type a, EnumName b) {                                    \
 		return a & static_cast<Type>(b);                                           \
 	}                                                                              \
-	inline bool hasFlag(EnumName a, EnumName b) {                                  \
-		return (static_cast<Type>(a) & static_cast<Type>(b)) != 0;                 \
+	inline bool has_flag(EnumName a, EnumName b) {                                 \
+		return (static_cast<Type>(a) & static_cast<Type>(b)) == static_cast<Type>(b);                 \
 	}
 
 #define ENUM(EnumName, Type, ...)             \

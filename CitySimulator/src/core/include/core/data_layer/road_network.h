@@ -37,7 +37,24 @@ namespace tjs::core {
 
 	using LaneLinkHandler = common::ContainerPtrHolder<std::vector<LaneLink>>;
 
-	struct Lane {
+	template <typename _T>
+	struct WithId {
+		WithId() {
+			this->_id = WithId<_T>::global_id++;
+		}
+		int get_id() const { 
+			return _id;
+		}
+
+		static void reset_id() { 
+			WithId<_T>::global_id = 0;
+		}
+	private:
+		int _id;
+		static inline int global_id = 0;
+	};
+
+	struct Lane : public WithId<Lane> {
 		Edge* parent = nullptr;
 		LaneOrientation orientation = LaneOrientation::Forward;
 		double width = 0.0;
@@ -46,23 +63,9 @@ namespace tjs::core {
 		TurnDirection turn = TurnDirection::None;
 		std::vector<LaneLinkHandler> outgoing_connections;
 		std::vector<LaneLinkHandler> incoming_connections;
-		Lane() {
-			static int __id = 0;
-			this->_id = __id++;
-		}
-		Lane(Lane&&) = default;
-		Lane& operator=(Lane&&) = default;
-		Lane(const Lane&) = default;
-		Lane& operator=(const Lane&) = default;
-		~Lane() = default;
-
-		int get_id() const { return _id; }
-
-	private:
-		int _id;
 	};
 
-	struct Edge {
+	struct Edge : public WithId<Edge> {
 		std::vector<Lane> lanes;
 
 		core::Node* start_node;
@@ -70,9 +73,6 @@ namespace tjs::core {
 		WayInfo* way;
 		LaneOrientation orientation;
 		double length;
-
-	public:
-		Edge() = default;
 	};
 
 	struct RoadNetwork {
