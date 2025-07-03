@@ -86,8 +86,7 @@ namespace tjs::render {
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
 				case SDL_EVENT_MOUSE_BUTTON_DOWN:
-				case SDL_EVENT_MOUSE_BUTTON_UP:
-				case SDL_EVENT_MOUSE_MOTION: {
+				case SDL_EVENT_MOUSE_BUTTON_UP: {
 					// Convert event coordinates to render coordinates
 					SDL_ConvertEventToRenderCoordinates(_sdlRenderer, &event);
 
@@ -99,11 +98,6 @@ namespace tjs::render {
 					mouseEvent.shift = (mods & SDL_KMOD_SHIFT) != 0;
 					mouseEvent.ctrl = (mods & SDL_KMOD_CTRL) != 0;
 					mouseEvent.alt = (mods & SDL_KMOD_ALT) != 0;
-
-					if (event.type == SDL_EVENT_MOUSE_MOTION) {
-						// Handle motion separately if needed
-						break;
-					}
 
 					// Set button type
 					switch (event.button.button) {
@@ -124,6 +118,18 @@ namespace tjs::render {
 					mouseEvent.state = (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) ? RendererMouseEvent::ButtonState::Pressed : RendererMouseEvent::ButtonState::Released;
 
 					_eventManager.dispatch_mouse_event(mouseEvent);
+					break;
+				}
+				case SDL_EVENT_MOUSE_MOTION: {
+					SDL_ConvertEventToRenderCoordinates(_sdlRenderer, &event);
+
+					RendererMouseMotionEvent motionEvent;
+					motionEvent.x = event.motion.x;
+					motionEvent.y = event.motion.y;
+					motionEvent.xrel = event.motion.xrel;
+					motionEvent.yrel = event.motion.yrel;
+
+					_eventManager.dispatch_mouse_motion_event(motionEvent);
 					break;
 				}
 				case SDL_EVENT_MOUSE_WHEEL: {

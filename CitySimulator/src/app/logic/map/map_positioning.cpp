@@ -18,9 +18,16 @@ namespace tjs::visualization {
 		, _maxDistance(app.settings().render.map.selectionDistance) {}
 
 	void MapPositioning::on_mouse_event(const render::RendererMouseEvent& event) {
-		if (event.button != render::RendererMouseEvent::ButtonType::Left || event.state != render::RendererMouseEvent::ButtonState::Pressed) {
+		if (event.button != render::RendererMouseEvent::ButtonType::Left) {
 			return;
 		}
+
+		if (event.state == render::RendererMouseEvent::ButtonState::Released) {
+			_dragging = false;
+			return;
+		}
+
+		_dragging = true;
 
 		auto* cache = _application.stores().get_model<core::model::PersistentRenderData>();
 		auto* debug = _application.stores().get_model<core::model::SimulationDebugData>();
@@ -68,6 +75,22 @@ namespace tjs::visualization {
 		render_data->set_meters_per_pixel(newMPP);
 		render_data->screen_center.x = static_cast<int>(event.x - worldX / newMPP);
 		render_data->screen_center.y = static_cast<int>(event.y - worldY / newMPP);
+
+		update_map_positioning();
+	}
+
+	void MapPositioning::on_mouse_motion_event(const render::RendererMouseMotionEvent& event) {
+		if (!_dragging) {
+			return;
+		}
+
+		auto* render_data = _application.stores().get_model<core::model::MapRendererData>();
+		if (!render_data) {
+			return;
+		}
+
+		render_data->screen_center.x += event.xrel;
+		render_data->screen_center.y += event.yrel;
 
 		update_map_positioning();
 	}

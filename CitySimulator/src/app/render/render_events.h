@@ -36,6 +36,13 @@ namespace tjs::render {
 		int y;
 	};
 
+	struct RendererMouseMotionEvent : IRendererEvent {
+		int x;
+		int y;
+		int xrel;
+		int yrel;
+	};
+
 	// Keyboard event
 	struct RendererKeyEvent : IRendererEvent {
 		enum class KeyState {
@@ -59,6 +66,7 @@ namespace tjs::render {
 
 		virtual void on_mouse_event(const RendererMouseEvent& event) {}
 		virtual void on_mouse_wheel_event(const RendererMouseWheelEvent& event) {}
+		virtual void on_mouse_motion_event(const RendererMouseMotionEvent& event) {}
 		virtual void on_key_event(const RendererKeyEvent& event) {}
 	};
 } // namespace tjs::render

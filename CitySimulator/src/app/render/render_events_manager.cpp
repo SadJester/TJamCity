@@ -28,6 +28,12 @@ namespace tjs::render {
 		}
 	}
 
+	void RendererEventsManager::dispatch_mouse_motion_event(const RendererMouseMotionEvent& event) {
+		for (auto* listener : _listeners) {
+			listener->on_mouse_motion_event(event);
+		}
+	}
+
 	void RendererEventsManager::dispatch_key_event(const RendererKeyEvent& event) {
 		for (auto* listener : _listeners) {
 			listener->on_key_event(event);
