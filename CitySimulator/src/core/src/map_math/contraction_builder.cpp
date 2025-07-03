@@ -32,7 +32,7 @@ namespace tjs::core::algo {
 		const double heading = bearing(start_node->coordinates, end_node->coordinates);
 
 		// Pre-compute half-width offset of the lane bundle
-		const double half_span = reserved_size % 2 == 0 ?  0.5 * way->laneWidth : 0.0;
+		const double half_span = reserved_size % 2 == 0 ? 0.5 * way->laneWidth : 0.0;
 		// ------------------------------------------------------------------ //
 		// 2. Fill lanes – **index 0 = right-most**                           //
 		// ------------------------------------------------------------------ //
@@ -70,14 +70,15 @@ namespace tjs::core::algo {
 			// 3. Per-lane turn indication                                      //
 			// ----------------------------------------------------------------//
 			TurnDirection td = TurnDirection::None;
-
+			// right is the last index
+			size_t td_index = right_is_min ? reserved_size - 1 - logical_idx : logical_idx;
 			if (orientation == LaneOrientation::Forward) { // ★ fixed list swap
-				if (logical_idx < way->forwardTurns.size()) {
-					td = way->forwardTurns[logical_idx];
+				if (td_index < way->forwardTurns.size()) {
+					td = way->forwardTurns[td_index];
 				}
 			} else { // Backward
-				if (logical_idx < way->backwardTurns.size()) {
-					td = way->backwardTurns[logical_idx];
+				if (td_index < way->backwardTurns.size()) {
+					td = way->backwardTurns[td_index];
 				}
 			}
 			lane.turn = td;

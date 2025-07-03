@@ -92,19 +92,19 @@ namespace tjs::core::algo {
 
 				return true;
 			}
-			if (lane.turn == desired) {
+			if (has_flag(lane.turn, desired)) {
 				return true;
 			}
 
-			if (has_flag(lane.turn, TurnDirection::Straight) && (has_flag(desired, TurnDirection::Straight) || has_flag(desired, TurnDirection::MergeRight) || has_flag(desired, TurnDirection::MergeLeft))) {
+			/*if (has_flag(lane.turn, TurnDirection::Straight) && (has_flag(desired, TurnDirection::Straight) || has_flag(desired, TurnDirection::MergeRight) || has_flag(desired, TurnDirection::MergeLeft))) {
 				return true;
 			}
-			if (has_flag(lane.turn, TurnDirection::Right) && has_flag(desired, TurnDirection::MergeRight)) {
+			if (has_flag(lane.turn, TurnDirection::MergeRight)) {
 				return true;
 			}
-			if (has_flag(lane.turn, TurnDirection::Left) && has_flag(desired, TurnDirection::MergeLeft)) {
+			if (has_flag(lane.turn, TurnDirection::MergeLeft)) {
 				return true;
-			}
+			}*/
 			return false;
 		}
 
@@ -146,14 +146,14 @@ namespace tjs::core::algo {
 			switch (turn) {
 				case TurnDirection::Right:
 				case TurnDirection::MergeRight: {
-					check_lane_dist(from_lane, out_lanes.back());
-					return &out_lanes.back();
+					check_lane_dist(from_lane, out_lanes.front());
+					return &out_lanes.front();
 				}
 
 				case TurnDirection::Left:
 				case TurnDirection::MergeLeft: {
-					check_lane_dist(from_lane, out_lanes.front());
-					return &out_lanes.front();
+					check_lane_dist(from_lane, out_lanes.back());
+					return &out_lanes.back();
 				}
 
 				default:
@@ -175,20 +175,60 @@ namespace tjs::core::algo {
 
 	} // namespace
 
-	void details::process_node(RoadNetwork& network, Node* node) {
-		// Collect incoming and outgoing edges that touch this
-		// node. We only consider edges with explicit start/end
-		// pointers to this node.
-		std::vector<Edge*> incoming;
-		std::vector<Edge*> outgoing;
+	details::AdjacentEdges details::get_adjacent_edges(RoadNetwork& network, Node* node) {
+		AdjacentEdges adjacent;
+
+		auto& incoming = adjacent.incoming;
+		auto& outgoing = adjacent.outgoing;
+		WayType min_priority = WayType::Count;
+
 		for (auto& edge : network.edges) {
 			if (edge.end_node == node) {
 				incoming.push_back(&edge);
+				if (edge.way->type < min_priority) {
+					min_priority = edge.way->type;
+					adjacent.primary = &edge;
+				}
 			}
 			if (edge.start_node == node) {
 				outgoing.push_back(&edge);
 			}
 		}
+
+		if (incoming.size() == 0) {
+			return adjacent;
+		}
+
+		// if the road is upward, the rightest will be with max x coordinate
+		const bool road_goes_up = adjacent.primary->start_node->coordinates.y < adjacent.primary->end_node->coordinates.y;
+		// sort incoming by start node (end is the same)
+		std::ranges::sort(incoming, [road_goes_up](Edge* a, Edge* b) {
+			if (road_goes_up) {
+				return a->start_node->coordinates.x > b->start_node->coordinates.x;
+			}
+			return a->start_node->coordinates.x < b->start_node->coordinates.x;
+		});
+		// sort outgoin by end_node (start is the same)
+		std::ranges::sort(outgoing, [road_goes_up](Edge* a, Edge* b) {
+			if (road_goes_up) {
+				return a->end_node->coordinates.x > b->end_node->coordinates.x;
+			}
+			return a->end_node->coordinates.x < b->end_node->coordinates.x;
+		});
+
+		return adjacent;
+	}
+
+	void details::process_node(RoadNetwork& network, Node* node) {
+		// Collect incoming and outgoing edges that touch this
+		// node. We only consider edges with explicit start/end
+		// pointers to this node.
+
+		auto adjacent = get_adjacent_edges(network, node);
+
+		std::vector<Edge*>& incoming = adjacent.incoming;
+		std::vector<Edge*>& outgoing = adjacent.outgoing;
+		Edge* primary = adjacent.primary;
 
 		// General case: connect every incoming lane to an
 		// appropriate lane on each outgoing edge respecting
@@ -197,19 +237,62 @@ namespace tjs::core::algo {
 		for (Edge* edge : outgoing) {
 			outgoing_processed[edge] = 0;
 		}
+
+		// i-=merge lanes
+		// i < o
+		//   i -> o from right
+		// i == o
+		//   i -> o from right
+		// i > o
+		//   primary i -> o from right
+		//   secondary i -> o from the corner of primary
+
+		if (node->uid == 1527930956) {
+			node->uid = 1527930956;
+		}
+
 		for (Edge* in_edge : incoming) {
 			for (Edge* out_edge : outgoing) {
 				size_t& processed_lanes = outgoing_processed[out_edge];
 				TurnDirection desired = relative_direction(in_edge, out_edge);
+				// adjust first lane index for primary
+				const bool is_primary = in_edge == primary;
+				if (is_primary) {
+					int needed_lanes = 0;
+					for (Lane& from_lane : in_edge->lanes) {
+						if (!is_turn_allowed(from_lane, desired)) {
+							continue;
+						}
+						++needed_lanes;
+					}
+					size_t candidate_out_idx = 0;
+					if (processed_lanes + needed_lanes <= out_edge->lanes.size()) {
+						candidate_out_idx = processed_lanes;
+					} else {
+						candidate_out_idx = processed_lanes;
+						while (candidate_out_idx != 0 && (candidate_out_idx + needed_lanes) >= out_edge->lanes.size()) {
+							--candidate_out_idx;
+						}
+						processed_lanes = candidate_out_idx;
+					}
+				}
+
 				for (Lane& from_lane : in_edge->lanes) {
-					if (!is_turn_allowed(from_lane, desired)) {
+					const bool merging_lane = has_flag(from_lane.turn, TurnDirection::MergeLeft) || has_flag(from_lane.turn, TurnDirection::MergeRight);
+					if (!merging_lane && !is_turn_allowed(from_lane, desired)) {
+						// check this is not merging
 						continue;
 					}
 					Lane* to_lane = get_target_lane(from_lane, out_edge, desired, processed_lanes);
 					if (!to_lane) {
 						continue;
 					}
-					++processed_lanes;
+					// TODO: adjust lane
+					// from_lane.centerLine.back() = to_lane->centerLine.front();
+					// in one way can be several edges with one turn direction
+					if (!merging_lane || to_lane->turn == from_lane.turn) {
+						++processed_lanes;
+					}
 
 					network.lane_links.push_back({ &from_lane, to_lane, is_link_type(in_edge->way->type) });
 					LaneLinkHandler link_handler { network.lane_links, network.lane_links.size() - 1 };

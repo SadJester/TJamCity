@@ -32,6 +32,13 @@ namespace tjs::render {
 		SDL_PropertiesID props = SDL_CreateProperties();
 		//SDL_SetPointerProperty(props, SDL_PROP_WINDOW_CREATE_PARENT_POINTER, (void*)this->winId());
 
+		// Set size
+		SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, SCREEN_WIDTH);
+		SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, SCREEN_HEIGHT);
+
+		// TODO: resize!!!!
+		// SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, true);
+
 		// Create the SDL window using properties
 		_sdlWindow = SDL_CreateWindowWithProperties(props);
 		SDL_DestroyProperties(props);
@@ -43,7 +50,6 @@ namespace tjs::render {
 		}
 
 		// Set the window size to match the widget
-		SDL_SetWindowSize(_sdlWindow, SCREEN_WIDTH, SCREEN_HEIGHT);
 		this->set_screen_dimensions(SCREEN_WIDTH, SCREEN_HEIGHT);
 
 		// Create the renderer

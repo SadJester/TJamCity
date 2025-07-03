@@ -278,7 +278,7 @@ namespace tjs::core {
 						lanes_found = true;
 					} else if (key == "lane_width" || key == "lanes:width") {
 						laneWidth = std::stod(value);
-					} else if (key == "turn:lanes:forward") {
+					} else if (key == "turn:lanes:forward" || key == "turn:lanes") {
 						turnsForward = parseTurnLanes(value);
 					} else if (key == "turn:lanes:backward") {
 						turnsBackward = parseTurnLanes(value);
@@ -355,11 +355,9 @@ namespace tjs::core {
 						return TurnDirection::Straight;
 					} else if (_token == "reverse") {
 						return TurnDirection::UTurn;
-					}
-					else if (_token == "merge_to_left") {
+					} else if (_token == "merge_to_left") {
 						return TurnDirection::MergeLeft;
-					}
-					else if (_token == "merge_to_right") {
+					} else if (_token == "merge_to_right") {
 						return TurnDirection::MergeRight;
 					}
 					return TurnDirection::None;
@@ -373,12 +371,10 @@ namespace tjs::core {
 						while (std::getline(ss2, internal_token, ';')) {
 							direction = direction | parse_token(internal_token);
 						}
-					}
-					else {
+					} else {
 						direction = parse_token(token);
 					}
 					result.push_back(direction);
-					
 				}
 				return result;
 			}
