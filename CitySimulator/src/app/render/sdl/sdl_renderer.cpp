@@ -35,9 +35,7 @@ namespace tjs::render {
 		// Set size
 		SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, SCREEN_WIDTH);
 		SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, SCREEN_HEIGHT);
-
-		// TODO: resize!!!!
-		// SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, true);
+		SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, true);
 
 		// Create the SDL window using properties
 		_sdlWindow = SDL_CreateWindowWithProperties(props);
@@ -168,6 +166,13 @@ namespace tjs::render {
 				}
 				case SDL_EVENT_QUIT: {
 					_application.setFinished();
+					break;
+				}
+				case SDL_EVENT_WINDOW_RESIZED: {
+					int new_width = event.window.data1;
+					int new_height = event.window.data2;
+					this->set_screen_dimensions(new_width, new_height);
+					_eventManager.dispatch_resize_event(RenderResizeEvent { new_width, new_height });
 					break;
 				}
 			}

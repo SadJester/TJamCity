@@ -13,6 +13,7 @@ namespace tjs::render {
 		void dispatch_mouse_wheel_event(const RendererMouseWheelEvent& event);
 		void dispatch_mouse_motion_event(const RendererMouseMotionEvent& event);
 		void dispatch_key_event(const RendererKeyEvent& event);
+		void dispatch_resize_event(const RenderResizeEvent& event);
 
 	private:
 		std::vector<IRenderEventListener*> _listeners;

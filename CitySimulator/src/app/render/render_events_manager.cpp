@@ -39,4 +39,11 @@ namespace tjs::render {
 			listener->on_key_event(event);
 		}
 	}
+
+	void RendererEventsManager::dispatch_resize_event(const RenderResizeEvent& event) {
+		for (auto* listener : _listeners) {
+			listener->on_resize_event(event);
+		}
+	}
+
 } // namespace tjs::render

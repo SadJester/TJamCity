@@ -59,6 +59,16 @@ namespace tjs::render {
 		bool alt;
 	};
 
+	struct RenderResizeEvent : IRendererEvent {
+		int new_width;
+		int new_height;
+
+		RenderResizeEvent(int w, int h)
+			: new_width(w)
+			, new_height(h) {
+		}
+	};
+
 	// Event listener interface
 	class IRenderEventListener {
 	public:
@@ -68,5 +78,6 @@ namespace tjs::render {
 		virtual void on_mouse_wheel_event(const RendererMouseWheelEvent& event) {}
 		virtual void on_mouse_motion_event(const RendererMouseMotionEvent& event) {}
 		virtual void on_key_event(const RendererKeyEvent& event) {}
+		virtual void on_resize_event(const RenderResizeEvent& event) {}
 	};
 } // namespace tjs::render
