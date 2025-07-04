@@ -162,6 +162,10 @@ namespace tjs::core::simulation {
 			}
 		}
 
+		if (agent.current_goal->end_node->uid == 1476196633) {
+			agent.current_goal->end_node->uid = 1476196633;
+		}
+
 		// Step 3: Check if vehicle reached current step goal using haversine distance
 		const double distance_to_target = core::algo::euclidean_distance(vehicle.coordinates, agent.currentStepGoal);
 
@@ -176,7 +180,6 @@ namespace tjs::core::simulation {
 
 				agent.current_goal = agent.path.front();
 
-
 				/// Find the best target lane
 				Lane* candidate = nullptr;
 				double dist = std::numeric_limits<double>::max();
@@ -188,18 +191,17 @@ namespace tjs::core::simulation {
 							candidate = candidate_from_v;
 							break;
 						}
-					}	
+					}
 				}
 
 				if (candidate == nullptr) {
 					// TODO: algo error handling
 					// Now just take the first lane and it will be "dancing"
 					agent.target_lane = &agent.current_goal->lanes[0];
-				}
-				else {
+				} else {
 					agent.target_lane = candidate;
 				}
-				agent.currentStepGoal = agent.current_goal->start_node->coordinates; // agent.target_lane->centerLine.back();
+				agent.currentStepGoal = agent.target_lane->centerLine.front();
 				agent.visitedNodes.push_back(agent.current_goal->start_node);
 				agent.path.erase(agent.path.begin());
 
