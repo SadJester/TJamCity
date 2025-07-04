@@ -284,10 +284,12 @@ namespace tjs::core {
 						turnsBackward = parseTurnLanes(value);
 					} else if (key == "oneway") {
 						isOneway = (value == "yes" || value == "1" || value == "true");
+						lanes_found = true;
 					} else if (key == "maxspeed") {
 						maxSpeed = parseSpeedValue(value);
 					} else if (key == "junction" && value == "roundabout") {
 						isOneway = true; // Roundabouts are always one-way
+						lanes_found = true;
 					} else if (key == "access") {
 						// Handle access restrictions
 						if (value == "private" || value == "no") {
@@ -355,9 +357,9 @@ namespace tjs::core {
 						return TurnDirection::Straight;
 					} else if (_token == "reverse") {
 						return TurnDirection::UTurn;
-					} else if (_token == "merge_to_left") {
+					} else if (_token == "merge_to_left" || _token == "slight_left") {
 						return TurnDirection::MergeLeft;
-					} else if (_token == "merge_to_right") {
+					} else if (_token == "merge_to_right" || _token == "slight_right") {
 						return TurnDirection::MergeRight;
 					}
 					return TurnDirection::None;

@@ -82,7 +82,11 @@ namespace tjs::core::algo {
 					lane.parent->lanes.data(),
 					const_cast<Lane*>(&lane));
 
-				if (desired == TurnDirection::UTurn || desired == TurnDirection::Left) {
+				if (desired == TurnDirection::UTurn) {
+					// forbid auto U-turn for now
+					return false;
+				}
+				if (desired == TurnDirection::Left) {
 					// Left turn is only allowed on the last lane
 					return from_index == (lane.parent->lanes.size() - 1);
 				} else if (desired == TurnDirection::Right) {
@@ -288,7 +292,12 @@ namespace tjs::core::algo {
 						continue;
 					}
 					// TODO: adjust lane
-					// from_lane.centerLine.back() = to_lane->centerLine.front();
+					const bool turning_lane = has_flag(from_lane.turn, TurnDirection::Left) || has_flag(from_lane.turn, TurnDirection::Right);
+					if (turning_lane) {
+						to_lane->centerLine.front() = from_lane.centerLine.back();
+					} else {
+						from_lane.centerLine.back() = to_lane->centerLine.front();
+					}
 					// in one way can be several edges with one turn direction
 					if (!merging_lane || to_lane->turn == from_lane.turn) {
 						++processed_lanes;

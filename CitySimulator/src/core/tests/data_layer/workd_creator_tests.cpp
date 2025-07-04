@@ -169,7 +169,7 @@ TEST_F(WorldCreatorTests, CreateEdge_4_to_3) {
 	}
 }
 
-TEST_F(WorldCreatorTests, DISABLED_CreateEdge_T_Shaped) {
+TEST_F(WorldCreatorTests, reateEdge_T_Shaped) {
 	Node* node = get_node(1527930956);
 	auto& network = get_road_network();
 
@@ -177,21 +177,47 @@ TEST_F(WorldCreatorTests, DISABLED_CreateEdge_T_Shaped) {
 
 	algo::details::process_node(network, node);
 
-	Edge& in_edge = network.edges[2];
-	Edge& out_edge = network.edges[7];
+	auto adjacent = algo::details::get_adjacent_edges(network, node);
+	Edge& primary_in = *adjacent.incoming[1];
+	Edge& secondary_in = *adjacent.incoming[0];
+	Edge& primary_out = *adjacent.outgoing[1];
+	Edge& secondary_out = *adjacent.outgoing[0];
 
-	ASSERT_EQ(4, in_edge.lanes.size());
-	ASSERT_EQ(3, out_edge.lanes.size());
+	ASSERT_EQ(3, primary_out.lanes.size());
+	ASSERT_EQ(3, primary_in.lanes.size());
 
-	ASSERT_EQ(0, outgoing(in_edge, 0).size());
+	// primary connections
+	const size_t first_primary_idx = primary_out.lanes[0].get_id();
 
-	const size_t first_outgoing_idx = out_edge.lanes[0].get_id();
-	for (size_t i = 0; i < 3; ++i) {
-		// There is shift + 1 because 0 lane has no connection
-		const size_t in_edge_idx = i + 1;
-		ASSERT_EQ(1, outgoing(in_edge, in_edge_idx).size());
-		ASSERT_EQ(first_outgoing_idx + i, outgoing(in_edge, in_edge_idx)[0]->to->get_id());
-		ASSERT_EQ(1, incoming(out_edge, i).size());
-		ASSERT_EQ(outgoing(in_edge, in_edge_idx)[0]->from, incoming(out_edge, i)[0]->from);
-	}
+	size_t lane_idx = 0;
+	ASSERT_EQ(2, outgoing(primary_in, lane_idx).size());
+	ASSERT_EQ(first_primary_idx, outgoing(primary_in, lane_idx)[1]->to->get_id());
+	ASSERT_EQ(2, incoming(primary_out, lane_idx).size());
+	ASSERT_EQ(outgoing(primary_in, lane_idx)[1]->from, incoming(primary_out, lane_idx)[1]->from);
+
+	lane_idx = 1;
+	ASSERT_EQ(1, outgoing(primary_in, lane_idx).size());
+	ASSERT_EQ(first_primary_idx + 1, outgoing(primary_in, lane_idx)[0]->to->get_id());
+	ASSERT_EQ(1, incoming(primary_out, lane_idx).size());
+	ASSERT_EQ(outgoing(primary_in, lane_idx)[0]->from, incoming(primary_out, lane_idx)[0]->from);
+
+	lane_idx = 2;
+	ASSERT_EQ(1, outgoing(primary_in, lane_idx).size());
+	ASSERT_EQ(first_primary_idx + 2, outgoing(primary_in, lane_idx)[0]->to->get_id());
+	ASSERT_EQ(1, incoming(primary_out, lane_idx).size());
+	ASSERT_EQ(outgoing(primary_in, lane_idx)[0]->from, incoming(primary_out, lane_idx)[0]->from);
+
+	// secondary in primary right
+	lane_idx = 0;
+	ASSERT_EQ(1, outgoing(secondary_in, lane_idx).size());
+	ASSERT_EQ(first_primary_idx, outgoing(secondary_in, lane_idx)[0]->to->get_id());
+	ASSERT_EQ(2, incoming(primary_out, lane_idx).size());
+	ASSERT_EQ(outgoing(secondary_in, lane_idx)[0]->from, incoming(primary_out, lane_idx)[0]->from);
+
+	// primary right to secondary out
+	lane_idx = 0;
+	const size_t secondary_lane_idx = secondary_out.lanes[0].get_id();
+	ASSERT_EQ(secondary_lane_idx, outgoing(primary_in, lane_idx)[0]->to->get_id());
+	ASSERT_EQ(1, incoming(secondary_out, lane_idx).size());
+	ASSERT_EQ(outgoing(primary_in, lane_idx)[0]->from, incoming(secondary_out, lane_idx)[0]->from);
 }
