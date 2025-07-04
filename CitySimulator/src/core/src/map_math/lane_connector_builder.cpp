@@ -6,58 +6,21 @@
 
 namespace tjs::core::algo {
 	namespace {
-
-		// Normalize angle to the [-180,180] range. This is used when
-		// comparing headings between edges.
-		double normalize_angle(double deg) noexcept {
-			double x = std::fmod(deg + 180.0, 360.0); // now in (-360, 360]
-			if (x < 0) {
-				x += 360.0; // --> [0, 360)
-			}
-			return x - 180.0; // --> [-180, 180)
-		}
-
 		// Forward declaration for helper below
-		static bool is_link_type(WayType type);
-
-		/// Returns a heading in degrees in the range [-180, 180],
-		/// where 0° points due East ( +X ), positive angles turn CCW (towards +Y).
-		static double heading_deg(const Coordinates& a, const Coordinates& b) noexcept {
-			const double dx = b.x - a.x;
-			const double dy = b.y - a.y;
-			return std::atan2(dy, dx) * 180.0 / MathConstants::M_PI; // atan2 already gives signed angle
+		// Helper to detect if a way is a *_link highway. Those links are
+		// considered yielding when merging.
+		static bool is_link_type(WayType type) {
+			switch (type) {
+				case WayType::MotorwayLink:
+				case WayType::TrunkLink:
+				case WayType::PrimaryLink:
+				case WayType::SecondaryLink:
+				case WayType::TertiaryLink:
+					return true;
+				default:
+					return false;
+			}
 		}
-
-		namespace t {
-			Coordinates operator-(const Coordinates& a, const Coordinates& b) {
-				return { 0, 0, a.x - b.x, a.y - b.y };
-			}
-
-			double signed_angle_deg(const Coordinates& v1, const Coordinates& v2) {
-				double dot = v1.x * v2.x + v1.y * v2.y;
-				double det = v1.x * v2.y - v1.y * v2.x;                    // = |v1|·|v2|·sinθ
-				return std::atan2(det, dot) * 180.0 / MathConstants::M_PI; // (-180,180]
-			}
-
-			TurnDirection classify(const Coordinates& a, const Coordinates& o,
-				const Coordinates& b, bool rhs = true) {
-				Coordinates v_in = o - a;  // back-wards so heading points *into* node
-				Coordinates v_out = b - o; // usual forward direction
-				double θ = signed_angle_deg(v_in, v_out);
-
-				// TODO[simulation_algo] Can be Part_Left, Part_Right also
-				if (std::abs(θ) <= 30.0) {
-					return TurnDirection::Straight;
-				}
-				if (θ > 30.0 && θ <= 150.0) {
-					return rhs ? TurnDirection::Left : TurnDirection::Right;
-				}
-				if (θ < -30.0 && θ >= -150.0) {
-					return rhs ? TurnDirection::Right : TurnDirection::Left;
-				}
-				return TurnDirection::UTurn;
-			}
-		} // namespace t
 
 		// Determine the turn direction when travelling from in_edge to
 		// out_edge based on their headings.
@@ -68,7 +31,7 @@ namespace tjs::core::algo {
 				return TurnDirection::None;
 			}
 
-			return t::classify(
+			return get_relative_direction(
 				in_edge->start_node->coordinates,
 				out_edge->start_node->coordinates,
 				out_edge->end_node->coordinates);
@@ -96,35 +59,7 @@ namespace tjs::core::algo {
 
 				return true;
 			}
-			if (has_flag(lane.turn, desired)) {
-				return true;
-			}
-
-			/*if (has_flag(lane.turn, TurnDirection::Straight) && (has_flag(desired, TurnDirection::Straight) || has_flag(desired, TurnDirection::MergeRight) || has_flag(desired, TurnDirection::MergeLeft))) {
-				return true;
-			}
-			if (has_flag(lane.turn, TurnDirection::MergeRight)) {
-				return true;
-			}
-			if (has_flag(lane.turn, TurnDirection::MergeLeft)) {
-				return true;
-			}*/
-			return false;
-		}
-
-		// Helper to detect if a way is a *_link highway. Those links are
-		// considered yielding when merging.
-		static bool is_link_type(WayType type) {
-			switch (type) {
-				case WayType::MotorwayLink:
-				case WayType::TrunkLink:
-				case WayType::PrimaryLink:
-				case WayType::SecondaryLink:
-				case WayType::TertiaryLink:
-					return true;
-				default:
-					return false;
-			}
+			return has_flag(lane.turn, desired);
 		}
 
 		// Find the most appropriate target lane on the outgoing edge for
@@ -242,18 +177,14 @@ namespace tjs::core::algo {
 			outgoing_processed[edge] = 0;
 		}
 
-		// i-=merge lanes
-		// i < o
-		//   i -> o from right
-		// i == o
-		//   i -> o from right
-		// i > o
-		//   primary i -> o from right
-		//   secondary i -> o from the corner of primary
-
-		if (node->uid == 1527930956) {
-			node->uid = 1527930956;
-		}
+		// Merging lanes logic:
+		// When incoming_lanes < outgoing_lanes:
+		//   incoming connects to outgoing from right
+		// When incoming_lanes == outgoing_lanes:
+		//   incoming connects to outgoing from right
+		// When incoming_lanes > outgoing_lanes:
+		//   primary incoming connects to outgoing from right
+		//   secondary incoming connects from primary's corner
 
 		for (Edge* in_edge : incoming) {
 			for (Edge* out_edge : outgoing) {

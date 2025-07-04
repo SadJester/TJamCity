@@ -17,6 +17,12 @@ namespace tjs::core {
 			y)
 	};
 
+	// Addition operator
+	Coordinates operator+(const Coordinates& a, const Coordinates& b);
+
+	// Subtraction operator
+	Coordinates operator-(const Coordinates& a, const Coordinates& b);
+
 	ENUM_FLAG(NodeTags, char, None, TrafficLight, StopSign, Crosswalk, Way);
 
 	struct WayInfo;

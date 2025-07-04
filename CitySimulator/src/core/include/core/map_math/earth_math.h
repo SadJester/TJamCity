@@ -8,6 +8,10 @@ namespace tjs::core::algo {
 
 	double euclidean_distance(const Coordinates& a, const Coordinates& b);
 	double bearing(const Coordinates& from, const Coordinates& to);
+	double signed_angle_deg(const Coordinates& v1, const Coordinates& v2);
+	// Normalize angle to the [-180,180] range. This is used when
+	// comparing headings between edges.
+	double normalize_angle(double deg) noexcept;
 
 	// Calculates a new coordinate offset from the original point by a
 	// given lateral distance (in meters) relative to a heading. Positive

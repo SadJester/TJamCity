@@ -74,54 +74,6 @@ namespace tjs::core::simulation {
 		auto& road_network = *segment->road_network;
 		auto& spatial_grid = segment->spatialGrid;
 
-		// if vehicle currentWay is nullptr - find way where vehicle are (std::vector<WayInfo*> ways)
-
-		// find path to agent.currentGoal - save that path to agent`s data
-		// 1. set currentStepGoal to path step
-		// 2. check if vehicle riched path step
-		// * yes: move towards next path point
-		// * no: skip
-		// 3. if rich destination: nullptr for currentGoal
-
-		// Step 1: If vehicle has no current way, find the nearest way
-		/*if (vehicle.currentWay == nullptr) {
-			auto ways_opt = spatial_grid.get_ways_in_cell(vehicle.coordinates);
-			if (!ways_opt.has_value()) {
-				return;
-			}
-
-			const auto& ways = ways_opt->get();
-			if (ways.empty()) {
-				return;
-			}
-
-			WayInfo* closest_way = nullptr;
-			double min_distance = std::numeric_limits<double>::max();
-
-			for (WayInfo* way : ways) {
-				if (way->nodes.empty()) {
-					continue;
-				}
-
-				// Use haversine distance
-				double dist_first = core::algo::euclidean_distance(way->nodes.front()->coordinates, vehicle.coordinates);
-				double dist_last = core::algo::euclidean_distance(way->nodes.back()->coordinates, vehicle.coordinates);
-				double current_min = std::min(dist_first, dist_last);
-
-				if (current_min < min_distance) {
-					min_distance = current_min;
-					closest_way = way;
-				}
-			}
-
-			if (closest_way != nullptr) {
-				vehicle.currentWay = closest_way;
-				vehicle.currentSegmentIndex = find_closest_segmen_index(vehicle.coordinates, closest_way);
-			} else {
-				return;
-			}
-		}*/
-
 		// Step 2: If we don't have a path to the goal, find one
 		if (!agent.last_segment && agent.path.empty()) {
 			Node* start_node = find_nearest_node(vehicle.coordinates, road_network);
@@ -162,13 +114,8 @@ namespace tjs::core::simulation {
 			}
 		}
 
-		if (agent.current_goal->end_node->uid == 1476196633) {
-			agent.current_goal->end_node->uid = 1476196633;
-		}
-
 		// Step 3: Check if vehicle reached current step goal using haversine distance
 		const double distance_to_target = core::algo::euclidean_distance(vehicle.coordinates, agent.currentStepGoal);
-
 		const bool is_expected_lane = vehicle.current_lane != nullptr && vehicle.current_lane->parent == agent.current_goal;
 		if (distance_to_target < SimulationConstants::ARRIVAL_THRESHOLD && is_expected_lane) {
 			if (!agent.path.empty()) {
