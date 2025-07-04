@@ -128,7 +128,8 @@ namespace tjs::core::simulation {
 			Lane* next_lane = nullptr;
 			if (!vehicle->current_lane->outgoing_connections.empty()) {
 				// Find the first valid outgoing connection
-				for (Lane* candidate : vehicle->current_lane->outgoing_connections) {
+				for (const LaneLinkHandler& link : vehicle->current_lane->outgoing_connections) {
+					Lane* candidate = link->to;
 					if (candidate != nullptr) {
 						for (const Lane& goal_lane : agent.current_goal->lanes) {
 							if (candidate == &goal_lane) {

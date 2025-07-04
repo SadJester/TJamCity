@@ -32,6 +32,11 @@ namespace tjs::render {
 		SDL_PropertiesID props = SDL_CreateProperties();
 		//SDL_SetPointerProperty(props, SDL_PROP_WINDOW_CREATE_PARENT_POINTER, (void*)this->winId());
 
+		// Set size
+		SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, SCREEN_WIDTH);
+		SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, SCREEN_HEIGHT);
+		SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, true);
+
 		// Create the SDL window using properties
 		_sdlWindow = SDL_CreateWindowWithProperties(props);
 		SDL_DestroyProperties(props);
@@ -43,7 +48,6 @@ namespace tjs::render {
 		}
 
 		// Set the window size to match the widget
-		SDL_SetWindowSize(_sdlWindow, SCREEN_WIDTH, SCREEN_HEIGHT);
 		this->set_screen_dimensions(SCREEN_WIDTH, SCREEN_HEIGHT);
 
 		// Create the renderer
@@ -86,8 +90,7 @@ namespace tjs::render {
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
 				case SDL_EVENT_MOUSE_BUTTON_DOWN:
-				case SDL_EVENT_MOUSE_BUTTON_UP:
-				case SDL_EVENT_MOUSE_MOTION: {
+				case SDL_EVENT_MOUSE_BUTTON_UP: {
 					// Convert event coordinates to render coordinates
 					SDL_ConvertEventToRenderCoordinates(_sdlRenderer, &event);
 
@@ -99,11 +102,6 @@ namespace tjs::render {
 					mouseEvent.shift = (mods & SDL_KMOD_SHIFT) != 0;
 					mouseEvent.ctrl = (mods & SDL_KMOD_CTRL) != 0;
 					mouseEvent.alt = (mods & SDL_KMOD_ALT) != 0;
-
-					if (event.type == SDL_EVENT_MOUSE_MOTION) {
-						// Handle motion separately if needed
-						break;
-					}
 
 					// Set button type
 					switch (event.button.button) {
@@ -124,6 +122,18 @@ namespace tjs::render {
 					mouseEvent.state = (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) ? RendererMouseEvent::ButtonState::Pressed : RendererMouseEvent::ButtonState::Released;
 
 					_eventManager.dispatch_mouse_event(mouseEvent);
+					break;
+				}
+				case SDL_EVENT_MOUSE_MOTION: {
+					SDL_ConvertEventToRenderCoordinates(_sdlRenderer, &event);
+
+					RendererMouseMotionEvent motionEvent;
+					motionEvent.x = event.motion.x;
+					motionEvent.y = event.motion.y;
+					motionEvent.xrel = event.motion.xrel;
+					motionEvent.yrel = event.motion.yrel;
+
+					_eventManager.dispatch_mouse_motion_event(motionEvent);
 					break;
 				}
 				case SDL_EVENT_MOUSE_WHEEL: {
@@ -156,6 +166,13 @@ namespace tjs::render {
 				}
 				case SDL_EVENT_QUIT: {
 					_application.setFinished();
+					break;
+				}
+				case SDL_EVENT_WINDOW_RESIZED: {
+					int new_width = event.window.data1;
+					int new_height = event.window.data2;
+					this->set_screen_dimensions(new_width, new_height);
+					_eventManager.dispatch_resize_event(RenderResizeEvent { new_width, new_height });
 					break;
 				}
 			}

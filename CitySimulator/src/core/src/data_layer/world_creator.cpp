@@ -14,42 +14,13 @@ namespace tjs::core {
 	bool WorldCreator::loadOSMData(WorldData& data, std::string_view osmFilename) {
 		bool result = false;
 		if (osmFilename.ends_with(".osmx")) {
-			result = WorldCreator::loadOSMXmlData(data, osmFilename);
+			result = details::loadOSMXmlData(data, osmFilename);
 		}
 
 		// Prepare data
 		for (auto& segment : data.segments()) {
-			segment->rebuild_grid();
-
-			// Build junctions information
-			segment->junctions.clear();
-			for (auto& [nid, node] : segment->nodes) {
-				if (node->ways.size() > 1) {
-					auto junc = std::make_unique<Junction>();
-					junc->uid = nid;
-					junc->node = node.get();
-					junc->connectedWays.reserve(node->ways.size());
-					for (auto* w : node->ways) {
-						junc->connectedWays.push_back(w);
-					}
-					segment->junctions[nid] = std::move(junc);
-				}
-			}
-
-			auto& road_network = segment->road_network;
-			for (auto& [uid, way] : segment->ways) {
-				if (!way->is_car_accessible()) {
-					continue;
-				}
-				road_network->ways.emplace(uid, way.get());
-				for (auto node : way->nodes) {
-					road_network->nodes.emplace(node->uid, node);
-				}
-			}
-
-			algo::ContractionBuilder builder;
-			builder.build_graph(*segment->road_network);
-			algo::LaneConnectorBuilder::build_lane_connections(*segment->road_network);
+			details::preprocess_segment(*segment);
+			details::create_road_network(*segment);
 		}
 
 		return result;
@@ -130,7 +101,7 @@ namespace tjs::core {
 					center.latitude = (minLat + maxLat) / 2.0;
 					center.longitude = (minLon + maxLon) / 2.0;
 					center.x = center.longitude * MathConstants::DEG_TO_RAD * MathConstants::EARTH_RADIUS;
-					center.y = -std::log(std::tan((90.0 + center.latitude) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS;
+					center.y = std::log(std::tan((90.0 + center.latitude) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS;
 
 					for (auto& [uid, node] : world->nodes) {
 						node->coordinates.x -= center.x;
@@ -179,7 +150,7 @@ namespace tjs::core {
 					coords.latitude = lat;
 					coords.longitude = lon;
 					coords.x = lon * MathConstants::DEG_TO_RAD * MathConstants::EARTH_RADIUS;
-					coords.y = -std::log(std::tan((90.0 + lat) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS;
+					coords.y = std::log(std::tan((90.0 + lat) * MathConstants::DEG_TO_RAD / 2.0)) * MathConstants::EARTH_RADIUS;
 					world.nodes[id] = Node::create(id, coords, tags);
 
 					minLat = std::min(minLat, lat);
@@ -307,16 +278,18 @@ namespace tjs::core {
 						lanes_found = true;
 					} else if (key == "lane_width" || key == "lanes:width") {
 						laneWidth = std::stod(value);
-					} else if (key == "turn:lanes:forward") {
+					} else if (key == "turn:lanes:forward" || key == "turn:lanes") {
 						turnsForward = parseTurnLanes(value);
 					} else if (key == "turn:lanes:backward") {
 						turnsBackward = parseTurnLanes(value);
 					} else if (key == "oneway") {
 						isOneway = (value == "yes" || value == "1" || value == "true");
+						lanes_found = true;
 					} else if (key == "maxspeed") {
 						maxSpeed = parseSpeedValue(value);
 					} else if (key == "junction" && value == "roundabout") {
 						isOneway = true; // Roundabouts are always one-way
+						lanes_found = true;
 					} else if (key == "access") {
 						// Handle access restrictions
 						if (value == "private" || value == "no") {
@@ -374,18 +347,36 @@ namespace tjs::core {
 				std::vector<TurnDirection> result;
 				std::stringstream ss(value);
 				std::string token;
-				while (std::getline(ss, token, '|')) {
-					if (token == "left") {
-						result.push_back(TurnDirection::Left);
-					} else if (token == "right") {
-						result.push_back(TurnDirection::Right);
-					} else if (token == "through" || token == "straight") {
-						result.push_back(TurnDirection::Straight);
-					} else if (token == "reverse") {
-						result.push_back(TurnDirection::UTurn);
-					} else {
-						result.push_back(TurnDirection::None);
+
+				auto parse_token = [](std::string_view _token) {
+					if (_token == "left") {
+						return TurnDirection::Left;
+					} else if (_token == "right") {
+						return TurnDirection::Right;
+					} else if (_token == "through" || _token == "straight") {
+						return TurnDirection::Straight;
+					} else if (_token == "reverse") {
+						return TurnDirection::UTurn;
+					} else if (_token == "merge_to_left" || _token == "slight_left") {
+						return TurnDirection::MergeLeft;
+					} else if (_token == "merge_to_right" || _token == "slight_right") {
+						return TurnDirection::MergeRight;
 					}
+					return TurnDirection::None;
+				};
+
+				while (std::getline(ss, token, '|')) {
+					TurnDirection direction = TurnDirection::None;
+					if (std::ranges::find(token, ';') != token.end()) {
+						std::stringstream ss2(token);
+						std::string internal_token;
+						while (std::getline(ss2, internal_token, ';')) {
+							direction = direction | parse_token(internal_token);
+						}
+					} else {
+						direction = parse_token(token);
+					}
+					result.push_back(direction);
 				}
 				return result;
 			}
@@ -409,7 +400,43 @@ namespace tjs::core {
 		};
 	} // namespace details
 
-	bool WorldCreator::loadOSMXmlData(WorldData& data, std::string_view osmFilename) {
+	void details::preprocess_segment(WorldSegment& segment) {
+		segment.rebuild_grid();
+
+		// Build junctions information
+		segment.junctions.clear();
+		for (auto& [nid, node] : segment.nodes) {
+			if (node->ways.size() > 1) {
+				auto junc = std::make_unique<Junction>();
+				junc->uid = nid;
+				junc->node = node.get();
+				junc->connectedWays.reserve(node->ways.size());
+				for (auto* w : node->ways) {
+					junc->connectedWays.push_back(w);
+				}
+				segment.junctions[nid] = std::move(junc);
+			}
+		}
+
+		auto& road_network = segment.road_network;
+		for (auto& [uid, way] : segment.ways) {
+			if (!way->is_car_accessible()) {
+				continue;
+			}
+			road_network->ways.emplace(uid, way.get());
+			for (auto node : way->nodes) {
+				road_network->nodes.emplace(node->uid, node);
+			}
+		}
+	}
+
+	void details::create_road_network(WorldSegment& segment) {
+		algo::ContractionBuilder builder;
+		builder.build_graph(*segment.road_network);
+		algo::LaneConnectorBuilder::build_lane_connections(*segment.road_network);
+	}
+
+	bool details::loadOSMXmlData(WorldData& data, std::string_view osmFilename) {
 		auto segment = details::OSMParser::parse(osmFilename);
 		if (!segment) {
 			return false;

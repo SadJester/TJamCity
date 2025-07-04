@@ -17,6 +17,12 @@ namespace tjs::core {
 			y)
 	};
 
+	// Addition operator
+	Coordinates operator+(const Coordinates& a, const Coordinates& b);
+
+	// Subtraction operator
+	Coordinates operator-(const Coordinates& a, const Coordinates& b);
+
 	ENUM_FLAG(NodeTags, char, None, TrafficLight, StopSign, Crosswalk, Way);
 
 	struct WayInfo;
@@ -37,7 +43,7 @@ namespace tjs::core {
 		}
 
 		bool hasTag(NodeTags tag) const {
-			return hasFlag(tags, tag);
+			return has_flag(tags, tag);
 		}
 	};
 	// static_assert(std::is_pod<Node>::value, "Data object expect to be POD");

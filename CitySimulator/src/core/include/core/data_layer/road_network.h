@@ -3,6 +3,8 @@
 #include <core/data_layer/way_info.h>
 #include <core/data_layer/node.h>
 
+#include <common/container_ptr_handler.h>
+
 namespace tjs::core {
 	// [DON`t USE IT NOW] CH data structures
 	struct Edge_Contract {
@@ -21,36 +23,49 @@ namespace tjs::core {
 	};
 
 	struct Edge;
+	struct Lane;
+	struct LaneLink;
+
+	struct LaneLink {
+		Lane* from = nullptr;
+		Lane* to = nullptr;
+		bool yield = false;
+	};
 
 	enum class LaneOrientation : char { Forward,
 		Backward };
 
-	struct Lane {
+	using LaneLinkHandler = common::ContainerPtrHolder<std::vector<LaneLink>>;
+
+	template <typename _T>
+	struct WithId {
+		WithId() {
+			this->_id = WithId<_T>::global_id++;
+		}
+		int get_id() const { 
+			return _id;
+		}
+
+		static void reset_id() { 
+			WithId<_T>::global_id = 0;
+		}
+	private:
+		int _id;
+		static inline int global_id = 0;
+	};
+
+	struct Lane : public WithId<Lane> {
 		Edge* parent = nullptr;
 		LaneOrientation orientation = LaneOrientation::Forward;
 		double width = 0.0;
 		double length = 0.0;
 		std::vector<Coordinates> centerLine;
 		TurnDirection turn = TurnDirection::None;
-		std::vector<Lane*> outgoing_connections;
-		std::vector<Lane*> incoming_connections;
-		Lane() {
-			static int __id = 0;
-			this->_id = __id++;
-		}
-		Lane(Lane&&) = default;
-		Lane& operator=(Lane&&) = default;
-		Lane(const Lane&) = default;
-		Lane& operator=(const Lane&) = default;
-		~Lane() = default;
-
-	int get_id() const { return _id; }
-
-	private:
-		int _id;
+		std::vector<LaneLinkHandler> outgoing_connections;
+		std::vector<LaneLinkHandler> incoming_connections;
 	};
 
-	struct Edge {
+	struct Edge : public WithId<Edge> {
 		std::vector<Lane> lanes;
 
 		core::Node* start_node;
@@ -58,9 +73,6 @@ namespace tjs::core {
 		WayInfo* way;
 		LaneOrientation orientation;
 		double length;
-
-	public:
-		Edge() = default;
 	};
 
 	struct RoadNetwork {
@@ -71,8 +83,9 @@ namespace tjs::core {
 		std::vector<Edge> edges;
 		std::unordered_map<Node*, std::vector<Edge*>> edge_graph;
 
-		// network of edges that consider not only edges but also lanes
-		// consider Junction has lane connectors
+		// lane connectors
+		std::vector<LaneLink> lane_links;
+		std::unordered_map<Lane*, std::vector<LaneLinkHandler>> lane_graph;
 
 		// Trivial network for A* without considering lanes
 		std::unordered_map<Node*, std::vector<std::pair<Node*, double>>> adjacency_list;

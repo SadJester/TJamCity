@@ -23,14 +23,17 @@ namespace tjs::core {
 		Bus_Stop, Emergency_Access, Delivery_Access);
 
 	struct Node;
+	struct Coordinates;
 
-	enum class TurnDirection : char {
-		None,
-		Left,
-		Right,
-		Straight,
-		UTurn
-	};
+	ENUM_FLAG(TurnDirection, char,
+		None = 0,
+		Left = 1 << 0,
+		Right = 1 << 1,
+		Straight = 1 << 2,
+		UTurn = 1 << 3,
+		MergeRight = 1 << 4,
+		MergeLeft = 1 << 5);
+	TurnDirection get_relative_direction(const Coordinates& a, const Coordinates& o, const Coordinates& b, bool rhs = true);
 
 	struct WayInfo {
 		uint64_t uid;

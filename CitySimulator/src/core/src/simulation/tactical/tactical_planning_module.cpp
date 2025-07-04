@@ -44,7 +44,8 @@ namespace tjs::core::simulation {
 	static const Lane* choose_next_lane(const Lane* current_lane, Edge* next_edge) {
 		if (current_lane && next_edge) {
 			// First try to find a lane that connects directly to the next edge
-			for (const Lane* l : current_lane->outgoing_connections) {
+			for (const LaneLinkHandler& link : current_lane->outgoing_connections) {
+				const Lane* l = link->to;
 				if (l && l->parent == next_edge) {
 					return l;
 				}
@@ -72,54 +73,6 @@ namespace tjs::core::simulation {
 		auto& segment = world.segments().front();
 		auto& road_network = *segment->road_network;
 		auto& spatial_grid = segment->spatialGrid;
-
-		// if vehicle currentWay is nullptr - find way where vehicle are (std::vector<WayInfo*> ways)
-
-		// find path to agent.currentGoal - save that path to agent`s data
-		// 1. set currentStepGoal to path step
-		// 2. check if vehicle riched path step
-		// * yes: move towards next path point
-		// * no: skip
-		// 3. if rich destination: nullptr for currentGoal
-
-		// Step 1: If vehicle has no current way, find the nearest way
-		/*if (vehicle.currentWay == nullptr) {
-			auto ways_opt = spatial_grid.get_ways_in_cell(vehicle.coordinates);
-			if (!ways_opt.has_value()) {
-				return;
-			}
-
-			const auto& ways = ways_opt->get();
-			if (ways.empty()) {
-				return;
-			}
-
-			WayInfo* closest_way = nullptr;
-			double min_distance = std::numeric_limits<double>::max();
-
-			for (WayInfo* way : ways) {
-				if (way->nodes.empty()) {
-					continue;
-				}
-
-				// Use haversine distance
-				double dist_first = core::algo::euclidean_distance(way->nodes.front()->coordinates, vehicle.coordinates);
-				double dist_last = core::algo::euclidean_distance(way->nodes.back()->coordinates, vehicle.coordinates);
-				double current_min = std::min(dist_first, dist_last);
-
-				if (current_min < min_distance) {
-					min_distance = current_min;
-					closest_way = way;
-				}
-			}
-
-			if (closest_way != nullptr) {
-				vehicle.currentWay = closest_way;
-				vehicle.currentSegmentIndex = find_closest_segmen_index(vehicle.coordinates, closest_way);
-			} else {
-				return;
-			}
-		}*/
 
 		// Step 2: If we don't have a path to the goal, find one
 		if (!agent.last_segment && agent.path.empty()) {
@@ -163,7 +116,6 @@ namespace tjs::core::simulation {
 
 		// Step 3: Check if vehicle reached current step goal using haversine distance
 		const double distance_to_target = core::algo::euclidean_distance(vehicle.coordinates, agent.currentStepGoal);
-
 		const bool is_expected_lane = vehicle.current_lane != nullptr && vehicle.current_lane->parent == agent.current_goal;
 		if (distance_to_target < SimulationConstants::ARRIVAL_THRESHOLD && is_expected_lane) {
 			if (!agent.path.empty()) {
@@ -174,8 +126,29 @@ namespace tjs::core::simulation {
 				}
 
 				agent.current_goal = agent.path.front();
-				agent.target_lane = &agent.current_goal->lanes[0];
-				agent.currentStepGoal = agent.current_goal->end_node->coordinates; // agent.target_lane->centerLine.back();
+
+				/// Find the best target lane
+				Lane* candidate = nullptr;
+				double dist = std::numeric_limits<double>::max();
+				const auto& pos = agent.vehicle->coordinates;
+				for (const LaneLinkHandler& link : agent.vehicle->current_lane->outgoing_connections) {
+					Lane* candidate_from_v = link->to;
+					for (auto& lane : agent.current_goal->lanes) {
+						if (candidate_from_v == &lane) {
+							candidate = candidate_from_v;
+							break;
+						}
+					}
+				}
+
+				if (candidate == nullptr) {
+					// TODO: algo error handling
+					// Now just take the first lane and it will be "dancing"
+					agent.target_lane = &agent.current_goal->lanes[0];
+				} else {
+					agent.target_lane = candidate;
+				}
+				agent.currentStepGoal = agent.target_lane->centerLine.front();
 				agent.visitedNodes.push_back(agent.current_goal->start_node);
 				agent.path.erase(agent.path.begin());
 

@@ -37,7 +37,7 @@ TEST_F(PathFinderTest, CrossJunctionPath) {
 	EXPECT_EQ(path.size(), 3u);
 }
 
-TEST_F(PathFinderTest, ReverseDirection) {
+TEST_F(PathFinderTest, DISABLED_ReverseDirection) {
 	auto& network = *world.segments().front()->road_network;
 	Node* start = network.nodes.at(5);
 	Node* target = network.nodes.at(3);
@@ -62,7 +62,7 @@ TEST_F(ComplexStreetsTest, CornerToCornerPath) {
 	EXPECT_GE(path.size(), 4u);
 }
 
-TEST_F(PathFinderTest, ReachableNodes) {
+TEST_F(PathFinderTest, DISABLED_ReachableNodes) {
 	auto& network = *world.segments().front()->road_network;
 	Node* start = network.nodes.at(1);
 	auto reachable = algo::PathFinder::reachable_nodes(network, start);

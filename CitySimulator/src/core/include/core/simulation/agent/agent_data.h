@@ -21,7 +21,7 @@ namespace tjs::core {
 		core::Coordinates currentStepGoal;
 		tjs::core::Vehicle* vehicle;
 		std::vector<core::Edge*> path; // Path to follow
-		core::Lane* target_lane = nullptr;
+		const core::Lane* target_lane = nullptr;
 		std::vector<core::Node*> visitedNodes;
 		bool last_segment = false;
 		double distanceTraveled = 0.0; // Total distance traveled

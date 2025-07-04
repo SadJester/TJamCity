@@ -26,6 +26,20 @@ namespace tjs::core::algo {
 		return std::fmod(deg + 360.0, 360.0);
 	}
 
+	double signed_angle_deg(const Coordinates& v1, const Coordinates& v2) {
+		double dot = v1.x * v2.x + v1.y * v2.y;
+		double det = v1.x * v2.y - v1.y * v2.x;                    // = |v1|·|v2|·sinθ
+		return std::atan2(det, dot) * 180.0 / MathConstants::M_PI; // (-180,180]
+	}
+
+	double normalize_angle(double deg) noexcept {
+		double x = std::fmod(deg + 180.0, 360.0); // now in (-360, 360]
+		if (x < 0) {
+			x += 360.0; // --> [0, 360)
+		}
+		return x - 180.0; // --> [-180, 180)
+	}
+
 	Coordinates offset_coordinate(
 		const Coordinates& origin,
 		double heading_degrees,

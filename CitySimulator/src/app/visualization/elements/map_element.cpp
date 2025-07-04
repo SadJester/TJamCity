@@ -169,7 +169,7 @@ namespace tjs::visualization {
 
 				// Draw edge as a thin line
 				const FColor color = (is_node_filtered || is_neighbor_filtered) ? FColor { 0.8f, 0.0f, 0.0f, 0.5f } : FColor { 0.0f, 0.8f, 0.8f, 0.5f };
-				drawThickLine(renderer, { start, end }, _render_data.metersPerPixel, 0.8f, color);
+				//drawThickLine(renderer, { start, end }, _render_data.metersPerPixel, 0.8f, color);
 			}
 		}
 	}
@@ -179,7 +179,7 @@ namespace tjs::visualization {
 		const Position& screen_center,
 		double meters_per_pixel) {
 		double x = coord.x;
-		double y = coord.y;
+		double y = -coord.y;
 
 		// Scale to screen coordinates
 		int screenX = static_cast<int>(screen_center.x + x / meters_per_pixel);
@@ -589,6 +589,9 @@ namespace tjs::visualization {
 		auto& renderer = _application.renderer();
 
 		bool filter = _render_data.networkOnlyForSelected && !_debugData.reachableNodes.empty();
+
+		
+
 		for (const auto& [uid, node] : network.nodes) {
 			const bool is_filtered = filter && !_debugData.reachableNodes.contains(uid);
 			if (auto it = _cache.nodes.find(uid); it != _cache.nodes.end()) {
@@ -599,29 +602,24 @@ namespace tjs::visualization {
 		}
 	}
 
-	static std::vector<const Edge*> edges;
-	static Node* selected_prev = nullptr;
-
 	void MapElement::render_lanes(IRenderer& renderer, const core::RoadNetwork& network) {
 		auto selected = _debugData.selectedNode;
-
-		if (selected && selected->node != selected_prev) {
-			edges.clear();
-
-			for (const auto& edge : network.edges) {
-				auto r = core::algo::PathFinder::find_edge_path_a_star(network, selected->node, edge.end_node);
-				if (!r.empty()) {
-					edges.push_back(&edge);
-				}
-			}
-
-			selected_prev = selected->node;
+		if (!selected) {
+			return;
 		}
 
 		// Render lane centerlines and outgoing connections
 		for (const auto& edge : network.edges) {
-			if (selected && std::ranges::find(edges, &edge) == edges.end()) {
+			if (edge.end_node != selected->node && edge.start_node != selected->node) {
 				continue;
+			}
+
+			// Choose color based on connection type
+			FColor connectionColor;
+			if (edge.start_node == selected->node) {
+				connectionColor = { 0.0f, 1.0f, 0.0f, 0.6f }; // Green for bidirectional
+			} else {
+				connectionColor = { 1.0f, 0.0f, 0.0f, 0.6f }; // Red for unidirectional
 			}
 
 			for (const auto& lane : edge.lanes) {
@@ -640,34 +638,31 @@ namespace tjs::visualization {
 				}
 
 				// Render outgoing connections
-				for (const auto& outgoing_lane : lane.outgoing_connections) {
+				for (const auto& link : lane.outgoing_connections) {
+					const auto* outgoing_lane = link->to;
 					if (outgoing_lane && outgoing_lane->centerLine.size() >= 2) {
 						// Check if this connection is bidirectional (in incoming_connections)
 						bool is_bidirectional = false;
-						for (const auto& incoming_lane : outgoing_lane->incoming_connections) {
-							if (incoming_lane == &lane) {
+						for (const auto& incoming_link : outgoing_lane->incoming_connections) {
+							if (incoming_link->from == &lane) {
 								is_bidirectional = true;
 								break;
 							}
-						}
-
-						// Choose color based on connection type
-						FColor connectionColor;
-						if (is_bidirectional) {
-							connectionColor = { 0.0f, 1.0f, 0.0f, 0.6f }; // Green for bidirectional
-						} else {
-							connectionColor = { 1.0f, 0.0f, 0.0f, 0.6f }; // Red for unidirectional
 						}
 
 						// Draw connection line from end of current lane to start of outgoing lane
 						if (!lane.centerLine.empty() && !outgoing_lane->centerLine.empty()) {
 							Position start = convert_to_screen(lane.centerLine.front());
 							Position end = convert_to_screen(outgoing_lane->centerLine.front());
+							Position real_end = convert_to_screen(lane.centerLine.back());
 
 							// Only draw if both points are visible
 							if (!line_outside_screen(start, end, renderer.screen_width(), renderer.screen_height())) {
 								renderer.set_draw_color(connectionColor);
-								drawThickLine(renderer, { start, end }, _render_data.metersPerPixel, 0.5f, connectionColor);
+								drawThickLine(renderer, { start, end }, _render_data.metersPerPixel, 0.3f, connectionColor);
+
+								FColor color {0.0f, 0.0f, 1.0f, 0.0f};
+								drawThickLine(renderer, { start, real_end }, _render_data.metersPerPixel, 0.1f, color);
 							}
 						}
 					}

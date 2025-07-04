@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="Overpass API 0.7.62.7 375dc00a">
+	<node id="1496468775" lat="45.1049114" lon="38.9830127" />
+	<node id="1496468807" lat="45.1080101" lon="38.9837567" />
+	<node id="6015664834" lat="45.1072081" lon="38.9836726" />
+	<node id="2702442374" lat="45.1083548" lon="38.9838377" />
+	<node id="1527930956" lat="45.1088068" lon="38.9839594" />
+	<node id="4198426368" lat="45.1052345" lon="38.9831291" />
+	<node id="1527931002" lat="45.1080947" lon="38.9837730" />
+	<node id="2097131206" lat="45.1087955" lon="38.9840681" />
+	<node id="4631563481" lat="45.1088868" lon="38.9839770" />
+	<node id="4198426368" lat="45.1052345" lon="38.9831291" />
+
+
+	<way id="264582452" version="11" timestamp="2023-08-25T08:50:07Z" changeset="140360002" uid="15215305" user="NorthCrab">
+		<nd ref="1496468775"/>
+		<nd ref="1496468807"/>
+		<tag k="highway" v="primary"/>
+		<tag k="lanes" v="2"/>
+		<tag k="lit" v="yes"/>
+		<tag k="maxspeed" v="RU:urban"/>
+		<tag k="name" v="улица Дзержинского"/>
+		<tag k="name:en" v="Dzerzhinskogo Street"/>
+		<tag k="name:etymology:wikidata" v="Q188570"/>
+		<tag k="name:ru" v="улица Дзержинского"/>
+		<tag k="oneway" v="yes"/>
+		<tag k="ref" v="03К-580"/>
+		<tag k="surface" v="asphalt"/>
+		<tag k="turn:lanes" v="none|none"/>
+	</way>
+	<way id="137828453" version="14" timestamp="2023-08-25T08:50:07Z" changeset="140360002" uid="15215305" user="NorthCrab">
+		<nd ref="1496468807"/>
+		<nd ref="1527931002"/>
+		<nd ref="2702442374"/>
+		<tag k="highway" v="primary"/>
+		<tag k="lanes" v="4"/>
+		<tag k="lit" v="yes"/>
+		<tag k="maxspeed" v="RU:urban"/>
+		<tag k="name" v="улица Дзержинского"/>
+		<tag k="name:en" v="Dzerzhinskogo Street"/>
+		<tag k="name:etymology:wikidata" v="Q188570"/>
+		<tag k="name:ru" v="улица Дзержинского"/>
+		<tag k="oneway" v="yes"/>
+		<tag k="ref" v="03К-580"/>
+		<tag k="surface" v="asphalt"/>
+		<tag k="turn:lanes" v="through|through|through|merge_to_left"/>
+	</way>
+	<way id="261198607" version="9" timestamp="2021-05-31T16:49:01Z" changeset="105634743" uid="101999" user="vanmhit">
+		<nd ref="6015664834"/>
+		<nd ref="1496468807"/>
+		<tag k="highway" v="primary_link"/>
+		<tag k="lanes" v="2"/>
+		<tag k="oneway" v="yes"/>
+		<tag k="ref" v="А-136"/>
+		<tag k="surface" v="asphalt"/>
+	</way>
+	<way id="264582453" version="9" timestamp="2023-08-25T08:50:07Z" changeset="140360002" uid="15215305" user="NorthCrab">
+		<nd ref="2702442374"/>
+		<nd ref="1527930956"/>
+		<tag k="highway" v="primary"/>
+		<tag k="lanes" v="3"/>
+		<tag k="lit" v="yes"/>
+		<tag k="maxspeed" v="RU:urban"/>
+		<tag k="name" v="улица Дзержинского"/>
+		<tag k="name:en" v="Dzerzhinskogo Street"/>
+		<tag k="name:etymology:wikidata" v="Q188570"/>
+		<tag k="name:ru" v="улица Дзержинского"/>
+		<tag k="oneway" v="yes"/>
+		<tag k="ref" v="03К-580"/>
+		<tag k="surface" v="asphalt"/>
+		<tag k="turn:lanes" v="through|through|through;right"/>
+	</way>
+	<way id="264582456" version="11" timestamp="2023-08-25T08:50:07Z" changeset="140360002" uid="15215305" user="NorthCrab">
+		<nd ref="1527930956"/>
+		<nd ref="4631563481"/>
+		<tag k="highway" v="primary"/>
+		<tag k="lanes" v="3"/>
+		<tag k="lit" v="yes"/>
+		<tag k="maxspeed" v="RU:urban"/>
+		<tag k="name" v="улица Дзержинского"/>
+		<tag k="name:en" v="Dzerzhinskogo Street"/>
+		<tag k="name:etymology:wikidata" v="Q188570"/>
+		<tag k="name:ru" v="улица Дзержинского"/>
+		<tag k="oneway" v="yes"/>
+		<tag k="ref" v="03К-580"/>
+		<tag k="surface" v="asphalt"/>
+		<tag k="turn:lanes" v="none|none|none"/>
+	</way>
+	<way id="139344413" version="11" timestamp="2023-08-25T09:59:37Z" changeset="140363471" uid="15215305" user="NorthCrab">
+		<nd ref="1527930956"/>
+		<nd ref="2097131206"/>
+		<tag k="highway" v="residential"/>
+		<tag k="name" v="Стадионная улица"/>
+		<tag k="opening_hours" v="24/7"/>
+	</way>
+	<way id="136426895" version="13" timestamp="2021-05-31T16:48:55Z" changeset="105634743" uid="101999" user="vanmhit">
+		<nd ref="1496468775"/>
+		<nd ref="4198426368"/>
+		<tag k="highway" v="primary_link"/>
+		<tag k="lanes" v="1"/>
+		<tag k="maxspeed" v="60"/>
+		<tag k="oneway" v="yes"/>
+		<tag k="ref" v="А-136"/>
+		<tag k="surface" v="asphalt"/>
+	</way>
+
+	<way id="136426895" version="13" timestamp="2021-05-31T16:48:55Z" changeset="105634743" uid="101999" user="vanmhit">
+		<nd ref="1496468775"/>
+		<nd ref="4198426368"/>
+		<tag k="highway" v="primary_link"/>
+		<tag k="lanes" v="1"/>
+		<tag k="maxspeed" v="60"/>
+		<tag k="oneway" v="yes"/>
+		<tag k="ref" v="А-136"/>
+		<tag k="surface" v="asphalt"/>
+	</way>
+</osm>
