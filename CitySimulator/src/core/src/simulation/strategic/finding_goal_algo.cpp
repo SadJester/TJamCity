@@ -60,6 +60,14 @@ namespace tjs::core::simulation {
 			}
 		}
 
+		int random_inc = RandomGenerator::get().next_int(0, grid.spatialGrid.size());
+		auto it = grid.spatialGrid.begin();
+		std::advance(it, random_inc);
+
+		if (it != grid.spatialGrid.end()) {
+			return it->second[0]->nodes[0];
+		}
+
 		return nullptr; // Failed to find a suitable node after max attempts
 	}
 

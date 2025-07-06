@@ -124,6 +124,10 @@ namespace tjs::core::simulation {
 		agent.vehicle->rotationAngle = atan2(dir.y, dir.x);
 
 		if (agent.vehicle->s_on_lane >= lane->length) {
+			if (agent.current_goal->end_node->uid == 16) {
+				//_system.timeModule().pause();
+			}
+
 			// Lane switching logic with multiple fallback mechanisms:
 			Lane* next_lane = nullptr;
 			if (!vehicle->current_lane->outgoing_connections.empty()) {
@@ -137,6 +141,9 @@ namespace tjs::core::simulation {
 								break;
 							}
 						}
+					}
+					if (next_lane) {
+						break;
 					}
 				}
 			}

@@ -34,7 +34,25 @@ namespace tjs::core {
 	}
 
 	void WorldSegment::rebuild_grid() {
-		spatialGrid.cellSize = 50.0;
+		double min_x = std::numeric_limits<double>::max() - 1;
+		double max_x = -min_x;
+		double min_y = std::numeric_limits<double>::max() - 1;
+		double max_y = -min_y;
+		for (auto& node : nodes) {
+			min_x = std::min(node.second->coordinates.x, min_x);
+			max_x = std::max(node.second->coordinates.x, max_x);
+
+			min_y = std::min(node.second->coordinates.y, min_y);
+			max_y = std::max(node.second->coordinates.y, max_y);
+		}
+
+		double diff = std::max(
+			max_x - min_x,
+			max_y - min_y);
+
+		// naive approach of spatial grid to make 100x100
+		spatialGrid.cellSize = diff / 5;
+
 		for (const auto& [_, way] : ways) {
 			spatialGrid.add_way(way.get());
 		}
