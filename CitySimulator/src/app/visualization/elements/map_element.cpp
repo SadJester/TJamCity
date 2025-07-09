@@ -618,6 +618,7 @@ namespace tjs::visualization {
 				// Only draw if both points are visible
 				if (!line_outside_screen(start, end, renderer.screen_width(), renderer.screen_height())) {
 					drawThickLine(renderer, { start, end }, _render_data.metersPerPixel, thickness, color);
+					thickness += 0.1f;
 				}
 			}
 		};
@@ -635,11 +636,11 @@ namespace tjs::visualization {
 		}
 
 		for (auto edge : incoming) {
-			_render_lanes(edge->lanes, incoming_color, 0.5f);
+			_render_lanes(edge->lanes, incoming_color, 0.3f);
 		}
 
 		for (auto edge : outgoing) {
-			_render_lanes(edge->lanes, outgoing_color, 0.3f);
+			_render_lanes(edge->lanes, outgoing_color, 0.2f);
 		}
 	}
 

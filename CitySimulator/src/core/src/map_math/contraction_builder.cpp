@@ -31,14 +31,15 @@ namespace tjs::core::algo {
 		// 1. Geometric basis                                                 //
 		// ------------------------------------------------------------------ //
 		double heading = bearing(start_node->coordinates, end_node->coordinates);
-		bool right_is_min = start_node->coordinates.y > end_node->coordinates.y;
+
+		const double x_delta = std::fabs(end_node->coordinates.x - start_node->coordinates.x);
+		const double y_delta = std::fabs(end_node->coordinates.y - start_node->coordinates.y);
+		const bool decision_by_y = x_delta < y_delta;
+		bool right_is_min = decision_by_y ? start_node->coordinates.y > end_node->coordinates.y : start_node->coordinates.x > end_node->coordinates.x;
 		size_t adjacent_lane_offset = 0;
 		if (orientation == LaneOrientation::Backward) {
 			heading = bearing(end_node->coordinates, start_node->coordinates);
-			// Special case when nodes are parallel
-			if (heading != 0) {
-				right_is_min = !right_is_min;
-			}
+			right_is_min = !right_is_min;
 		}
 
 		if (
@@ -52,11 +53,8 @@ namespace tjs::core::algo {
 		// ------------------------------------------------------------------ //
 		for (size_t logical_idx = 0; logical_idx < reserved_size; ++logical_idx) {
 			// ★ Physical index so that 0 = right-most,   N-1 = left-most
-			// size_t idx = right_is_min ? reserved_size - 1 - logical_idx : logical_idx;
-			// size_t offset = right_is_min ? idx + backward_lane_offset: idx + backward_lane_offset;
-
 			size_t idx = logical_idx;
-			if (orientation == LaneOrientation::Backward) {
+			if (orientation == LaneOrientation::Backward || (!decision_by_y && orientation == LaneOrientation::Forward)) {
 				idx = reserved_size - 1 - logical_idx;
 			}
 			size_t offset = idx + adjacent_lane_offset;
