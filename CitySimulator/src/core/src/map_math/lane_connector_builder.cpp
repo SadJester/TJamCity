@@ -225,9 +225,9 @@ namespace tjs::core::algo {
 					// TODO: adjust lane
 					const bool turning_lane = has_flag(from_lane.turn, TurnDirection::Left) || has_flag(from_lane.turn, TurnDirection::Right);
 					if (turning_lane) {
-						to_lane->centerLine.front() = from_lane.centerLine.back();
+						//to_lane->centerLine.front() = from_lane.centerLine.back();
 					} else {
-						from_lane.centerLine.back() = to_lane->centerLine.front();
+						//from_lane.centerLine.back() = to_lane->centerLine.front();
 					}
 					// in one way can be several edges with one turn direction
 					if (!merging_lane || to_lane->turn == from_lane.turn) {

@@ -7,7 +7,9 @@
 #include <core/map_math/lane_connector_builder.h>
 
 #include <data_loader_mixin.h>
+#include <data_layer/world_utils.h>
 
+using namespace tjs;
 using namespace tjs::core;
 
 class WorldCreatorTests
@@ -50,6 +52,35 @@ protected:
 	tjs::core::WorldData world;
 };
 
+class BaseLaneFixture : public ::testing::Test {
+protected:
+	// constants
+	static constexpr double kW = 3.0; // lane width [m]
+
+	// nodes reused by every test
+	tjs::core::Node n0_ {}, n1_ {};
+
+	// helper: analytic offset of global lane G (right-most = 0)
+	static double expected_offset(std::size_t g,
+		std::size_t total,
+		double lane_w) {
+		const double half = static_cast<double>(total - 1) / 2.0;
+		return (static_cast<double>(g) - half) * lane_w;
+	}
+
+	void SetUp() override {
+		tjs::core::Lane::reset_id();
+		tjs::core::Edge::reset_id();
+		n0_.coordinates = { 0.0, 0.0, 0.0, 10.0 }; // straight north-bound edge
+		n1_.coordinates = { 0.0, 0.0, 0.0, 0.0 };
+	}
+};
+
+class ForwardParamTest
+	: public BaseLaneFixture,
+	  public ::testing::WithParamInterface<std::size_t> // lanes
+{};
+
 TEST_F(WorldCreatorTests, CreateEdge_WayToTop_RightLane_MaxX) {
 	Node* start_node = get_node(6015664834);
 	Node* end_node = get_node(1496468807);
@@ -70,6 +101,145 @@ TEST_F(WorldCreatorTests, CreateEdge_WayToTop_RightLane_MaxX) {
 
 	ASSERT_GE(edge.lanes[0].centerLine[0].x, edge.lanes[1].centerLine[0].x);
 }
+
+// ───────────────────────────────────────────────────────────────────────────
+// 1. Forward-only edges (1 … 5 lanes)
+// ───────────────────────────────────────────────────────────────────────────
+TEST_P(ForwardParamTest, CreateEdge_CheckOffsetAndTurn) {
+	const std::size_t lanes = GetParam();
+
+	auto way = core::tests::make_way(1000 + lanes, lanes, 0, kW);
+
+	core::Edge e = algo::create_edge(&n0_, &n1_,
+		way.get(), /*dist=*/100.0,
+		LaneOrientation::Forward);
+
+	ASSERT_EQ(e.lanes.size(), lanes);
+
+	for (std::size_t i = 0; i < lanes; ++i) {
+		const auto& L = e.lanes[i];
+		double exp_x = expected_offset(i, lanes, kW);
+
+		EXPECT_NEAR(L.centerLine.front().x, exp_x, 1e-6);
+		EXPECT_NEAR(L.centerLine.back().x, exp_x, 1e-6);
+		EXPECT_EQ(L.turn,
+			way->forwardTurns[lanes - 1 - i]); // td_index rule
+	}
+}
+
+// Instantiate for 1..5 lanes
+INSTANTIATE_TEST_SUITE_P(ForwardSizes,
+	ForwardParamTest,
+	::testing::Values(1u, 2u, 3u, 4u, 5u));
+
+// ───────────────────────────────────────────────────────────────────────────
+// 2. Mixed direction cases
+// ───────────────────────────────────────────────────────────────────────────
+struct MixCfg {
+	std::size_t fwd, back;
+};
+std::ostream& operator<<(std::ostream& os, const MixCfg& m) { return os << m.fwd << 'F' << '_' << m.back << 'B'; }
+
+class MixedParamTest
+	: public BaseLaneFixture,
+	  public ::testing::WithParamInterface<MixCfg> {};
+
+TEST_P(MixedParamTest, CreateEdge_MixedDirections_WayDown) {
+	const auto cfg = GetParam();
+
+	auto way = core::tests::make_way(2000 + cfg.fwd * 10 + cfg.back,
+		cfg.fwd, cfg.back, kW);
+
+	const size_t total = cfg.fwd + cfg.back;
+
+	// ---------- Forward edge ----------
+	core::Edge ef = algo::create_edge(&n0_, &n1_,
+		way.get(), 100.0,
+		LaneOrientation::Forward);
+
+	ASSERT_EQ(ef.lanes.size(), cfg.fwd);
+	for (std::size_t i = 0; i < cfg.fwd; ++i) {
+		double exp_x = expected_offset(i, total, kW);
+		EXPECT_NEAR(ef.lanes[i].centerLine.front().x, exp_x, 1e-6);
+		EXPECT_EQ(ef.lanes[i].turn, way->forwardTurns[cfg.fwd - 1 - i]);
+	}
+
+	for (size_t i = 0; i < cfg.fwd - 1; ++i) {
+		EXPECT_LT(ef.lanes[i].centerLine.front().x, ef.lanes[i + 1].centerLine.front().x);
+	}
+
+	// ---------- Backward edge (most right is greater x) ----------
+	core::Edge eb = algo::create_edge(&n1_, &n0_,
+		way.get(), 100.0,
+		LaneOrientation::Backward);
+
+	ASSERT_EQ(eb.lanes.size(), cfg.back);
+	for (std::size_t i = 0; i < cfg.back; ++i) {
+		std::size_t global_idx = cfg.fwd + i; // after all F lanes
+		double exp_x = expected_offset(global_idx, total, kW);
+
+		//EXPECT_NEAR(eb.lanes[i].centerLine.front().x, exp_x, 1e-6);
+		EXPECT_EQ(eb.lanes[i].turn, way->backwardTurns[cfg.back - i - 1]);
+	}
+
+	EXPECT_LT(ef.lanes[ef.lanes.size() - 1].centerLine.front().x, eb.lanes[0].centerLine.front().x);
+	for (size_t i = 0; i < cfg.back - 1; ++i) {
+		EXPECT_GT(eb.lanes[i].centerLine.front().x, eb.lanes[i + 1].centerLine.front().x);
+	}
+}
+
+TEST_P(MixedParamTest, CreateEdge_MixedDirections_WayUp) {
+	const auto cfg = GetParam();
+
+	auto way = core::tests::make_way(2000 + cfg.fwd * 10 + cfg.back,
+		cfg.fwd, cfg.back, kW);
+
+	const size_t total = cfg.fwd + cfg.back;
+
+	// ---------- Forward edge ----------
+	core::Edge ef = algo::create_edge(&n1_, &n0_,
+		way.get(), 100.0,
+		LaneOrientation::Forward);
+
+	ASSERT_EQ(ef.lanes.size(), cfg.fwd);
+	for (std::size_t i = 0; i < cfg.fwd; ++i) {
+		size_t chnage_idx = cfg.fwd - i - 1;
+
+		double exp_x = expected_offset(chnage_idx, total, kW);
+		EXPECT_NEAR(ef.lanes[i].centerLine.front().x, exp_x, 1e-6);
+		EXPECT_EQ(ef.lanes[i].turn, way->forwardTurns[cfg.fwd - 1 - i]);
+	}
+
+	for (size_t i = 0; i < cfg.fwd - 1; ++i) {
+		EXPECT_GT(ef.lanes[i].centerLine.front().x, ef.lanes[i + 1].centerLine.front().x);
+	}
+
+	// ---------- Backward edge from vise verca y (most right is less x) ----------
+	core::Edge eb = algo::create_edge(&n0_, &n1_,
+		way.get(), 100.0,
+		LaneOrientation::Backward);
+
+	ASSERT_EQ(eb.lanes.size(), cfg.back);
+	for (std::size_t i = 0; i < cfg.back; ++i) {
+		size_t chnage_idx = cfg.back - i - 1;
+		std::size_t global_idx = cfg.fwd + i; // after all F lanes
+		double exp_x = expected_offset(i, total, kW);
+
+		//EXPECT_NEAR(eb.lanes[i].centerLine.front().x, exp_x, 1e-6);
+		EXPECT_EQ(eb.lanes[i].turn, way->backwardTurns[chnage_idx]); // td_index rule
+	}
+
+	EXPECT_LT(ef.lanes[0].centerLine.front().x, eb.lanes[0].centerLine.front().x);
+	for (size_t i = 0; i < cfg.back - 1; ++i) {
+		EXPECT_LT(eb.lanes[i].centerLine.front().x, eb.lanes[i + 1].centerLine.front().x);
+	}
+}
+
+INSTANTIATE_TEST_SUITE_P(MixedSets,
+	MixedParamTest,
+	::testing::Values(MixCfg { 2, 1 },
+		MixCfg { 1, 2 },
+		MixCfg { 2, 2 }));
 
 TEST_F(WorldCreatorTests, CreateEdge_MergingLanes_2x2_to_4) {
 	Node* node = get_node(1496468807);
@@ -169,7 +339,7 @@ TEST_F(WorldCreatorTests, CreateEdge_4_to_3) {
 	}
 }
 
-TEST_F(WorldCreatorTests, reateEdge_T_Shaped) {
+TEST_F(WorldCreatorTests, CreateEdge_T_Shaped) {
 	Node* node = get_node(1527930956);
 	auto& network = get_road_network();
 

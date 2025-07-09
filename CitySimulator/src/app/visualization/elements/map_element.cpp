@@ -590,8 +590,6 @@ namespace tjs::visualization {
 
 		bool filter = _render_data.networkOnlyForSelected && !_debugData.reachableNodes.empty();
 
-		
-
 		for (const auto& [uid, node] : network.nodes) {
 			const bool is_filtered = filter && !_debugData.reachableNodes.contains(uid);
 			if (auto it = _cache.nodes.find(uid); it != _cache.nodes.end()) {
@@ -608,66 +606,40 @@ namespace tjs::visualization {
 			return;
 		}
 
+		FColor incoming_color { 1.0f, 0.0f, 0.0f, 1.0f };
+		FColor outgoing_color { 0.0f, 1.0f, 0.0f, 1.0f };
+
+		auto _render_lanes = [&renderer, this](const std::vector<Lane>& lanes, const FColor& color, float thickness) {
+			renderer.set_draw_color(color);
+			for (const auto& lane : lanes) {
+				Position start = convert_to_screen(lane.centerLine.front());
+				Position end = convert_to_screen(lane.centerLine.back());
+
+				// Only draw if both points are visible
+				if (!line_outside_screen(start, end, renderer.screen_width(), renderer.screen_height())) {
+					drawThickLine(renderer, { start, end }, _render_data.metersPerPixel, thickness, color);
+				}
+			}
+		};
+
 		// Render lane centerlines and outgoing connections
+		std::vector<const Edge*> incoming;
+		std::vector<const Edge*> outgoing;
+
 		for (const auto& edge : network.edges) {
-			if (edge.end_node != selected->node && edge.start_node != selected->node) {
-				continue;
+			if (edge.end_node == selected->node) {
+				incoming.push_back(&edge);
+			} else if (edge.start_node == selected->node) {
+				outgoing.push_back(&edge);
 			}
+		}
 
-			// Choose color based on connection type
-			FColor connectionColor;
-			if (edge.start_node == selected->node) {
-				connectionColor = { 0.0f, 1.0f, 0.0f, 0.6f }; // Green for bidirectional
-			} else {
-				connectionColor = { 1.0f, 0.0f, 0.0f, 0.6f }; // Red for unidirectional
-			}
+		for (auto edge : incoming) {
+			_render_lanes(edge->lanes, incoming_color, 0.5f);
+		}
 
-			for (const auto& lane : edge.lanes) {
-				// Render lane centerline
-				if (lane.centerLine.size() >= 2) {
-					std::vector<Position> centerlinePoints;
-					centerlinePoints.reserve(lane.centerLine.size());
-
-					for (const auto& coord : lane.centerLine) {
-						centerlinePoints.push_back(convert_to_screen(coord));
-					}
-
-					// Draw centerline in white
-					renderer.set_draw_color({ 1.0f, 1.0f, 1.0f, 0.8f });
-					//drawThickLine(renderer, centerlinePoints, _render_data.metersPerPixel, 0.5f, { 1.0f, 1.0f, 1.0f, 0.8f });
-				}
-
-				// Render outgoing connections
-				for (const auto& link : lane.outgoing_connections) {
-					const auto* outgoing_lane = link->to;
-					if (outgoing_lane && outgoing_lane->centerLine.size() >= 2) {
-						// Check if this connection is bidirectional (in incoming_connections)
-						bool is_bidirectional = false;
-						for (const auto& incoming_link : outgoing_lane->incoming_connections) {
-							if (incoming_link->from == &lane) {
-								is_bidirectional = true;
-								break;
-							}
-						}
-
-						// Draw connection line from end of current lane to start of outgoing lane
-						if (!lane.centerLine.empty() && !outgoing_lane->centerLine.empty()) {
-							Position start = convert_to_screen(lane.centerLine.front());
-							Position end = convert_to_screen(outgoing_lane->centerLine.front());
-							Position real_end = convert_to_screen(lane.centerLine.back());
-
-							// Only draw if both points are visible
-							if (!line_outside_screen(start, end, renderer.screen_width(), renderer.screen_height())) {
-								renderer.set_draw_color(connectionColor);
-								drawThickLine(renderer, { start, end }, _render_data.metersPerPixel, 0.3f, connectionColor);
-
-								FColor color {0.0f, 0.0f, 1.0f, 0.0f};
-								drawThickLine(renderer, { start, real_end }, _render_data.metersPerPixel, 0.1f, color);
-							}
-						}
-					}
-				}
-			}
+		for (auto edge : outgoing) {
+			_render_lanes(edge->lanes, outgoing_color, 0.3f);
 		}
 	}
 
