@@ -12,6 +12,8 @@
 
 namespace tjs::core {
 	bool WorldCreator::loadOSMData(WorldData& data, std::string_view osmFilename) {
+		Lane::reset_id();
+		Edge::reset_id();
 		bool result = false;
 		if (osmFilename.ends_with(".osmx")) {
 			result = details::loadOSMXmlData(data, osmFilename);

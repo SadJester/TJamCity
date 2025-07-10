@@ -17,15 +17,22 @@ class WorldCreatorTests
 	  public ::tests::DataLoaderMixin {
 protected:
 	void SetUp() override {
-		tjs::core::Lane::reset_id();
-		tjs::core::Edge::reset_id();
-		ASSERT_TRUE(WorldCreator::loadOSMData(world, data_file("test_lanes.osmx").string()));
-		ASSERT_TRUE(world.segments().size() == 1);
+		ASSERT_TRUE(load_map());
+		ASSERT_TRUE(prepare());
+	}
 
+	virtual bool prepare() {
 		details::preprocess_segment(*world.segments()[0]);
 
 		algo::ContractionBuilder builder;
 		builder.build_graph(*world.segments()[0]->road_network);
+
+		return true;
+	}
+
+	virtual bool load_map() {
+		bool result = WorldCreator::loadOSMData(world, data_file("test_lanes.osmx").string());
+		return world.segments().size() == 1;
 	}
 
 	Node* get_node(uint64_t id) {
@@ -241,6 +248,10 @@ INSTANTIATE_TEST_SUITE_P(MixedSets,
 		MixCfg { 1, 2 },
 		MixCfg { 2, 2 }));
 
+// ───────────────────────────────────────────────────────────────────────────
+// Create lanes tests
+// ───────────────────────────────────────────────────────────────────────────
+
 TEST_F(WorldCreatorTests, CreateEdge_MergingLanes_2x2_to_4) {
 	Node* node = get_node(1496468807);
 	auto& network = get_road_network();
@@ -390,4 +401,143 @@ TEST_F(WorldCreatorTests, CreateEdge_T_Shaped) {
 	ASSERT_EQ(secondary_lane_idx, outgoing(primary_in, lane_idx)[0]->to->get_id());
 	ASSERT_EQ(1, incoming(secondary_out, lane_idx).size());
 	ASSERT_EQ(outgoing(primary_in, lane_idx)[0]->from, incoming(secondary_out, lane_idx)[0]->from);
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Create lanes tests - samples
+// ───────────────────────────────────────────────────────────────────────────
+
+class CreateLanesTests : public WorldCreatorTests {
+	bool load_map() override {
+		bool result = WorldCreator::loadOSMData(world, sample_file("grid_osm_equivalent.osmx").string());
+		return world.segments().size() == 1;
+	}
+
+	bool prepare() override {
+		return true;
+	}
+};
+
+TEST_F(CreateLanesTests, ProcessLanes_CornerNode) {
+	Node* node = get_node(1);
+	auto& network = get_road_network();
+
+	ASSERT_NE(node, nullptr);
+
+	algo::details::process_node(network, node);
+
+	auto adjacent = algo::details::get_adjacent_edges(network, node);
+	Edge& e_6_1 = *adjacent.incoming[0];
+	Edge& e_2_1 = *adjacent.incoming[1];
+	Edge& o_1_6 = *adjacent.outgoing[0];
+	Edge& o_1_2 = *adjacent.outgoing[1];
+
+	Node* node11 = get_node(6);
+	algo::details::process_node(network, node11);
+	auto adjacent11 = algo::details::get_adjacent_edges(network, node11);
+	//ASSERT_EQ(1, outgoing(e_2_1, 0).size());
+	//ASSERT_EQ(3, outgoing(e_2_1, 0)[1]->to->get_id());
+
+	using IntVec = std::vector<int>;
+
+	struct Links {
+		int from;
+
+		IntVec incoming;
+		IntVec outgoing;
+
+		Links(int from_, IntVec&& inc, IntVec&& out)
+			: from(from_)
+			, incoming(inc)
+			, outgoing(out) {
+		}
+	};
+
+	auto _get_lane = [](int id, const algo::details::AdjacentEdges& adjacent) -> std::optional<const Lane*> {
+		for (auto edge : adjacent.incoming) {
+			for (const auto& lane : edge->lanes) {
+				if (lane.get_id() == id) {
+					return &lane;
+				}
+			}
+		}
+
+		for (auto edge : adjacent.outgoing) {
+			for (const auto& lane : edge->lanes) {
+				if (lane.get_id() == id) {
+					return &lane;
+				}
+			}
+		}
+
+		return std::nullopt;
+		;
+	};
+
+	auto _check_outgoing = [](int test_id, const IntVec& ids, const std::vector<LaneLinkHandler>& connections) {
+		EXPECT_EQ(ids.size(), connections.size());
+		if (ids.size() != connections.size()) {
+			return;
+		}
+		for (size_t i = 0; i < ids.size(); ++i) {
+			EXPECT_EQ(test_id, connections[i]->from->get_id());
+			EXPECT_EQ(ids[i], connections[i]->to->get_id());
+		}
+	};
+
+	auto _check_incoming = [](int test_id, const IntVec& ids, const std::vector<LaneLinkHandler>& connections) {
+		EXPECT_EQ(ids.size(), connections.size());
+		if (ids.size() != connections.size()) {
+			return;
+		}
+		for (size_t i = 0; i < ids.size(); ++i) {
+			EXPECT_EQ(test_id, connections[i]->to->get_id());
+			EXPECT_EQ(ids[i], connections[i]->from->get_id());
+		}
+	};
+
+	auto _check_lane = [&_get_lane, &_check_incoming, &_check_outgoing](const algo::details::AdjacentEdges& adjacent, const Links& link) {
+		auto lane = _get_lane(link.from, adjacent);
+		ASSERT_TRUE(lane.has_value());
+
+		ASSERT_EQ(link.incoming.size(), (*lane)->incoming_connections.size()) << "Unexpected incoming size for lane \"" << (*lane)->get_id()
+																			  << "\". Expected: " << link.incoming.size() << ". Actual: " << (*lane)->incoming_connections.size();
+		ASSERT_EQ(link.outgoing.size(), (*lane)->outgoing_connections.size()) << "Unexpected outgoing size for " << (*lane)->get_id()
+																			  << " Expected: " << link.outgoing.size() << ". Actual: " << (*lane)->outgoing_connections.size();
+		;
+
+		_check_incoming(link.from, link.incoming, (*lane)->incoming_connections);
+		_check_outgoing(link.from, link.outgoing, (*lane)->outgoing_connections);
+	};
+
+	_check_lane(adjacent, {
+							  0,
+							  {},
+							  { 3 }, //{3, 72}
+						  });
+
+	_check_lane(adjacent, {
+							  1,
+							  {},
+							  { 4 }, //{4, 73}
+						  });
+
+	_check_lane(adjacent, {
+							  61,
+							  {},
+							  { 64 }, //{64, 13}
+						  });
+
+	_check_lane(adjacent, {
+							  60,
+							  {},
+							  { 63 } //{63, 12}
+						  });
+
+	_check_lane(adjacent, { 62,
+							  { 65 },
+							  {} });
+
+	//ASSERT_EQ(2, incoming(primary_out, lane_idx).size());
+	//ASSERT_EQ(outgoing(primary_in, lane_idx)[1]->from, incoming(primary_out, lane_idx)[1]->from);
 }
