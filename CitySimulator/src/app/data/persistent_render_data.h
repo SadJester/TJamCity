@@ -11,6 +11,12 @@ namespace tjs::core::model {
 		std::unordered_map<uint64_t, visualization::NodeRenderInfo> nodes;
 		std::unordered_map<uint64_t, visualization::WayRenderInfo> ways;
 		std::vector<visualization::VehicleRenderInfo> vehicles;
+
+		void reinit() override {
+			nodes.clear();
+			ways.clear();
+			vehicles.clear();
+		}
 	};
 
 } // namespace tjs::core::model

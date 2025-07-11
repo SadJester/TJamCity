@@ -15,6 +15,7 @@
 #include <core/data_layer/data_types.h>
 #include <core/math_constants.h>
 #include <core/map_math/path_finder.h>
+#include <logic/map/lanes_selector.h>
 
 namespace tjs::visualization {
 	using namespace tjs::core;
@@ -64,11 +65,13 @@ namespace tjs::visualization {
 		, _render_data(*application.stores().get_model<model::MapRendererData>())
 		, _cache(*application.stores().get_model<core::model::PersistentRenderData>())
 		, _debugData(*application.stores().get_model<core::model::SimulationDebugData>())
-		, _map_positioning(application) {
+		, _map_positioning(application)
+		, _lanes_selector(application) {
 	}
 
 	MapElement::~MapElement() {
 		_application.renderer().unregister_event_listener(&_map_positioning);
+		_application.renderer().unregister_event_listener(&_lanes_selector);
 	}
 
 	void MapElement::on_map_updated() {
@@ -92,6 +95,7 @@ namespace tjs::visualization {
 
 	void MapElement::init() {
 		_application.renderer().register_event_listener(&_map_positioning);
+		_application.renderer().register_event_listener(&_lanes_selector);
 		_application.message_dispatcher().register_handler(*this, &MapElement::handle_open_map_simulation_reinit, "project");
 	}
 
@@ -412,10 +416,11 @@ namespace tjs::visualization {
 		enum class LaneType {
 			None,
 			Outgoing,
-			Incoming
+			Incoming,
+			Selected
 		};
 
-		auto _render_lanes = [&renderer, &screen_center, mpp](const std::vector<Lane>& lanes, const FColor& color, float thickness, LaneType lane_type) {
+		auto _render_lane = [&renderer, &screen_center, mpp](const Lane& lane, const FColor& color, float thickness, LaneType lane_type) {
 			FColor altered_color;
 			float debug_thickness = 0.2f;
 
@@ -425,22 +430,20 @@ namespace tjs::visualization {
 			} else if (lane_type == LaneType::Outgoing) {
 				altered_color = Constants::OUTGOING_COLOR;
 				debug_thickness = Constants::DEBUG_OUTGOING_LANE_THICKNESS;
+			} else if (lane_type == LaneType::Selected) {
+				altered_color = FColor::Blue;
 			}
 
-			for (const auto& lane : lanes) {
-				Position start = convert_to_screen(lane.centerLine.front(), screen_center, mpp);
-				Position end = convert_to_screen(lane.centerLine.back(), screen_center, mpp);
+			Position start = convert_to_screen(lane.centerLine.front(), screen_center, mpp);
+			Position end = convert_to_screen(lane.centerLine.back(), screen_center, mpp);
 
-				// Only draw if both points are visible
-				if (!line_outside_screen(start, end, renderer.screen_width(), renderer.screen_height(), (thickness / mpp) * 2)) {
-					drawThickLine(renderer, { start, end }, mpp, thickness, color);
-					LaneDirectionRenderer::render_lane_arrow(renderer, lane, mpp, screen_center, Constants::ARROW_COLOR);
-					// TODO[visualizing]: draw stashed line between two coherent lanes
+			// Only draw if both points are visible
+			if (!line_outside_screen(start, end, renderer.screen_width(), renderer.screen_height(), (thickness / mpp) * 2)) {
+				drawThickLine(renderer, { start, end }, mpp, thickness, color);
+				LaneDirectionRenderer::render_lane_arrow(renderer, lane, mpp, screen_center, Constants::ARROW_COLOR);
 
-					if (lane_type != LaneType::None) {
-						drawThickLine(renderer, { start, end }, mpp, debug_thickness, altered_color);
-						debug_thickness += 0.1f;
-					}
+				if (lane_type != LaneType::None) {
+					drawThickLine(renderer, { start, end }, mpp, debug_thickness, altered_color);
 				}
 			}
 		};
@@ -450,16 +453,42 @@ namespace tjs::visualization {
 
 		const bool filter = render_data.networkOnlyForSelected && !debug_data.reachableNodes.empty();
 
+		std::unordered_set<const Lane*> outgoing_highlight;
+		std::unordered_set<const Lane*> incoming_highlight;
+		if (render_data.selected_lane) {
+			for (const auto& link : render_data.selected_lane->incoming_connections) {
+				if (link->from) {
+					incoming_highlight.insert(link->from);
+				}
+			}
+			for (const auto& link : render_data.selected_lane->outgoing_connections) {
+				if (link->to) {
+					outgoing_highlight.insert(link->to);
+				}
+			}
+		}
+
 		for (const WayInfo* way : ways) {
 			auto color = get_way_color(way->type);
 			for (auto edge : way->edges) {
-				LaneType lane_type { LaneType::None };
-				if (edge->end_node == selected) {
-					lane_type = LaneType::Incoming;
-				} else if (edge->start_node == selected) {
-					lane_type = LaneType::Outgoing;
+				for (const auto& lane : edge->lanes) {
+					LaneType lane_type { LaneType::None };
+					if (edge->end_node == selected) {
+						lane_type = LaneType::Incoming;
+					} else if (edge->start_node == selected) {
+						lane_type = LaneType::Outgoing;
+					}
+
+					if (outgoing_highlight.contains(&lane)) {
+						lane_type = LaneType::Outgoing;
+					} else if (incoming_highlight.contains(&lane)) {
+						lane_type = LaneType::Incoming;
+					} else if (&lane == render_data.selected_lane) {
+						lane_type = LaneType::Selected;
+					}
+
+					_render_lane(lane, color, way->laneWidth, lane_type);
 				}
-				_render_lanes(edge->lanes, color, way->laneWidth, lane_type);
 			}
 		}
 

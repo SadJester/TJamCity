@@ -3,6 +3,10 @@
 #include <core/store_models/idata_model.h>
 #include <render/render_primitives.h>
 
+namespace tjs::core {
+	struct Lane;
+} // namespace tjs::core
+
 namespace tjs::core::model {
 
 	ENUM_FLAG(MapRendererLayer, char,
@@ -31,11 +35,17 @@ namespace tjs::core::model {
 
 		bool networkOnlyForSelected = false;
 
+		core::Lane* selected_lane = nullptr;
+
 		Position screen_center;
 
 		MapRendererData() = default;
 
 		void set_meters_per_pixel(double metersPerPixel);
+
+		void reinit() override {
+			selected_lane = nullptr;
+		}
 	};
 
 } // namespace tjs::core::model

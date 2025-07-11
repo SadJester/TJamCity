@@ -18,6 +18,7 @@
 #include "ui_system/debug_ui/vehicle_analyze_widget.h"
 #include "ui_system/debug_ui/map_analyzer_widget.h"
 #include "ui_system/debug_ui/strategic_analyzer_widget.h"
+#include "ui_system/debug_ui/edge_information_widget.h"
 
 namespace tjs {
 	namespace ui {
@@ -81,6 +82,10 @@ namespace tjs {
 			MapAnalyzerWidget* analyzerWidget = new MapAnalyzerWidget(_application);
 			analyzerWidget->setParent(scrollContent);
 			debugColumn->addWidget(analyzerWidget);
+
+			EdgeInformationWidget* edgeInfoWidget = new EdgeInformationWidget(_application);
+			edgeInfoWidget->setParent(scrollContent);
+			debugColumn->addWidget(edgeInfoWidget);
 
 			VehicleAnalyzeWidget* vehicleAnalyzeWidget = new VehicleAnalyzeWidget(_application);
 			vehicleAnalyzeWidget->setParent(scrollContent);

@@ -10,6 +10,10 @@ namespace tjs::core::model {
 
 		visualization::NodeRenderInfo* selectedNode = nullptr;
 		std::unordered_set<uint64_t> reachableNodes;
+
+		void reinit() override {
+			selectedNode = nullptr;
+		}
 	};
 
 } // namespace tjs::core::model

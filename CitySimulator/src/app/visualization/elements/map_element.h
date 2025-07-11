@@ -8,6 +8,7 @@
 #include <core/data_layer/road_network.h>
 
 #include <logic/map/map_positioning.h>
+#include <logic/map/lanes_selector.h>
 
 #include <events/project_events.h>
 
@@ -44,6 +45,7 @@ namespace tjs::visualization {
 		core::model::PersistentRenderData& _cache;
 		core::model::SimulationDebugData& _debugData;
 		MapPositioning _map_positioning;
+		LanesSelector _lanes_selector;
 
 		// Bounding box coordinates
 		float min_lat = 0.0f;
