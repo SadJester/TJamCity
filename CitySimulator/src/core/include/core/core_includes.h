@@ -23,6 +23,8 @@
 #include <core/enum_flags.h>
 
 #include <core/definitions.h>
+#include <core/map_math/coordinates.h>
+#include <core/data_layer/enums.h>
 
 // TODO: algo error handling
 #include <stdexcept>

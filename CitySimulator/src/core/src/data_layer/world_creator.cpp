@@ -12,6 +12,8 @@
 
 namespace tjs::core {
 	bool WorldCreator::loadOSMData(WorldData& data, std::string_view osmFilename) {
+		Lane::reset_id();
+		Edge::reset_id();
 		bool result = false;
 		if (osmFilename.ends_with(".osmx")) {
 			result = details::loadOSMXmlData(data, osmFilename);
@@ -118,6 +120,11 @@ namespace tjs::core {
 				for (pugi::xml_node xml_way : doc.child("osm").children("way")) {
 					parseWay(xml_way, *world);
 				}
+
+				// Sort by layer so rendering will be correct
+				std::ranges::sort(world->sorted_ways, [](const WayInfo* a, const WayInfo* b) {
+					return a->layer < b->layer;
+				});
 
 				return world;
 			}
@@ -233,6 +240,8 @@ namespace tjs::core {
 				};
 
 				bool lanes_found = false;
+				int layer = std::numeric_limits<int>::max();
+				WayTag tags { WayTag::None };
 
 				for (pugi::xml_node tag : xml_way.children("tag")) {
 					std::string key = tag.attribute("k").as_string();
@@ -295,12 +304,39 @@ namespace tjs::core {
 						if (value == "private" || value == "no") {
 							return; // Skip private or no-access ways
 						}
+					} else if (key == "layer") {
+						layer = parse_int(value);
+					} else if (key == "bridge") {
+						tags = tags | WayTag::Bridge;
+					} else if (key == "tunnel") {
+						tags = tags | WayTag::Tunnel;
+					} else if (key == "embankment") {
+						tags = tags | WayTag::Embankment;
+					} else if (key == "cutting") {
+						tags = tags | WayTag::Cutting;
 					}
 				}
 
 				// Only add ways that have been classified
 				if (type == WayType::None) {
 					return;
+				}
+
+				if (layer == std::numeric_limits<int>::max()) {
+					layer = 0;
+
+					if (has_flag(tags, WayTag::Bridge)) {
+						++layer;
+					}
+					if (has_flag(tags, WayTag::Tunnel)) {
+						--layer;
+					}
+					if (has_flag(tags, WayTag::Embankment)) {
+						++layer;
+					}
+					if (has_flag(tags, WayTag::Cutting)) {
+						--layer;
+					}
 				}
 
 				// Calculate lanes in each direction if not explicitly specified
@@ -319,7 +355,7 @@ namespace tjs::core {
 					lanesBackward = lanes - lanesForward;
 				}
 
-				auto way = WayInfo::create(id, lanes, maxSpeed, type);
+				auto way = WayInfo::create(id, lanes, maxSpeed, type, tags, layer);
 				way->isOneway = isOneway;
 				way->lanesForward = lanesForward;
 				way->lanesBackward = lanesBackward;
@@ -340,6 +376,8 @@ namespace tjs::core {
 				}
 				way->nodeRefs = std::move(nodeRefs);
 				way->nodes = std::move(nodes);
+
+				world.sorted_ways.push_back(way.get());
 				world.ways[id] = std::move(way);
 			}
 
@@ -379,6 +417,14 @@ namespace tjs::core {
 					result.push_back(direction);
 				}
 				return result;
+			}
+
+			static int parse_int(const std::string_view value) {
+				try {
+					return std::stoi(value.data());
+				} catch (...) {
+					return 0;
+				}
 			}
 
 			static int parseSpeedValue(const std::string& speedStr) {

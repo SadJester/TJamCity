@@ -8,6 +8,8 @@ namespace tjs::core::model {
 	class IDataModel {
 	public:
 		virtual ~IDataModel() = default;
+
+		virtual void reinit() = 0;
 	};
 
 	template<typename T>
@@ -31,6 +33,10 @@ namespace tjs::core::model {
 			requires core::model::DataModelType<T>
 		void add_model() {
 			_models[T::get_type()] = std::make_unique<T>();
+		}
+
+		const std::unordered_map<std::type_index, std::unique_ptr<core::model::IDataModel>>& models() const {
+			return _models;
 		}
 
 	private:

@@ -23,7 +23,7 @@ namespace tjs::core::algo {
 		double dy = to.y - from.y;
 		double brng = atan2(dy, dx);
 		double deg = to_degrees(brng);
-		return std::fmod(deg + 360.0, 360.0);
+		return normalize_angle(deg);
 	}
 
 	double signed_angle_deg(const Coordinates& v1, const Coordinates& v2) {
@@ -49,7 +49,7 @@ namespace tjs::core::algo {
 
 		Coordinates result = origin;
 		result.x += lateral_offset_meters * cos(offset_angle);
-		result.y += lateral_offset_meters * sin(offset_angle);
+		result.y -= lateral_offset_meters * sin(offset_angle);
 		return result;
 	}
 } // namespace tjs::core::algo

@@ -15,7 +15,7 @@ namespace tjs::visualization {
 		, _maxDistance(app.settings().render.map.selectionDistance) {}
 
 	void VehicleTargeting::on_mouse_event(const render::RendererMouseEvent& event) {
-		if (event.button != render::RendererMouseEvent::ButtonType::Left || event.state != render::RendererMouseEvent::ButtonState::Pressed || !event.shift) {
+		if (event.button != render::RendererMouseEvent::ButtonType::Left || event.state != render::RendererMouseEvent::ButtonState::Pressed || !event.ctrl) {
 			return;
 		}
 

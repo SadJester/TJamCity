@@ -4,4 +4,5 @@
 
 namespace tjs::events {
 	struct MapPositioningChanged : common::Event {};
+	struct LaneIsSelected : common::Event {};
 } // namespace tjs::events

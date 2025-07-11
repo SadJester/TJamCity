@@ -20,28 +20,46 @@ namespace tjs::core::algo {
 		// At least one lane even if OSM data were incomplete
 		const size_t reserved_size = std::max<std::size_t>(
 			1,
-			orientation == LaneOrientation::Forward ?
-				way->lanesForward :
-				way->lanesBackward);
+			orientation == LaneOrientation::Forward ? way->lanesForward : way->lanesBackward);
+
+		const size_t total_lanes = way->lanesForward + way->lanesBackward;
+		const double half_lanes_offset = (total_lanes - 1) / 2.0;
 
 		edge.lanes.resize(reserved_size);
 
 		// ------------------------------------------------------------------ //
 		// 1. Geometric basis                                                 //
 		// ------------------------------------------------------------------ //
-		const double heading = bearing(start_node->coordinates, end_node->coordinates);
+		double heading = bearing(start_node->coordinates, end_node->coordinates);
 
-		// Pre-compute half-width offset of the lane bundle
-		const double half_span = reserved_size % 2 == 0 ? 0.5 * way->laneWidth : 0.0;
+		const double x_delta = std::fabs(end_node->coordinates.x - start_node->coordinates.x);
+		const double y_delta = std::fabs(end_node->coordinates.y - start_node->coordinates.y);
+		const bool decision_by_y = x_delta < y_delta;
+		bool right_is_min = decision_by_y ? start_node->coordinates.y > end_node->coordinates.y : start_node->coordinates.x > end_node->coordinates.x;
+		size_t adjacent_lane_offset = 0;
+		if (orientation == LaneOrientation::Backward) {
+			heading = bearing(end_node->coordinates, start_node->coordinates);
+			right_is_min = !right_is_min;
+		}
+
+		if (
+			(!right_is_min && orientation == LaneOrientation::Forward)
+			|| (right_is_min && orientation == LaneOrientation::Backward)) {
+			adjacent_lane_offset = total_lanes - reserved_size;
+		}
+
 		// ------------------------------------------------------------------ //
 		// 2. Fill lanes – **index 0 = right-most**                           //
 		// ------------------------------------------------------------------ //
-		bool right_is_min = orientation == LaneOrientation::Forward && start_node->coordinates.y < end_node->coordinates.y;
 		for (size_t logical_idx = 0; logical_idx < reserved_size; ++logical_idx) {
 			// ★ Physical index so that 0 = right-most,   N-1 = left-most
-			size_t idx = right_is_min ? logical_idx : reserved_size - 1 - logical_idx;
+			size_t idx = logical_idx;
+			if (orientation == LaneOrientation::Backward || (!decision_by_y && orientation == LaneOrientation::Forward)) {
+				idx = reserved_size - 1 - logical_idx;
+			}
+			size_t offset = idx + adjacent_lane_offset;
 
-			Lane& lane = edge.lanes[idx];
+			Lane& lane = edge.lanes[logical_idx];
 
 			lane.parent = &edge;
 			lane.orientation = orientation;
@@ -49,19 +67,10 @@ namespace tjs::core::algo {
 
 			// Offset sign is + to the **left** of travel direction.
 			// Therefore right-most lane has the **most negative** offset.
-			double lateral_offset = (static_cast<double>(logical_idx) - (reserved_size - 1) / 2) * way->laneWidth;
-			lateral_offset -= half_span;
-			// Reverse sign for Backward edges so that right side stays right.
-			if (orientation == LaneOrientation::Backward) {
-				lateral_offset = -lateral_offset; // keep RH convention
-			}
+			const double lateral_offset = (offset - half_lanes_offset) * way->laneWidth;
 
-			Coordinates start = offset_coordinate(start_node->coordinates,
-				heading,
-				lateral_offset);
-			Coordinates end = offset_coordinate(end_node->coordinates,
-				heading,
-				lateral_offset);
+			Coordinates start = offset_coordinate(start_node->coordinates, heading, lateral_offset);
+			Coordinates end = offset_coordinate(end_node->coordinates, heading, lateral_offset);
 
 			lane.centerLine = { start, end };
 			lane.length = euclidean_distance(start, end);
@@ -70,15 +79,17 @@ namespace tjs::core::algo {
 			// 3. Per-lane turn indication                                      //
 			// ----------------------------------------------------------------//
 			TurnDirection td = TurnDirection::None;
-			// right is the last index
-			size_t td_index = right_is_min ? reserved_size - 1 - logical_idx : logical_idx;
-			if (orientation == LaneOrientation::Forward) { // ★ fixed list swap
-				if (td_index < way->forwardTurns.size()) {
-					td = way->forwardTurns[td_index];
+			// For forward directions is always reversed idx
+			// For backward is the same as in OSM format
+			if (orientation == LaneOrientation::Forward) {
+				size_t td_idx = reserved_size - 1 - logical_idx;
+				if (td_idx < way->forwardTurns.size()) {
+					td = way->forwardTurns[td_idx];
 				}
 			} else { // Backward
-				if (td_index < way->backwardTurns.size()) {
-					td = way->backwardTurns[td_index];
+				size_t td_idx = reserved_size - 1 - logical_idx;
+				if (td_idx < way->backwardTurns.size()) {
+					td = way->backwardTurns[td_idx];
 				}
 			}
 			lane.turn = td;
@@ -127,11 +138,13 @@ namespace tjs::core::algo {
 
 				if (way->lanesForward > 0) {
 					network.edges.push_back(create_edge(current, next, way, dist, LaneOrientation::Forward));
+					way->edges.push_back({ EdgeHandler { network.edges, network.edges.size() - 1 } });
 					edge_graph_indices[current].push_back(network.edges.size() - 1);
 				}
 
 				if (!way->isOneway && way->lanesBackward > 0) {
 					network.edges.push_back(create_edge(next, current, way, dist, LaneOrientation::Backward));
+					way->edges.push_back({ EdgeHandler { network.edges, network.edges.size() - 1 } });
 					edge_graph_indices[next].push_back(network.edges.size() - 1);
 				}
 

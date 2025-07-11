@@ -19,7 +19,7 @@ namespace tjs {
 
 		virtual void set_draw_color(FColor color) = 0;
 		virtual void draw_line(int x1, int y1, int x2, int y2) = 0;
-		virtual void draw_geometry(const Geometry& polygon) = 0;
+		virtual void draw_geometry(const Geometry& polygon, bool outline = false) = 0;
 		virtual void draw_circle(int center_x, int center_y, int radius, bool fill = false) = 0;
 		virtual void draw_rect(const Rectangle& rect, bool fill = false) = 0;
 

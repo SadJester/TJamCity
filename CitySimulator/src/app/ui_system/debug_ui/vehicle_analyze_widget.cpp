@@ -23,14 +23,21 @@ namespace tjs::ui {
 
 		_application.simulationSystem().message_dispatcher().register_handler(*this, &VehicleAnalyzeWidget::handle_simulation_initialized, "VehicleAnalyzeWidget");
 		_application.message_dispatcher().register_handler(*this, &VehicleAnalyzeWidget::handle_agent_selected, "VehicleAnalyzeWidget");
+		_application.message_dispatcher().register_handler(*this, &VehicleAnalyzeWidget::handle_open_map, "VehicleAnalyzeWidget");
 	}
 
 	VehicleAnalyzeWidget::~VehicleAnalyzeWidget() {
 		_application.simulationSystem().message_dispatcher().unregister_handler<core::events::SimulationInitialized>("VehicleAnalyzeWidget");
 		_application.message_dispatcher().unregister_handler<events::AgentSelected>("VehicleAnalyzeWidget");
+		_application.message_dispatcher().unregister_handler<events::OpenMapEvent>("VehicleAnalyzeWidget");
 	}
 
 	void VehicleAnalyzeWidget::handle_simulation_initialized(const core::events::SimulationInitialized& event) {
+		_application.stores().get_model<core::model::VehicleAnalyzeData>()->agent = nullptr;
+		initialize();
+	}
+
+	void VehicleAnalyzeWidget::handle_open_map(const events::OpenMapEvent& event) {
 		_application.stores().get_model<core::model::VehicleAnalyzeData>()->agent = nullptr;
 		initialize();
 	}

@@ -19,8 +19,7 @@ namespace tjs::core {
 	};
 
 	ENUM(VehicleState, uint8_t,
-		Undefined, Stopped, Moving
-	)
+		Undefined, Stopped, Moving)
 
 	struct Vehicle {
 		uint64_t uid;
@@ -84,6 +83,9 @@ namespace tjs::core {
 		std::unordered_map<uint64_t, std::unique_ptr<Node>> nodes;
 		std::unordered_map<uint64_t, std::unique_ptr<WayInfo>> ways;
 		std::unordered_map<uint64_t, std::unique_ptr<Junction>> junctions;
+
+		// Sorted by layer
+		std::vector<WayInfo*> sorted_ways;
 
 		std::unique_ptr<RoadNetwork> road_network;
 		SpatialGrid spatialGrid;

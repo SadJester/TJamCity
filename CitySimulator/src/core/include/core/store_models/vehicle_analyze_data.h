@@ -17,5 +17,9 @@ namespace tjs::core::model {
 		void set_agent(core::AgentData* agent) {
 			this->agent = agent;
 		}
+
+		void reinit() {
+			agent = nullptr;
+		}
 	};
 } // namespace tjs::core::model

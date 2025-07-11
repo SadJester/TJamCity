@@ -8,6 +8,7 @@
 #include <core/data_layer/road_network.h>
 
 #include <logic/map/map_positioning.h>
+#include <logic/map/lanes_selector.h>
 
 #include <events/project_events.h>
 
@@ -35,21 +36,16 @@ namespace tjs::visualization {
 		Position convert_to_screen(const core::Coordinates& coord) const;
 		void auto_zoom(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
 		void calculate_map_bounds(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
-		int render_way(const WayRenderInfo& way);
 		void render_bounding_box() const;
 		void draw_lane_markers(const std::vector<Position>& nodes, int lanes, int lane_width_pixels);
-		void draw_path_nodes(const WayRenderInfo& way);
-		void draw_network_nodes(const core::RoadNetwork& network);
 		void render_network_graph(IRenderer& renderer, const core::RoadNetwork& network);
-		void render_lanes(IRenderer& renderer, const core::RoadNetwork& network);
-		void draw_direction_arrows(const std::vector<Position>& nodes, bool reverse);
-		FColor get_way_color(core::WayType type) const;
 
 		Application& _application;
 		core::model::MapRendererData& _render_data;
 		core::model::PersistentRenderData& _cache;
 		core::model::SimulationDebugData& _debugData;
 		MapPositioning _map_positioning;
+		LanesSelector _lanes_selector;
 
 		// Bounding box coordinates
 		float min_lat = 0.0f;

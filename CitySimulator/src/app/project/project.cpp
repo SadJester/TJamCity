@@ -17,8 +17,13 @@ namespace tjs {
 			tjs::core::WorldCreator::createRandomVehicles(application.worldData(), application.settings().simulationSettings);
 			application.settings().general.selectedFile = fileName;
 
-			application.message_dispatcher().handle_message(events::OpenMapEvent {}, "project");
 			application.simulationSystem().initialize();
+
+			for (auto& model : application.stores().models()) {
+				model.second->reinit();
+			}
+
+			application.message_dispatcher().handle_message(events::OpenMapEvent {}, "project");
 			return true;
 		}
 		return false;
