@@ -138,11 +138,13 @@ namespace tjs::core::algo {
 
 				if (way->lanesForward > 0) {
 					network.edges.push_back(create_edge(current, next, way, dist, LaneOrientation::Forward));
+					way->edges.push_back({ EdgeHandler { network.edges, network.edges.size() - 1 } });
 					edge_graph_indices[current].push_back(network.edges.size() - 1);
 				}
 
 				if (!way->isOneway && way->lanesBackward > 0) {
 					network.edges.push_back(create_edge(next, current, way, dist, LaneOrientation::Backward));
+					way->edges.push_back({ EdgeHandler { network.edges, network.edges.size() - 1 } });
 					edge_graph_indices[next].push_back(network.edges.size() - 1);
 				}
 

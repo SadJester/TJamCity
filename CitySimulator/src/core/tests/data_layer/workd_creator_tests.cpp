@@ -528,8 +528,8 @@ TEST_F(CreateLanesTests, ProcessLanes_LeftMiddle) {
 	ASSERT_NE(node, nullptr);
 
 	algo::details::process_node(network, node);
-	// check no duplicates
-	//algo::details::process_node(network, node);
+	// TODO: check no duplicates
+	// algo::details::process_node(network, node);
 
 	const auto adjacent = algo::details::get_adjacent_edges(network, node);
 

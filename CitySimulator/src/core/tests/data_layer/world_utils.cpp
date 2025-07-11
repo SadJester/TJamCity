@@ -11,7 +11,7 @@ namespace tjs::core::tests {
 			std::size_t back,
 			double lane_width) {
 		auto w = core::WayInfo::create(uid, static_cast<int>(fwd + back),
-			/*maxSpeed=*/50, WayType::Residential);
+			/*maxSpeed=*/50, WayType::Residential, WayTag::None, 0);
 		w->lanesForward = static_cast<int>(fwd);
 		w->lanesBackward = static_cast<int>(back);
 		w->laneWidth = lane_width;

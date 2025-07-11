@@ -119,12 +119,14 @@ namespace tjs::visualization {
 			const bool draw_nodes = static_cast<uint32_t>(_render_data.visibleLayers & model::MapRendererLayer::Nodes) != 0;
 
 			for (auto& [id, way] : _cache.ways) {
-				int nodes_rendered = render_way(way);
+				// render_way(way);
 				if (!draw_network && draw_nodes) {
 					draw_path_nodes(way);
 				}
 			}
 		}
+
+		//render_network_new(renderer, *segment, _render_data.metersPerPixel, _render_data.screen_center);
 
 		// Render network graph if enabled
 		if (draw_network) {
@@ -267,7 +269,7 @@ namespace tjs::visualization {
 		}
 	}
 
-	FColor MapElement::get_way_color(WayType type) const {
+	FColor get_way_color(WayType type) {
 		FColor roadColor = Constants::ROAD_COLOR;
 		switch (type) {
 			case WayType::Motorway:
@@ -305,6 +307,33 @@ namespace tjs::visualization {
 				break;
 		}
 		return roadColor;
+	}
+
+	FColor MapElement::get_way_color(WayType type) const {
+		return get_way_color(type);
+	}
+
+	void render_network_new(IRenderer& renderer, const WorldSegment& segment, double mpp, const Position& screen_center) {
+		const auto& ways = segment.sorted_ways;
+
+		auto _render_lanes = [&renderer, &screen_center, mpp](const std::vector<Lane>& lanes, const FColor& color, float thickness) {
+			renderer.set_draw_color(color);
+			for (const auto& lane : lanes) {
+				Position start = convert_to_screen(lane.centerLine.front(), screen_center, mpp);
+				Position end = convert_to_screen(lane.centerLine.back(), screen_center, mpp);
+
+				// Only draw if both points are visible
+				if (!line_outside_screen(start, end, renderer.screen_width(), renderer.screen_height())) {
+					drawThickLine(renderer, { start, end }, mpp, thickness, color);
+				}
+			}
+		};
+		for (const WayInfo* way : ways) {
+			auto color = get_way_color(way->type);
+			for (auto edge : way->edges) {
+				_render_lanes(edge->lanes, color, way->laneWidth);
+			}
+		}
 	}
 
 	int MapElement::render_way(const WayRenderInfo& way) {
