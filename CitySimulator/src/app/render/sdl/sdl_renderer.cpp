@@ -205,14 +205,45 @@ namespace tjs::render {
 		SDL_RenderLine(_sdlRenderer, x1, y1, x2, y2);
 	}
 
-	void SDLRenderer::draw_geometry(const Geometry& geometry) {
-		SDL_RenderGeometry(
-			_sdlRenderer,
-			nullptr,
-			reinterpret_cast<SDL_Vertex*>(geometry.vertices.data()),
-			geometry.vertices.size(),
-			geometry.indices.data(),
-			geometry.indices.size());
+	void SDLRenderer::draw_geometry(const Geometry& geometry, bool outline) {
+		// TODO[error-handling]: renderer should assert if not %3 count
+		if (outline && geometry.indices.size() % 3 == 0) {
+			// Set color from first vertex (or customize per use)
+			FColor color = geometry.vertices[0].color;
+			SDL_SetRenderDrawColor(
+				_sdlRenderer,
+				static_cast<Uint8>(color.r * 255),
+				static_cast<Uint8>(color.g * 255),
+				static_cast<Uint8>(color.b * 255),
+				static_cast<Uint8>(color.a * 255));
+
+			for (size_t i = 0; i < geometry.indices.size(); i += 3) {
+				int i0 = geometry.indices[i + 0];
+				int i1 = geometry.indices[i + 1];
+				int i2 = geometry.indices[i + 2];
+
+				const FPoint& p0 = geometry.vertices[i0].position;
+				const FPoint& p1 = geometry.vertices[i1].position;
+				const FPoint& p2 = geometry.vertices[i2].position;
+
+				SDL_FPoint tri[4] = {
+					{ p0.x, p0.y },
+					{ p1.x, p1.y },
+					{ p2.x, p2.y },
+					{ p0.x, p0.y } // close loop
+				};
+
+				SDL_RenderLines(_sdlRenderer, tri, 4);
+			}
+		} else {
+			SDL_RenderGeometry(
+				_sdlRenderer,
+				nullptr,
+				reinterpret_cast<SDL_Vertex*>(geometry.vertices.data()),
+				geometry.vertices.size(),
+				geometry.indices.data(),
+				geometry.indices.size());
+		}
 	}
 
 	void SDLRenderer::draw_circle(int centerX, int centerY, int radius, bool fill) {
