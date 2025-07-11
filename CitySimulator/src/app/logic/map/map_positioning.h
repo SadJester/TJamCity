@@ -7,11 +7,20 @@ namespace tjs {
 	class Application;
 } // namespace tjs
 
-namespace tjs::visualization {
+namespace tjs::app::logic {
 
 	class MapPositioning : public ILogicModule, public render::IRenderEventListener {
 	public:
+		static std::type_index get_type() {
+			return typeid(MapPositioning);
+		}
+
+	public:
 		explicit MapPositioning(Application& app);
+
+		void init() override;
+		void release() override;
+
 		void on_mouse_event(const render::RendererMouseEvent& event) override;
 		void on_mouse_wheel_event(const render::RendererMouseWheelEvent& event) override;
 		void on_mouse_motion_event(const render::RendererMouseMotionEvent& event) override;
@@ -24,4 +33,4 @@ namespace tjs::visualization {
 		bool _dragging = false;
 	};
 
-} // namespace tjs::visualization
+} // namespace tjs::app::logic

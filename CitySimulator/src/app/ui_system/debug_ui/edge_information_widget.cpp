@@ -78,7 +78,7 @@ namespace tjs::ui {
 			return;
 		}
 
-		auto* render_data = _application.stores().get_model<core::model::MapRendererData>();
+		auto* render_data = _application.stores().get_entry<core::model::MapRendererData>();
 		if (!render_data) {
 			return;
 		}
@@ -105,7 +105,7 @@ namespace tjs::ui {
 	}
 
 	void EdgeInformationWidget::handleItemClicked(QTreeWidgetItem* item, int) {
-		auto* render = _application.stores().get_model<core::model::MapRendererData>();
+		auto* render = _application.stores().get_entry<core::model::MapRendererData>();
 		if (!render) {
 			return;
 		}

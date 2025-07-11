@@ -7,7 +7,7 @@ namespace tjs {
 	class Application;
 } // namespace tjs
 
-namespace tjs::visualization {
+namespace tjs::app::logic {
 	class VehicleTargeting : public ILogicModule, public render::IRenderEventListener {
 	public:
 		static std::type_index get_type() {
@@ -15,9 +15,13 @@ namespace tjs::visualization {
 		}
 
 		explicit VehicleTargeting(Application& app);
+
+		void init() override;
+		void release() override;
+
 		void on_mouse_event(const render::RendererMouseEvent& event) override;
 
 	private:
 		float _maxDistance;
 	};
-} // namespace tjs::visualization
+} // namespace tjs::app::logic

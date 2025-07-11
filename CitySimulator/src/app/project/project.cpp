@@ -19,9 +19,8 @@ namespace tjs {
 
 			application.simulationSystem().initialize();
 
-			for (auto& model : application.stores().models()) {
-				model.second->reinit();
-			}
+			application.stores().reinit();
+			application.logic_modules().reinit();
 
 			application.message_dispatcher().handle_message(events::OpenMapEvent {}, "project");
 			return true;

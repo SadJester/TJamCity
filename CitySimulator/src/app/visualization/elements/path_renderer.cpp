@@ -24,11 +24,11 @@ namespace tjs::visualization {
 	PathRenderer::PathRenderer(Application& application)
 		: SceneNode("PathRenderer")
 		, _application(application)
-		, _mapRendererData(*application.stores().get_model<core::model::MapRendererData>()) {
+		, _mapRendererData(*application.stores().get_entry<core::model::MapRendererData>()) {
 	}
 
 	void PathRenderer::init() {
-		_mapRendererData = *_application.stores().get_model<core::model::MapRendererData>();
+		_mapRendererData = *_application.stores().get_entry<core::model::MapRendererData>();
 	}
 
 	void PathRenderer::update() {
@@ -37,7 +37,7 @@ namespace tjs::visualization {
 
 	void PathRenderer::render(IRenderer& renderer) {
 		TJS_TRACY_NAMED("PathRenderer_Render");
-		core::model::VehicleAnalyzeData* model = _application.stores().get_model<core::model::VehicleAnalyzeData>();
+		core::model::VehicleAnalyzeData* model = _application.stores().get_entry<core::model::VehicleAnalyzeData>();
 		if (model->agent == nullptr) {
 			return;
 		}

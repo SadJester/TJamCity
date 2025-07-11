@@ -10,9 +10,9 @@
 namespace tjs::visualization {
 
 	void recalculate_map_data(Application& app) {
-		auto* cache = app.stores().get_model<core::model::PersistentRenderData>();
-		auto* debug = app.stores().get_model<core::model::SimulationDebugData>();
-		auto* render = app.stores().get_model<core::model::MapRendererData>();
+		auto* cache = app.stores().get_entry<core::model::PersistentRenderData>();
+		auto* debug = app.stores().get_entry<core::model::SimulationDebugData>();
+		auto* render = app.stores().get_entry<core::model::MapRendererData>();
 		if (!cache || !render || !debug) {
 			return;
 		}

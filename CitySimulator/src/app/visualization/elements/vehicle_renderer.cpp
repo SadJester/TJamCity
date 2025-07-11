@@ -19,24 +19,21 @@ namespace tjs::visualization {
 	VehicleRenderer::VehicleRenderer(Application& application)
 		: SceneNode("VehicleRenderer")
 		, _application(application)
-		, _mapRendererData(*application.stores().get_model<core::model::MapRendererData>())
-		, _vehicleTargeting(application) {
+		, _mapRendererData(*application.stores().get_entry<core::model::MapRendererData>()) {
 	}
 
 	VehicleRenderer::~VehicleRenderer() {
-		_application.renderer().unregister_event_listener(&_vehicleTargeting);
 	}
 
 	void VehicleRenderer::init() {
-		_mapRendererData = *_application.stores().get_model<core::model::MapRendererData>();
-		_application.renderer().register_event_listener(&_vehicleTargeting);
+		_mapRendererData = *_application.stores().get_entry<core::model::MapRendererData>();
 	}
 
 	void VehicleRenderer::update() {
 	}
 
 	void VehicleRenderer::render(IRenderer& renderer) {
-		TJS_TRACY_NAMED("BehicleRenderer_Render");
+		TJS_TRACY_NAMED("VehicleRenderer_Render");
 		for (auto& vehicle : _application.worldData().vehicles()) {
 			render(renderer, vehicle);
 		}

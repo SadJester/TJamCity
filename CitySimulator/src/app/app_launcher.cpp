@@ -28,14 +28,22 @@
 #include "data/persistent_render_data.h"
 
 #include <logic/map/vehicle_targeting.h>
+#include <logic/map/lanes_selector.h>
+#include <logic/map/map_positioning.h>
 
 namespace tjs {
 
 	void setup_store_models(Application& app) {
-		app.stores().add_model<core::model::VehicleAnalyzeData>();
-		app.stores().add_model<core::model::MapRendererData>();
-		app.stores().add_model<core::model::PersistentRenderData>();
-		app.stores().add_model<core::model::SimulationDebugData>();
+		app.stores().create<core::model::VehicleAnalyzeData>();
+		app.stores().create<core::model::MapRendererData>();
+		app.stores().create<core::model::PersistentRenderData>();
+		app.stores().create<core::model::SimulationDebugData>();
+	}
+
+	void setup_logic(Application& app) {
+		app.logic_modules().create<app::logic::VehicleTargeting>(app);
+		app.logic_modules().create<app::logic::LanesSelector>(app);
+		app.logic_modules().create<app::logic::MapPositioning>(app);
 	}
 
 	int launch(int argc, char* argv[]) {
@@ -44,6 +52,7 @@ namespace tjs {
 			argv);
 
 		setup_store_models(application);
+		setup_logic(application);
 
 		auto worldData = std::make_unique<tjs::core::WorldData>();
 		auto simulationSystem = std::make_unique<core::simulation::TrafficSimulationSystem>(*worldData, application.stores());
@@ -54,8 +63,6 @@ namespace tjs {
 			std::make_unique<tjs::visualization::SceneSystem>(application),
 			std::move(worldData),
 			std::move(simulationSystem));
-
-		application.logic_modules().create<visualization::VehicleTargeting>(application);
 
 		application.initialize();
 

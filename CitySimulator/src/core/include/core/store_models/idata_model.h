@@ -26,7 +26,7 @@ namespace tjs::core {
 	public:
 		template<typename T>
 			requires core::StoreType<T>
-		T* get() {
+		T* get_entry() {
 			auto it = _entries.find(T::get_type());
 			return it != _entries.end() ? static_cast<T*>(it->second.get()) : nullptr;
 		}
@@ -37,7 +37,7 @@ namespace tjs::core {
 			static_assert(std::is_constructible_v<T, Args...>,
 				"create<T>: T is not constructible from given arguments");
 
-			auto entry_test = get<T>();
+			auto entry_test = get_entry<T>();
 			if (entry_test) {
 				return *entry_test;
 			}
@@ -57,21 +57,21 @@ namespace tjs::core {
 
 		void init() {
 			for (auto& entry : _entries) {
-				entry->init();
+				entry.second->init();
 			}
 			_inited = true;
 		}
 
 		void release() {
 			for (auto& entry : _entries) {
-				entry->release();
+				entry.second->release();
 			}
 			_inited = false;
 		}
 
 		void reinit() {
 			for (auto& entry : _entries) {
-				entry->reinit();
+				entry.second->reinit();
 			}
 		}
 
@@ -86,43 +86,12 @@ namespace tjs::core {
 } // namespace tjs::core
 
 namespace tjs::core::model {
-	class IDataModel {
+	class IDataModel : public IStoreEntry {
 	public:
 		virtual ~IDataModel() = default;
-
-		virtual void init() {}
-		virtual void release() {}
 		virtual void reinit() = 0;
 	};
 
-	template<typename T>
-	concept HasStaticGetType = requires(T) {
-		{ T::get_type() } -> std::same_as<std::type_index>;
-	};
+	class DataModelStore : public core::GenericStore<IDataModel> {};
 
-	template<typename T>
-	concept DataModelType = std::default_initializable<T> && std::is_base_of_v<IDataModel, T> && HasStaticGetType<T>;
-
-	class DataModelStore {
-	public:
-		template<typename T>
-			requires core::model::DataModelType<T>
-		T* get_model() {
-			auto it = _models.find(T::get_type());
-			return it != _models.end() ? static_cast<T*>(it->second.get()) : nullptr;
-		}
-
-		template<typename T, typename... Args>
-			requires core::model::DataModelType<T>
-		void add_model() {
-			_models[T::get_type()] = std::make_unique<T>();
-		}
-
-		const std::unordered_map<std::type_index, std::unique_ptr<core::model::IDataModel>>& models() const {
-			return _models;
-		}
-
-	private:
-		std::unordered_map<std::type_index, std::unique_ptr<core::model::IDataModel>> _models;
-	};
 } // namespace tjs::core::model

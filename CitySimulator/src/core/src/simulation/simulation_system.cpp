@@ -49,7 +49,7 @@ namespace tjs::core::simulation {
 		_vehicleMovementModule.initialize();
 
 		if (_agents.size() == 1) {
-			_store.get_model<core::model::VehicleAnalyzeData>()->agent = &_agents[0];
+			_store.get_entry<core::model::VehicleAnalyzeData>()->agent = &_agents[0];
 		}
 
 		_message_dispatcher.handle_message(events::SimulationInitialized {}, "simulation");

@@ -7,7 +7,7 @@
 #include <core/data_layer/world_data.h>
 #include <events/map_events.h>
 
-namespace tjs::visualization {
+namespace tjs::app::logic {
 
 	static float point_segment_distance(const Position& p, const Position& a, const Position& b) {
 		float dx = static_cast<float>(b.x - a.x);
@@ -29,14 +29,23 @@ namespace tjs::visualization {
 
 	LanesSelector::LanesSelector(Application& app)
 		: ILogicModule(app)
-		, _maxDistance(app.settings().render.map.selectionDistance) {}
+		, _maxDistance(app.settings().render.map.selectionDistance) {
+	}
+
+	void LanesSelector::init() {
+		_application.renderer().register_event_listener(this);
+	}
+
+	void LanesSelector::release() {
+		_application.renderer().unregister_event_listener(this);
+	}
 
 	void LanesSelector::on_mouse_event(const render::RendererMouseEvent& event) {
 		if (event.button != render::RendererMouseEvent::ButtonType::Left || event.state != render::RendererMouseEvent::ButtonState::Pressed || !event.ctrl) {
 			return;
 		}
 
-		auto* render_data = _application.stores().get_model<core::model::MapRendererData>();
+		auto* render_data = _application.stores().get_entry<core::model::MapRendererData>();
 		if (!render_data) {
 			return;
 		}
@@ -62,9 +71,9 @@ namespace tjs::visualization {
 					continue;
 				}
 				for (size_t i = 0; i + 1 < lane.centerLine.size(); ++i) {
-					Position a = convert_to_screen(
+					Position a = visualization::convert_to_screen(
 						lane.centerLine[i], render_data->screen_center, render_data->metersPerPixel);
-					Position b = convert_to_screen(
+					Position b = visualization::convert_to_screen(
 						lane.centerLine[i + 1], render_data->screen_center, render_data->metersPerPixel);
 					float dist = point_segment_distance(click, a, b);
 					if (dist < bestDist) {
@@ -79,4 +88,4 @@ namespace tjs::visualization {
 		_application.message_dispatcher().handle_message(events::LaneIsSelected {}, "map");
 	}
 
-} // namespace tjs::visualization
+} // namespace tjs::app::logic

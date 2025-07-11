@@ -1,13 +1,14 @@
-#include "stdafx.h"
+#include <stdafx.h>
 
-#include "visualization/elements/map_element.h"
+#include <visualization/elements/map_element.h>
 
-#include "data/persistent_render_data.h"
-#include "data/simulation_debug_data.h"
+#include <data/persistent_render_data.h>
+#include <data/simulation_debug_data.h>
+#include <data/map_renderer_data.h>
 
 #include <render/render_base.h>
 #include <visualization/visualization_constants.h>
-#include <data/map_renderer_data.h>
+
 #include <Application.h>
 #include <events/map_events.h>
 
@@ -15,7 +16,8 @@
 #include <core/data_layer/data_types.h>
 #include <core/math_constants.h>
 #include <core/map_math/path_finder.h>
-#include <logic/map/lanes_selector.h>
+
+#include <logic/map/map_positioning.h>
 
 namespace tjs::visualization {
 	using namespace tjs::core;
@@ -62,16 +64,12 @@ namespace tjs::visualization {
 	MapElement::MapElement(Application& application)
 		: SceneNode("MapElement")
 		, _application(application)
-		, _render_data(*application.stores().get_model<model::MapRendererData>())
-		, _cache(*application.stores().get_model<core::model::PersistentRenderData>())
-		, _debugData(*application.stores().get_model<core::model::SimulationDebugData>())
-		, _map_positioning(application)
-		, _lanes_selector(application) {
+		, _render_data(*application.stores().get_entry<model::MapRendererData>())
+		, _cache(*application.stores().get_entry<core::model::PersistentRenderData>())
+		, _debugData(*application.stores().get_entry<core::model::SimulationDebugData>()) {
 	}
 
 	MapElement::~MapElement() {
-		_application.renderer().unregister_event_listener(&_map_positioning);
-		_application.renderer().unregister_event_listener(&_lanes_selector);
 	}
 
 	void MapElement::on_map_updated() {
@@ -90,12 +88,13 @@ namespace tjs::visualization {
 			_render_data.metersPerPixel = general_settings.zoomLevel;
 		}
 
-		_map_positioning.update_map_positioning();
+		auto positioning = _application.logic_modules().get_entry<app::logic::MapPositioning>();
+		if (positioning) {
+			positioning->update_map_positioning();
+		}
 	}
 
 	void MapElement::init() {
-		_application.renderer().register_event_listener(&_map_positioning);
-		_application.renderer().register_event_listener(&_lanes_selector);
 		_application.message_dispatcher().register_handler(*this, &MapElement::handle_open_map_simulation_reinit, "project");
 	}
 

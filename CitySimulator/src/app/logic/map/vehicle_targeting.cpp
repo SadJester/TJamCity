@@ -9,18 +9,27 @@
 #include <events/vehicle_events.h>
 #include <cmath>
 
-namespace tjs::visualization {
+namespace tjs::app::logic {
 	VehicleTargeting::VehicleTargeting(Application& app)
 		: ILogicModule(app)
-		, _maxDistance(app.settings().render.map.selectionDistance) {}
+		, _maxDistance(app.settings().render.map.selectionDistance) {
+	}
+
+	void VehicleTargeting::init() {
+		_application.renderer().register_event_listener(this);
+	}
+
+	void VehicleTargeting::release() {
+		_application.renderer().unregister_event_listener(this);
+	}
 
 	void VehicleTargeting::on_mouse_event(const render::RendererMouseEvent& event) {
 		if (event.button != render::RendererMouseEvent::ButtonType::Left || event.state != render::RendererMouseEvent::ButtonState::Pressed || !event.ctrl) {
 			return;
 		}
 
-		auto* cache = _application.stores().get_model<core::model::PersistentRenderData>();
-		auto* model = _application.stores().get_model<core::model::VehicleAnalyzeData>();
+		auto* cache = _application.stores().get_entry<core::model::PersistentRenderData>();
+		auto* model = _application.stores().get_entry<core::model::VehicleAnalyzeData>();
 		if (!cache || !model) {
 			return;
 		}
@@ -57,4 +66,4 @@ namespace tjs::visualization {
 		_application.message_dispatcher().handle_message(
 			events::AgentSelected { agent }, "map");
 	}
-} // namespace tjs::visualization
+} // namespace tjs::app::logic

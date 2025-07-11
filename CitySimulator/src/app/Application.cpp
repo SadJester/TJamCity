@@ -37,6 +37,9 @@ namespace tjs {
 		_renderer->initialize();
 		_sceneSystem->initialize();
 		_simulationSystem->initialize();
+
+		_models_store.init();
+		_logic_modules.init();
 	}
 
 	void Application::run() {
@@ -119,6 +122,9 @@ namespace tjs {
 
 		// Save settings before quit
 		_settings.save();
+
+		_logic_modules.release();
+		_models_store.release();
 	}
 
 } // namespace tjs
