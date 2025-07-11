@@ -33,17 +33,17 @@ namespace tjs::ui {
 	}
 
 	void VehicleAnalyzeWidget::handle_simulation_initialized(const core::events::SimulationInitialized& event) {
-		_application.stores().get_model<core::model::VehicleAnalyzeData>()->agent = nullptr;
+		_application.stores().get_entry<core::model::VehicleAnalyzeData>()->agent = nullptr;
 		initialize();
 	}
 
 	void VehicleAnalyzeWidget::handle_open_map(const events::OpenMapEvent& event) {
-		_application.stores().get_model<core::model::VehicleAnalyzeData>()->agent = nullptr;
+		_application.stores().get_entry<core::model::VehicleAnalyzeData>()->agent = nullptr;
 		initialize();
 	}
 
 	void VehicleAnalyzeWidget::handle_agent_selected(const events::AgentSelected& event) {
-		core::model::VehicleAnalyzeData* model = _application.stores().get_model<core::model::VehicleAnalyzeData>();
+		core::model::VehicleAnalyzeData* model = _application.stores().get_entry<core::model::VehicleAnalyzeData>();
 		model->set_agent(event.agent);
 		if (event.agent) {
 			// Update combo box to selected agent
@@ -133,7 +133,7 @@ namespace tjs::ui {
 	}
 
 	void VehicleAnalyzeWidget::handleAgentSelection(int index) {
-		core::model::VehicleAnalyzeData* model = _application.stores().get_model<core::model::VehicleAnalyzeData>();
+		core::model::VehicleAnalyzeData* model = _application.stores().get_entry<core::model::VehicleAnalyzeData>();
 
 		if (index <= 0) { // "-- None --" selected
 			model->set_agent(nullptr);

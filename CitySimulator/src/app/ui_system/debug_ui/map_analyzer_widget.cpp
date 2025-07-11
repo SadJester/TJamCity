@@ -28,11 +28,11 @@ namespace tjs::ui {
 	}
 
 	void MapAnalyzerWidget::updateInfo() {
-		auto* debug = _application.stores().get_model<core::model::SimulationDebugData>();
+		auto* debug = _application.stores().get_entry<core::model::SimulationDebugData>();
 		if (!debug || !debug->selectedNode) {
 			_nodeId->setText("Node: none");
 			_coords->setText("Coords: -");
-			if (auto* render = _application.stores().get_model<core::model::MapRendererData>(); render) {
+			if (auto* render = _application.stores().get_entry<core::model::MapRendererData>(); render) {
 				_networkOnly->setChecked(render->networkOnlyForSelected);
 			}
 			return;
@@ -41,13 +41,13 @@ namespace tjs::ui {
 		const auto* node = debug->selectedNode->node;
 		_nodeId->setText(QString("Node: %1").arg(node->uid));
 		_coords->setText(QString("Coords: %1, %2").arg(node->coordinates.latitude).arg(node->coordinates.longitude));
-		if (auto* render = _application.stores().get_model<core::model::MapRendererData>(); render) {
+		if (auto* render = _application.stores().get_entry<core::model::MapRendererData>(); render) {
 			_networkOnly->setChecked(render->networkOnlyForSelected);
 		}
 	}
 
 	void MapAnalyzerWidget::onNetworkOnlyChanged(int state) {
-		auto* render = _application.stores().get_model<core::model::MapRendererData>();
+		auto* render = _application.stores().get_entry<core::model::MapRendererData>();
 		if (!render) {
 			return;
 		}

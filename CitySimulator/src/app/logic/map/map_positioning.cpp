@@ -11,11 +11,20 @@
 #include <algorithm>
 #include <core/math_constants.h>
 
-namespace tjs::visualization {
+namespace tjs::app::logic {
 
 	MapPositioning::MapPositioning(Application& app)
-		: _application(app)
-		, _maxDistance(app.settings().render.map.selectionDistance) {}
+		: ILogicModule(app)
+		, _maxDistance(app.settings().render.map.selectionDistance) {
+	}
+
+	void MapPositioning::init() {
+		_application.renderer().register_event_listener(this);
+	}
+
+	void MapPositioning::release() {
+		_application.renderer().unregister_event_listener(this);
+	}
 
 	void MapPositioning::on_mouse_event(const render::RendererMouseEvent& event) {
 		if (event.button != render::RendererMouseEvent::ButtonType::Left) {
@@ -29,13 +38,13 @@ namespace tjs::visualization {
 
 		_dragging = true;
 
-		auto* cache = _application.stores().get_model<core::model::PersistentRenderData>();
-		auto* debug = _application.stores().get_model<core::model::SimulationDebugData>();
+		auto* cache = _application.stores().get_entry<core::model::PersistentRenderData>();
+		auto* debug = _application.stores().get_entry<core::model::SimulationDebugData>();
 		if (!cache || !debug) {
 			return;
 		}
 
-		NodeRenderInfo* nearest = nullptr;
+		visualization::NodeRenderInfo* nearest = nullptr;
 		float bestDist = _maxDistance;
 		for (auto& [id, info] : cache->nodes) {
 			float dx = static_cast<float>(info.screenPos.x - event.x);
@@ -62,7 +71,7 @@ namespace tjs::visualization {
 	}
 
 	void MapPositioning::on_mouse_wheel_event(const render::RendererMouseWheelEvent& event) {
-		auto* render_data = _application.stores().get_model<core::model::MapRendererData>();
+		auto* render_data = _application.stores().get_entry<core::model::MapRendererData>();
 		if (!render_data) {
 			return;
 		}
@@ -84,7 +93,7 @@ namespace tjs::visualization {
 			return;
 		}
 
-		auto* render_data = _application.stores().get_model<core::model::MapRendererData>();
+		auto* render_data = _application.stores().get_entry<core::model::MapRendererData>();
 		if (!render_data) {
 			return;
 		}
@@ -100,7 +109,7 @@ namespace tjs::visualization {
 			return;
 		}
 
-		auto* render_data = _application.stores().get_model<core::model::MapRendererData>();
+		auto* render_data = _application.stores().get_entry<core::model::MapRendererData>();
 		if (!render_data) {
 			return;
 		}
@@ -128,7 +137,7 @@ namespace tjs::visualization {
 	}
 
 	void MapPositioning::update_map_positioning() {
-		auto* render_data = _application.stores().get_model<core::model::MapRendererData>();
+		auto* render_data = _application.stores().get_entry<core::model::MapRendererData>();
 		if (render_data) {
 			visualization::recalculate_map_data(_application);
 		}
@@ -139,4 +148,4 @@ namespace tjs::visualization {
 		_application.message_dispatcher().handle_message(events::MapPositioningChanged {}, "map");
 	}
 
-} // namespace tjs::visualization
+} // namespace tjs::app::logic

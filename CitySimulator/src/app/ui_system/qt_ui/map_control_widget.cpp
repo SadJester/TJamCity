@@ -202,7 +202,7 @@ namespace tjs {
 				}
 			}
 
-			auto renderData = _application.stores().get_model<core::model::MapRendererData>();
+			auto renderData = _application.stores().get_entry<core::model::MapRendererData>();
 			if (renderData) {
 				renderData->visibleLayers = layers;
 			}
@@ -213,7 +213,7 @@ namespace tjs {
 		}
 
 		void MapControlWidget::UpdateLabels() {
-			auto render_data = _application.stores().get_model<core::model::MapRendererData>();
+			auto render_data = _application.stores().get_entry<core::model::MapRendererData>();
 			if (!render_data) {
 				return;
 			}
@@ -227,7 +227,7 @@ namespace tjs {
 				return;
 			}
 
-			auto render_data = _application.stores().get_model<core::model::MapRendererData>();
+			auto render_data = _application.stores().get_entry<core::model::MapRendererData>();
 			if (!render_data) {
 				return;
 			}

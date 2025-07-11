@@ -3,6 +3,7 @@
 #include <settings/user_settings.h>
 #include <core/store_models/idata_model.h>
 #include <core/utils/smoothed_value.h>
+#include <logic/logic_base.h>
 
 #include <common/message_dispatcher/message_dispatcher.h>
 
@@ -20,7 +21,7 @@ namespace tjs {
 		namespace simulation {
 			class TrafficSimulationSystem;
 		} // namespace simulation
-	}     // namespace core
+	} // namespace core
 
 	class CommandLine {
 	public:
@@ -155,6 +156,10 @@ namespace tjs {
 			return _models_store;
 		}
 
+		LogicHandler& logic_modules() {
+			return _logic_modules;
+		}
+
 		common::MessageDispatcher& message_dispatcher() {
 			return _message_dispatcher;
 		}
@@ -176,6 +181,8 @@ namespace tjs {
 		std::unique_ptr<visualization::SceneSystem> _sceneSystem;
 		std::unique_ptr<core::WorldData> _worldData;
 		std::unique_ptr<core::simulation::TrafficSimulationSystem> _simulationSystem;
+
+		LogicHandler _logic_modules;
 	};
 
 	void setup_models(Application& app);

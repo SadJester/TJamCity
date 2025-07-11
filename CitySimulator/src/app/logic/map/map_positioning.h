@@ -1,16 +1,26 @@
 #pragma once
 
 #include <render/render_events.h>
+#include <logic/logic_base.h>
 
 namespace tjs {
 	class Application;
 } // namespace tjs
 
-namespace tjs::visualization {
+namespace tjs::app::logic {
 
-	class MapPositioning : public render::IRenderEventListener {
+	class MapPositioning : public ILogicModule, public render::IRenderEventListener {
+	public:
+		static std::type_index get_type() {
+			return typeid(MapPositioning);
+		}
+
 	public:
 		explicit MapPositioning(Application& app);
+
+		void init() override;
+		void release() override;
+
 		void on_mouse_event(const render::RendererMouseEvent& event) override;
 		void on_mouse_wheel_event(const render::RendererMouseWheelEvent& event) override;
 		void on_mouse_motion_event(const render::RendererMouseMotionEvent& event) override;
@@ -19,9 +29,8 @@ namespace tjs::visualization {
 		void update_map_positioning();
 
 	private:
-		Application& _application;
 		float _maxDistance;
 		bool _dragging = false;
 	};
 
-} // namespace tjs::visualization
+} // namespace tjs::app::logic
