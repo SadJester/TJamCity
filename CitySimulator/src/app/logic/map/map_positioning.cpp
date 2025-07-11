@@ -14,7 +14,7 @@
 namespace tjs::visualization {
 
 	MapPositioning::MapPositioning(Application& app)
-		: _application(app)
+		: ILogicModule(app)
 		, _maxDistance(app.settings().render.map.selectionDistance) {}
 
 	void MapPositioning::on_mouse_event(const render::RendererMouseEvent& event) {

@@ -27,6 +27,8 @@
 #include "visualization/elements/map_element.h"
 #include "data/persistent_render_data.h"
 
+#include <logic/map/vehicle_targeting.h>
+
 namespace tjs {
 
 	void setup_store_models(Application& app) {
@@ -52,6 +54,8 @@ namespace tjs {
 			std::make_unique<tjs::visualization::SceneSystem>(application),
 			std::move(worldData),
 			std::move(simulationSystem));
+
+		application.logic_modules().create<visualization::VehicleTargeting>(application);
 
 		application.initialize();
 

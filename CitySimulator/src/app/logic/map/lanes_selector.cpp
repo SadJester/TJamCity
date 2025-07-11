@@ -28,7 +28,7 @@ namespace tjs::visualization {
 	}
 
 	LanesSelector::LanesSelector(Application& app)
-		: _application(app)
+		: ILogicModule(app)
 		, _maxDistance(app.settings().render.map.selectionDistance) {}
 
 	void LanesSelector::on_mouse_event(const render::RendererMouseEvent& event) {

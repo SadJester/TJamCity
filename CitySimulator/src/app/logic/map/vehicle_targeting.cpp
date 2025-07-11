@@ -11,7 +11,7 @@
 
 namespace tjs::visualization {
 	VehicleTargeting::VehicleTargeting(Application& app)
-		: _application(app)
+		: ILogicModule(app)
 		, _maxDistance(app.settings().render.map.selectionDistance) {}
 
 	void VehicleTargeting::on_mouse_event(const render::RendererMouseEvent& event) {
