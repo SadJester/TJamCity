@@ -210,7 +210,7 @@ namespace tjs::render {
 			_sdlRenderer,
 			nullptr,
 			reinterpret_cast<SDL_Vertex*>(geometry.vertices.data()),
-			4,
+			geometry.vertices.size(),
 			geometry.indices.data(),
 			geometry.indices.size());
 	}

@@ -19,13 +19,13 @@
 namespace tjs::visualization {
 	using namespace tjs::core;
 
-	bool point_inside_screen(const Position& p, int w, int h) {
-		return p.x >= 0 && p.x <= w && p.y >= 0 && p.y <= h;
+	bool point_inside_screen(const Position& p, int w, int h, int threshold = 0) {
+		return p.x >= -threshold && p.x <= (w + threshold) && p.y >= -threshold && p.y <= (h + threshold);
 	}
 
-	bool line_outside_screen(const Position& sp1, const Position& sp2, int w, int h) {
+	bool line_outside_screen(const Position& sp1, const Position& sp2, int w, int h, int threshold = 0) {
 		// Step 1: Check if either endpoint is inside screen
-		if (point_inside_screen(sp1, w, h) || point_inside_screen(sp2, w, h)) {
+		if (point_inside_screen(sp1, w, h, threshold) || point_inside_screen(sp2, w, h, threshold)) {
 			return false;
 		}
 
@@ -98,6 +98,250 @@ namespace tjs::visualization {
 	void MapElement::update() {
 	}
 
+	FColor get_way_color(WayType type) {
+		FColor roadColor = Constants::ROAD_COLOR;
+		switch (type) {
+			case WayType::Motorway:
+				roadColor = Constants::MOTORWAY_COLOR;
+				break;
+			case WayType::Primary:
+				roadColor = Constants::PRIMARY_COLOR;
+				break;
+			case WayType::Residential:
+				roadColor = Constants::RESIDENTIAL_COLOR;
+				break;
+			case WayType::Steps:
+				roadColor = Constants::STEPS_COLOR;
+				break;
+			case WayType::Construction:
+				roadColor = Constants::CONSTRUCTION_COLOR;
+				break;
+			case WayType::Raceway:
+				roadColor = Constants::RACEWAY_COLOR;
+				break;
+			case WayType::Emergency_Bay:
+			case WayType::Emergency_Access:
+				roadColor = Constants::EMERGENCY_COLOR;
+				break;
+			case WayType::Parking:
+			case WayType::Rest_Area:
+			case WayType::Services:
+				roadColor = Constants::SERVICE_AREA_COLOR;
+				break;
+			case WayType::Bus_Stop:
+			case WayType::Bus_Guideway:
+				roadColor = Constants::BUS_STOP_COLOR;
+				break;
+			default:
+				break;
+		}
+		return roadColor;
+	}
+
+	Position normalize(const Coordinates& v) {
+		double len = std::sqrt(v.x * v.x + v.y * v.y);
+		return len > 0 ? Position { static_cast<int>(v.x / len), static_cast<int>(v.y / len) } : Position { 0, 0 };
+	}
+
+	Position operator*(const Position& pos, double multiplier) {
+		return Position { static_cast<int>(pos.x * multiplier), static_cast<int>(pos.y * multiplier) };
+	}
+
+	Position operator+(const Position& a, const Position& b) {
+		return Position { a.x + b.x, a.y + b.y };
+	}
+
+	Position operator-(const Position& a, const Position& b) {
+		return Position { a.x - b.x, a.y - b.y };
+	}
+
+	FPoint normalize_f(const Coordinates& v) {
+		double len = std::sqrt(v.x * v.x + v.y * v.y);
+		return len > 0 ? FPoint { static_cast<float>(v.x / len), static_cast<float>(v.y / len) } : FPoint { 0, 0 };
+	}
+
+	FPoint operator*(const FPoint& pos, double multiplier) {
+		return FPoint { static_cast<float>(pos.x * multiplier), static_cast<float>(pos.y * multiplier) };
+	}
+
+	FPoint operator+(const FPoint& a, const FPoint& b) {
+		return FPoint { a.x + b.x, a.y + b.y };
+	}
+
+	FPoint operator-(const FPoint& a, const FPoint& b) {
+		return FPoint { a.x - b.x, a.y - b.y };
+	}
+
+	FPoint convert_to_screen_f(const Coordinates& coord, const Position& screen_center, double mpp) {
+		auto pos = convert_to_screen(coord, screen_center, mpp);
+		return { static_cast<float>(pos.x), static_cast<float>(pos.y) };
+	}
+
+	struct LaneDirectionRenderer {
+		static void render_lane_arrow(IRenderer& renderer, const Lane& lane, double mpp, const Position& screen_center, FColor color) {
+			if (lane.centerLine.size() < 2) {
+				return;
+			}
+			// 1. Get last segment of lane and convert to screen coordinates
+			const Coordinates& tail_world = lane.centerLine[lane.centerLine.size() - 2];
+			const Coordinates& tip_world = lane.centerLine.back();
+
+			float arrow_offset_px = 3.0f / mpp;
+			float min_lane_px = 15.0f / mpp;
+			FPoint p_tail = convert_to_screen_f(tail_world, screen_center, mpp);
+			FPoint p_tip = convert_to_screen_f(tip_world, screen_center, mpp);
+
+			// 2. Direction and perpendicular (screen space)
+			FPoint dir = p_tip - p_tail;
+			float len = std::sqrt(dir.x * dir.x + dir.y * dir.y);
+			if (len < 1e-3f || len < min_lane_px) {
+				return;
+			}
+			dir.x /= len;
+			dir.y /= len;
+
+			// move arrow not to the end
+			p_tip = p_tip - dir * arrow_offset_px;
+
+			FPoint perp = { -dir.y, dir.x }; // screen-space perpendicular
+			// 3. Arrow size in pixels
+			float shaft_length_m = 5.0f;
+			float shaft_offset_m = 3.0f;
+			float shaft_width_m = 0.2f;
+
+			// 4. Make base
+			float shaft_length_px = shaft_length_m / mpp;
+			float shaft_offset_px = shaft_offset_m / mpp;
+			float shaft_half_width_px = (shaft_width_m / mpp) * 0.5f;
+
+			FPoint shaft_end = p_tip - dir * shaft_offset_px; // Ends 3m before tip
+			std::vector<Vertex> vertices;
+			std::vector<int> indices;
+
+			// Most of lanes will be base + arrow (7 points and 3 trigs (9 indices))
+			vertices.reserve(7);
+			indices.reserve(9);
+
+			add_base(vertices, indices, shaft_end, dir, shaft_length_px, shaft_width_m / mpp, color);
+			// 5. Build arrow geometry
+			add_lane_direction(lane, vertices, indices, shaft_end, color, mpp, dir, perp);
+
+			Geometry geometry {
+				std::span(vertices.data(), vertices.size()),
+				std::span(indices.data(), indices.size())
+			};
+
+			renderer.draw_geometry(geometry);
+		}
+
+		static void add_base(std::vector<Vertex>& _vert, std::vector<int>& _ind, const FPoint& start, const FPoint& dir, float length, float width, const FColor& color) {
+			const int vert_size = _vert.size();
+			FPoint shaft_end = start; // Ends 3m before tip
+			FPoint shaft_start = start - dir * length;
+
+			FPoint perp = { -dir.y, dir.x };
+
+			float half_w = width / 2;
+			FPoint shaft_left0 = shaft_start - perp * half_w;
+			FPoint shaft_right0 = shaft_start + perp * half_w;
+			FPoint shaft_left1 = shaft_end - perp * half_w;
+			FPoint shaft_right1 = shaft_end + perp * half_w;
+
+			_vert.push_back({ shaft_left0, color });  // 0
+			_vert.push_back({ shaft_right0, color }); // 1
+			_vert.push_back({ shaft_right1, color }); // 2
+			_vert.push_back({ shaft_left1, color });  // 3
+
+			_ind.push_back(vert_size + 0);
+			_ind.push_back(vert_size + 1);
+			_ind.push_back(vert_size + 2);
+			_ind.push_back(vert_size + 0);
+			_ind.push_back(vert_size + 2);
+			_ind.push_back(vert_size + 3);
+		}
+
+		static void add_arrow(std::vector<Vertex>& _vert, std::vector<int>& _ind, const FPoint& arrow_start, const FColor& color, float mpp, const FPoint& dir, const FPoint& perp) {
+			const size_t vert_size = _vert.size();
+			const float arrow_length_m = 0.5f;
+			const float arrow_width_m = 0.35f;
+			const float arrow_length_px = arrow_length_m / mpp;
+			const float arrow_half_width_px = (arrow_width_m / mpp) * 0.5f;
+			const float turn_arrow_offset_px = 1.5f / mpp;
+
+			FPoint head_center = arrow_start + dir * arrow_length_px;
+			FPoint head_left = arrow_start - perp * arrow_half_width_px;
+			FPoint head_right = arrow_start + perp * arrow_half_width_px;
+
+			_vert.push_back({ head_left, color });   // 0
+			_vert.push_back({ head_center, color }); // 1
+			_vert.push_back({ head_right, color });  // 2
+
+			_ind.push_back(vert_size + 0);
+			_ind.push_back(vert_size + 1);
+			_ind.push_back(vert_size + 2);
+		}
+
+		static void add_lane_direction(const Lane& lane, std::vector<Vertex>& _vert, std::vector<int>& _ind, const FPoint& arrow_start, const FColor& color, float mpp, const FPoint& dir, const FPoint& perp) {
+			const auto turn_direction = lane.turn == TurnDirection::None ? TurnDirection::Straight : lane.turn;
+			const float arrow_length_m = 0.5f;
+			const float arrow_width_m = 0.35f;
+			const float arrow_length_px = arrow_length_m / mpp;
+			const float arrow_half_width_px = (arrow_width_m / mpp) * 0.5f;
+			const float turn_arrow_offset_px = 1.5f / mpp;
+			const float shaft_width_px = 0.2f / mpp;
+
+			if (has_flag(turn_direction, TurnDirection::Straight)) {
+				add_arrow(_vert, _ind, arrow_start, color, mpp, dir, perp);
+			}
+
+			if (has_flag(turn_direction, TurnDirection::Left)) {
+				// Start position offset to the left
+				FPoint turn_start = arrow_start - dir * turn_arrow_offset_px;
+				FPoint turn_dir = perp; // left direction
+
+				add_base(_vert, _ind, turn_start, turn_dir, arrow_length_px, shaft_width_px, color);
+
+				FPoint turn_tip = turn_start + turn_dir * arrow_length_px;
+				add_arrow(_vert, _ind, turn_tip, color, mpp, turn_dir, dir); // arrow points left, use `dir` as new perp
+			}
+
+			if (has_flag(turn_direction, TurnDirection::Right)) {
+				// Start position offset to the right
+				FPoint turn_start = arrow_start - dir * turn_arrow_offset_px;
+				FPoint turn_dir = perp * -1.0f; // right direction
+				add_base(_vert, _ind, turn_start, turn_dir, arrow_length_px, shaft_width_px, color);
+
+				FPoint turn_tip = turn_start - turn_dir * arrow_length_px;
+				add_arrow(_vert, _ind, turn_tip, color, mpp, perp, dir); // arrow points right, use `-dir` as new perp
+			}
+		}
+	};
+
+	void render_network_new(IRenderer& renderer, const WorldSegment& segment, double mpp, const Position& screen_center) {
+		const auto& ways = segment.sorted_ways;
+
+		auto _render_lanes = [&renderer, &screen_center, mpp](const std::vector<Lane>& lanes, const FColor& color, float thickness) {
+			renderer.set_draw_color(color);
+			for (const auto& lane : lanes) {
+				Position start = convert_to_screen(lane.centerLine.front(), screen_center, mpp);
+				Position end = convert_to_screen(lane.centerLine.back(), screen_center, mpp);
+
+				// Only draw if both points are visible
+				if (!line_outside_screen(start, end, renderer.screen_width(), renderer.screen_height(), (thickness / mpp) * 2)) {
+					drawThickLine(renderer, { start, end }, mpp, thickness, color);
+					LaneDirectionRenderer::render_lane_arrow(renderer, lane, mpp, screen_center, { 1.0f, 1.0f, 1.0f, 1.0f });
+					// TODO[visualizing]: draw stashed line between two coherent lanes
+				}
+			}
+		};
+		for (const WayInfo* way : ways) {
+			auto color = get_way_color(way->type);
+			for (auto edge : way->edges) {
+				_render_lanes(edge->lanes, color, way->laneWidth);
+			}
+		}
+	}
+
 	void MapElement::render(IRenderer& renderer) {
 		TJS_TRACY_NAMED("MapElement_Render");
 		auto& world = _application.worldData();
@@ -126,7 +370,7 @@ namespace tjs::visualization {
 			}
 		}
 
-		//render_network_new(renderer, *segment, _render_data.metersPerPixel, _render_data.screen_center);
+		render_network_new(renderer, *segment, _render_data.metersPerPixel, _render_data.screen_center);
 
 		// Render network graph if enabled
 		if (draw_network) {
@@ -269,71 +513,8 @@ namespace tjs::visualization {
 		}
 	}
 
-	FColor get_way_color(WayType type) {
-		FColor roadColor = Constants::ROAD_COLOR;
-		switch (type) {
-			case WayType::Motorway:
-				roadColor = Constants::MOTORWAY_COLOR;
-				break;
-			case WayType::Primary:
-				roadColor = Constants::PRIMARY_COLOR;
-				break;
-			case WayType::Residential:
-				roadColor = Constants::RESIDENTIAL_COLOR;
-				break;
-			case WayType::Steps:
-				roadColor = Constants::STEPS_COLOR;
-				break;
-			case WayType::Construction:
-				roadColor = Constants::CONSTRUCTION_COLOR;
-				break;
-			case WayType::Raceway:
-				roadColor = Constants::RACEWAY_COLOR;
-				break;
-			case WayType::Emergency_Bay:
-			case WayType::Emergency_Access:
-				roadColor = Constants::EMERGENCY_COLOR;
-				break;
-			case WayType::Parking:
-			case WayType::Rest_Area:
-			case WayType::Services:
-				roadColor = Constants::SERVICE_AREA_COLOR;
-				break;
-			case WayType::Bus_Stop:
-			case WayType::Bus_Guideway:
-				roadColor = Constants::BUS_STOP_COLOR;
-				break;
-			default:
-				break;
-		}
-		return roadColor;
-	}
-
 	FColor MapElement::get_way_color(WayType type) const {
 		return get_way_color(type);
-	}
-
-	void render_network_new(IRenderer& renderer, const WorldSegment& segment, double mpp, const Position& screen_center) {
-		const auto& ways = segment.sorted_ways;
-
-		auto _render_lanes = [&renderer, &screen_center, mpp](const std::vector<Lane>& lanes, const FColor& color, float thickness) {
-			renderer.set_draw_color(color);
-			for (const auto& lane : lanes) {
-				Position start = convert_to_screen(lane.centerLine.front(), screen_center, mpp);
-				Position end = convert_to_screen(lane.centerLine.back(), screen_center, mpp);
-
-				// Only draw if both points are visible
-				if (!line_outside_screen(start, end, renderer.screen_width(), renderer.screen_height())) {
-					drawThickLine(renderer, { start, end }, mpp, thickness, color);
-				}
-			}
-		};
-		for (const WayInfo* way : ways) {
-			auto color = get_way_color(way->type);
-			for (auto edge : way->edges) {
-				_render_lanes(edge->lanes, color, way->laneWidth);
-			}
-		}
 	}
 
 	int MapElement::render_way(const WayRenderInfo& way) {
