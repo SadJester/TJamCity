@@ -181,6 +181,35 @@ namespace tjs::visualization {
 		return { static_cast<float>(pos.x), static_cast<float>(pos.y) };
 	}
 
+	void draw_dashed_line(IRenderer& renderer,
+		const Position& start,
+		const Position& end,
+		double metersPerPixel,
+		float thickness,
+		FColor color,
+		float dash_m = 3.0f,
+		float gap_m = 3.0f) {
+		double dx = end.x - start.x;
+		double dy = end.y - start.y;
+		double dist = std::sqrt(dx * dx + dy * dy);
+		if (dist < 1e-3) {
+			return;
+		}
+
+		float dash_px = dash_m / metersPerPixel;
+		float gap_px = gap_m / metersPerPixel;
+		double dir_x = dx / dist;
+		double dir_y = dy / dist;
+		double progress = 0.0;
+		while (progress < dist) {
+			double seg_end = std::min(dist, progress + dash_px);
+			Position p1 { static_cast<int>(start.x + dir_x * progress), static_cast<int>(start.y + dir_y * progress) };
+			Position p2 { static_cast<int>(start.x + dir_x * seg_end), static_cast<int>(start.y + dir_y * seg_end) };
+			drawThickLine(renderer, { p1, p2 }, metersPerPixel, thickness, color);
+			progress += dash_px + gap_px;
+		}
+	}
+
 	int drawThickLine(IRenderer& renderer, const std::vector<Position>& nodes, double metersPerPixel, float thickness, FColor color) {
 		if (nodes.size() < 2) {
 			return 0;
@@ -488,6 +517,74 @@ namespace tjs::visualization {
 					}
 
 					_render_lane(lane, color, way->laneWidth, lane_type);
+				}
+
+				if (edge->lanes.size() > 1) {
+					for (size_t i = 1; i < edge->lanes.size(); ++i) {
+						const auto& l0 = edge->lanes[i - 1];
+						const auto& l1 = edge->lanes[i];
+						Coordinates start_world {
+							0.0,
+							0.0,
+							(l0.centerLine.front().x + l1.centerLine.front().x) * 0.5,
+							(l0.centerLine.front().y + l1.centerLine.front().y) * 0.5
+						};
+						Coordinates end_world {
+							0.0,
+							0.0,
+							(l0.centerLine.back().x + l1.centerLine.back().x) * 0.5,
+							(l0.centerLine.back().y + l1.centerLine.back().y) * 0.5
+						};
+						Position start = convert_to_screen(start_world, screen_center, mpp);
+						Position end = convert_to_screen(end_world, screen_center, mpp);
+						if (!line_outside_screen(start, end, renderer.screen_width(), renderer.screen_height())) {
+							draw_dashed_line(
+								renderer,
+								start,
+								end,
+								mpp,
+								Constants::DIVIDING_STRIP_WIDTH,
+								Constants::LANE_MARKER_COLOR);
+						}
+					}
+				}
+
+				if (edge->orientation == LaneOrientation::Forward && way->lanesBackward > 0) {
+					Edge* opposite = nullptr;
+					for (auto other : way->edges) {
+						if (other->orientation == LaneOrientation::Backward
+							&& other->start_node == edge->end_node
+							&& other->end_node == edge->start_node) {
+							opposite = &(*other);
+							break;
+						}
+					}
+					if (opposite) {
+						const auto& lf = edge->lanes.back();
+						const auto& lb = opposite->lanes.back();
+						Coordinates start_world {
+							0.0,
+							0.0,
+							(lf.centerLine.front().x + lb.centerLine.back().x) * 0.5,
+							(lf.centerLine.front().y + lb.centerLine.back().y) * 0.5
+						};
+						Coordinates end_world {
+							0.0,
+							0.0,
+							(lf.centerLine.back().x + lb.centerLine.front().x) * 0.5,
+							(lf.centerLine.back().y + lb.centerLine.front().y) * 0.5
+						};
+						Position start = convert_to_screen(start_world, screen_center, mpp);
+						Position end = convert_to_screen(end_world, screen_center, mpp);
+						if (!line_outside_screen(start, end, renderer.screen_width(), renderer.screen_height())) {
+							drawThickLine(
+								renderer,
+								{ start, end },
+								mpp,
+								Constants::DOUBLE_SOLID_STRIP_WIDTH,
+								Constants::LANE_MARKER_COLOR);
+						}
+					}
 				}
 			}
 		}

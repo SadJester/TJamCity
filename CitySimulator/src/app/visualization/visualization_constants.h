@@ -9,6 +9,8 @@ namespace tjs::visualization {
 		static constexpr float DEFAULT_SELECTION_DISTANCE = 10.0f;
 		static constexpr float DEBUG_INCOMING_LANE_THICKNESS = 0.3f;
 		static constexpr float DEBUG_OUTGOING_LANE_THICKNESS = 0.3f;
+		static constexpr float DIVIDING_STRIP_WIDTH = 0.15f;
+		static constexpr float DOUBLE_SOLID_STRIP_WIDTH = 0.3f;
 
 		// Color definitions
 		static constexpr FColor ROAD_COLOR = { 0.392f, 0.392f, 0.392f, 1.0f };
