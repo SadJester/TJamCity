@@ -59,9 +59,6 @@ namespace tjs::core::simulation {
 
 		void reset_goals(AgentData& agent, bool success) {
 			agent.currentGoal = nullptr;
-			agent.current_goal = nullptr;
-			agent.target_lane = nullptr;
-			agent.last_segment = false;
 			if (!success) {
 				agent.goalFailCount++;
 			}
@@ -82,13 +79,14 @@ namespace tjs::core::simulation {
 			// reach goal
 			if (vehicle.state == VehicleState::Stopped && vehicle.error == MovementError::NoPath) {
 				vehicle.error = MovementError::None;
-				reset_goals(agent, true);
-
-				const double distance_to_target = core::algo::euclidean_distance(vehicle.coordinates, agent.currentStepGoal);
-				if (distance_to_target > SimulationConstants::ARRIVAL_THRESHOLD) {
-					// TODO[simulation]: handle agent not close enough to target
-					reset_goals(agent, true);
+				if (agent.currentGoal != nullptr) {
+					const double distance_to_target = core::algo::euclidean_distance(vehicle.coordinates, agent.currentGoal->coordinates);
+					if (distance_to_target > SimulationConstants::ARRIVAL_THRESHOLD) {
+						// TODO[simulation]: handle agent not close enough to target
+						reset_goals(agent, true);
+					}
 				}
+				reset_goals(agent, true);
 				return;
 			}
 
@@ -99,7 +97,6 @@ namespace tjs::core::simulation {
 
 				if (start_node && goal_node) {
 					agent.path = find_path(start_node, goal_node, road_network);
-					agent.visitedNodes.clear();
 
 					if (!agent.path.empty()) {
 						agent.distanceTraveled = 0.0; // Reset distance for new path
