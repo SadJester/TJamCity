@@ -20,9 +20,13 @@ namespace tjs::core::simulation {
 			const Coordinates& point,
 			const Coordinates& segStart,
 			const Coordinates& segEnd);
-		Node* find_nearest_node(const Coordinates& coords, RoadNetwork& road_network);
 
 	private:
 		TrafficSimulationSystem& _system;
 	};
+
+	namespace simulation_details {
+		void update_agent(AgentData& agent, TrafficSimulationSystem& system);
+	} // namespace simulation_details
+
 } // namespace tjs::core::simulation

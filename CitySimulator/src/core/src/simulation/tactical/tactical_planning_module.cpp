@@ -25,7 +25,8 @@ namespace tjs::core::simulation {
 		TJS_TRACY_NAMED("TacticalPlanning_Update");
 		auto& agents = _system.agents();
 		for (size_t i = 0; i < agents.size(); ++i) {
-			update_agent_tactics(agents[i]);
+			//update_agent_tactics(agents[i]);
+			simulation_details::update_agent(agents[i], _system);
 		}
 	}
 
@@ -57,6 +58,76 @@ namespace tjs::core::simulation {
 			return &next_edge->lanes.front();
 		}
 		return nullptr;
+	}
+
+	Node* find_nearest_node(const Coordinates& coords, RoadNetwork& road_network) {
+		Node* nearest = nullptr;
+		double min_distance = std::numeric_limits<double>::max();
+
+		for (const auto& [id, node] : road_network.nodes) {
+			double dist = core::algo::euclidean_distance(node->coordinates, coords);
+			if (dist < min_distance) {
+				min_distance = dist;
+				nearest = node;
+			}
+		}
+
+		return nearest;
+	}
+
+	void reset_goals(AgentData& agent, bool success) {
+		agent.currentGoal = nullptr;
+		agent.current_goal = nullptr;
+		agent.target_lane = nullptr;
+		agent.last_segment = false;
+		if (!success) {
+			agent.goalFailCount++;
+		}
+	}
+
+	void simulation_details::update_agent(AgentData& agent, TrafficSimulationSystem& system) {
+		if (agent.vehicle == nullptr || agent.currentGoal == nullptr) {
+			return;
+		}
+
+		auto& vehicle = *agent.vehicle;
+
+		auto& world = system.worldData();
+		auto& segment = world.segments().front();
+		auto& road_network = *segment->road_network;
+		auto& spatial_grid = segment->spatialGrid;
+
+		// reach goal
+		if (vehicle.state == VehicleState::Stopped && vehicle.error == MovementError::NoPath) {
+			vehicle.error = MovementError::None;
+			reset_goals(agent, true);
+
+			const double distance_to_target = core::algo::euclidean_distance(vehicle.coordinates, agent.currentStepGoal);
+			if (distance_to_target > SimulationConstants::ARRIVAL_THRESHOLD) {
+				// TODO[simulation]: handle agent not close enough to target
+				reset_goals(agent, true);
+			}
+			return;
+		}
+
+		// new goal
+		if (agent.path.empty() && vehicle.state == VehicleState::Stopped) {
+			Node* start_node = find_nearest_node(vehicle.coordinates, road_network);
+			Node* goal_node = agent.currentGoal;
+
+			if (start_node && goal_node) {
+				agent.path = findEdgePath(start_node, goal_node, road_network);
+				agent.visitedNodes.clear();
+
+				if (!agent.path.empty()) {
+					agent.distanceTraveled = 0.0; // Reset distance for new path
+					agent.goalFailCount = 0;
+					vehicle.state = VehicleState::PendingMove;
+				} else {
+					reset_goals(agent, false);
+				}
+			}
+		}
 	}
 
 	void TacticalPlanningModule::update_agent_tactics(core::AgentData& agent) {
@@ -213,21 +284,6 @@ namespace tjs::core::simulation {
 		projection.y = segStart.y + u * (segEnd.y - segStart.y);
 
 		return core::algo::euclidean_distance(point, projection);
-	}
-
-	Node* TacticalPlanningModule::find_nearest_node(const Coordinates& coords, RoadNetwork& road_network) {
-		Node* nearest = nullptr;
-		double min_distance = std::numeric_limits<double>::max();
-
-		for (const auto& [id, node] : road_network.nodes) {
-			double dist = core::algo::euclidean_distance(node->coordinates, coords);
-			if (dist < min_distance) {
-				min_distance = dist;
-				nearest = node;
-			}
-		}
-
-		return nearest;
 	}
 
 } // namespace tjs::core::simulation

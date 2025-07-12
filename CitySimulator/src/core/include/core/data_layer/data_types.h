@@ -18,8 +18,14 @@ namespace tjs::core {
 		Count
 	};
 
+	ENUM(MovementError, char,
+		None,
+		NoOutgoingConnections,
+		NoPath,
+		NoNextLane);
+
 	ENUM(VehicleState, uint8_t,
-		Undefined, Stopped, Moving)
+		Undefined, PendingMove, Moving, Stopped)
 
 	struct Vehicle {
 		uint64_t uid;
@@ -34,6 +40,7 @@ namespace tjs::core {
 		double s_on_lane;
 		double lateral_offset;
 		VehicleState state;
+		MovementError error;
 	};
 	static_assert(std::is_pod<Vehicle>::value, "Data object expect to be POD");
 
