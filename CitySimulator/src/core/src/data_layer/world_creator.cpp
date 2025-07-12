@@ -67,6 +67,8 @@ namespace tjs::core {
 			vehicle.current_lane = &(*edge_it)->lanes[0];
 			vehicle.s_on_lane = 0.0;
 			vehicle.lateral_offset = 0.0;
+			vehicle.state = VehicleState::Stopped;
+			vehicle.error = MovementError::None;
 
 			vehicles.push_back(vehicle);
 		}

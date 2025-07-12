@@ -32,13 +32,8 @@ namespace tjs::core::simulation {
 			_agents.push_back({ vehicles[i].uid,
 				TacticalBehaviour::Normal,
 				nullptr,
-				nullptr,
-				core::Coordinates { 0.0, 0.0 },
 				&vehicles[i],
 				{},
-				nullptr,
-				{},
-				false,
 				0.0,
 				false,
 				0 });

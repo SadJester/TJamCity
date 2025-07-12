@@ -559,8 +559,8 @@ namespace tjs::visualization {
 						}
 					}
 					if (opposite) {
-						const auto& lf = edge->lanes.back();
-						const auto& lb = opposite->lanes.back();
+						const auto& lf = edge->opposite_side == Edge::OppositeSide::Right ? edge->lanes.front() : edge->lanes.back();
+						const auto& lb = opposite->opposite_side == Edge::OppositeSide::Right ? opposite->lanes.front() : opposite->lanes.back();
 						Coordinates start_world {
 							0.0,
 							0.0,

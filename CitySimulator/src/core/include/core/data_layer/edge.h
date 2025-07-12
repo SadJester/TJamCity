@@ -8,6 +8,12 @@ namespace tjs::core {
 	struct WayInfo;
 
 	struct Edge : public common::WithId<Edge> {
+		enum OppositeSide {
+			None,
+			Left,
+			Right
+		};
+
 		std::vector<Lane> lanes;
 
 		core::Node* start_node;
@@ -15,6 +21,9 @@ namespace tjs::core {
 		WayInfo* way;
 		LaneOrientation orientation;
 		double length;
+
+		//EdgeHandler opposite;
+		OppositeSide opposite_side = OppositeSide::None;
 	};
 	using EdgeHandler = common::ContainerPtrHolder<std::vector<Edge>>;
 } // namespace tjs::core

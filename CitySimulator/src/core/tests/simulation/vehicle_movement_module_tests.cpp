@@ -10,7 +10,6 @@
 #include <simulation/simulation_tests_common.h>
 #include <data_loader_mixin.h>
 
-
 using namespace tjs::core;
 using namespace tjs::core::simulation;
 
@@ -23,10 +22,10 @@ static Coordinates make_latlon(double lat, double lon) {
 	return c;
 }
 
-class VehicleMovementModuleTest 
-	: public ::testing::Test
-	, public ::tests::DataLoaderMixin
-	, public ::tests::SimulationTestsCommon {
+class VehicleMovementModuleTest
+	: public ::testing::Test,
+	  public ::tests::DataLoaderMixin,
+	  public ::tests::SimulationTestsCommon {
 protected:
 	void SetUp() override {
 		ASSERT_TRUE(WorldCreator::loadOSMData(world, data_file("simple_grid.osmx").string()));
@@ -229,7 +228,7 @@ TEST_F(VehicleMovementModuleTest, DISABLED_LaneTransitionWhenReachingEnd) {
 	auto targetLane = createTestLane(
 		make_latlon(0.001, 0.001),
 		make_latlon(0.002, 0.002));
-	agent.target_lane = &targetLane;
+	//agent.target_lane = &targetLane;
 
 	// Update time and run movement
 	system->timeModule().update(0.016);
@@ -257,7 +256,7 @@ TEST_F(VehicleMovementModuleTest, DISABLED_NoLaneTransitionWhenNoTargetLane) {
 	agent.vehicle->s_on_lane = laneLength - 0.0001; // Almost at the end
 
 	// No target lane set
-	agent.target_lane = nullptr;
+	//agent.target_lane = nullptr;
 
 	// Update time and run movement
 	system->timeModule().update(0.016);

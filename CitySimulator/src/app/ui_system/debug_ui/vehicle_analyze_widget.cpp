@@ -191,8 +191,11 @@ namespace tjs::ui {
 									   QString::number(agent->currentGoal->uid) :
 									   "None");
 
-		_currentStepGoalValue->setText(
-			QString("(%1, %2)").arg(agent->currentStepGoal.latitude).arg(agent->currentStepGoal.longitude));
+		if (agent->currentGoal) {
+			auto& coordinates = agent->currentGoal->coordinates;
+			_currentStepGoalValue->setText(
+				QString("(%1, %2)").arg(coordinates.latitude).arg(coordinates.longitude));
+		}
 
 		_pathNodeCountValue->setText(QString::number(agent->path.size()));
 		_pathTreeWidget->clear();

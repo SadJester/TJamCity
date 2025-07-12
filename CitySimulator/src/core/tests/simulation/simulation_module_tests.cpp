@@ -9,10 +9,10 @@
 using namespace tjs::core;
 using namespace tjs::core::simulation;
 
-class SimulationModuleTest 
-	: public ::testing::Test
-	, public ::tests::DataLoaderMixin
-	, public ::tests::SimulationTestsCommon {
+class SimulationModuleTest
+	: public ::testing::Test,
+	  public ::tests::DataLoaderMixin,
+	  public ::tests::SimulationTestsCommon {
 protected:
 	void SetUp() override {
 		ASSERT_TRUE(WorldCreator::loadOSMData(world, data_file("simple_grid.osmx").string()));
@@ -53,7 +53,7 @@ TEST_F(SimulationModuleTest, TacticalMarksAgentStuckAfterFailures) {
 	for (int i = 0; i < 5; ++i) {
 		agent.currentGoal = unreachable.get();
 		agent.path.clear();
-		agent.last_segment = false;
+		//agent.last_segment = false;
 		system->tacticalModule().update();
 	}
 
