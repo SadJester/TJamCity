@@ -36,10 +36,16 @@ namespace tjs::core::algo {
 		const double y_delta = std::fabs(end_node->coordinates.y - start_node->coordinates.y);
 		const bool decision_by_y = x_delta < y_delta;
 		bool right_is_min = decision_by_y ? start_node->coordinates.y > end_node->coordinates.y : start_node->coordinates.x > end_node->coordinates.x;
+		edge.opposite_side = right_is_min ? Edge::OppositeSide::Right : Edge::OppositeSide::Left;
 		size_t adjacent_lane_offset = 0;
 		if (orientation == LaneOrientation::Backward) {
 			heading = bearing(end_node->coordinates, start_node->coordinates);
+			edge.opposite_side = right_is_min ? Edge::OppositeSide::Left : Edge::OppositeSide::Right;
 			right_is_min = !right_is_min;
+		}
+
+		if (decision_by_y) {
+			edge.opposite_side = edge.opposite_side == Edge::OppositeSide::Right ? Edge::OppositeSide::Left : Edge::OppositeSide::Right;
 		}
 
 		if (
