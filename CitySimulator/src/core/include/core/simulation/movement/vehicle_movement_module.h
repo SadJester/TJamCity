@@ -18,9 +18,6 @@ namespace tjs::core::simulation {
 		void update();
 
 	private:
-		void update_movement(AgentData& agent);
-
-	private:
 		TrafficSimulationSystem& _system;
 	};
 

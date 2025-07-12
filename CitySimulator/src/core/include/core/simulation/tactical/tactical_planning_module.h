@@ -14,14 +14,6 @@ namespace tjs::core::simulation {
 		void update();
 
 	private:
-		void update_agent_tactics(core::AgentData& agent);
-		int find_closest_segmen_index(const Coordinates& coords, WayInfo* way);
-		double distance_to_segment(
-			const Coordinates& point,
-			const Coordinates& segStart,
-			const Coordinates& segEnd);
-
-	private:
 		TrafficSimulationSystem& _system;
 	};
 
