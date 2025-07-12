@@ -69,7 +69,8 @@ namespace tjs::core::simulation {
 	}
 
 	namespace movement_details {
-		void adjust_lane(AgentData& agent, TrafficSimulationSystem& system) {
+
+		void check_move_beginning(AgentData& agent, TrafficSimulationSystem& system) {
 			Vehicle& vehicle = *agent.vehicle;
 			if (vehicle.state == VehicleState::PendingMove) {
 				auto parent_edge = vehicle.current_lane->parent;
@@ -84,10 +85,13 @@ namespace tjs::core::simulation {
 						vehicle.current_lane = &target_edge->lanes[0];
 					}
 					vehicle.s_on_lane = 0.f;
-					// TODO[simulation]: move switching lanes in one place
 					agent.path.erase(agent.path.begin());
 				}
 			}
+		}
+
+		void adjust_lane(AgentData& agent, TrafficSimulationSystem& system) {
+			Vehicle& vehicle = *agent.vehicle;
 			if (vehicle.current_lane != nullptr) {
 				return;
 			}
@@ -195,20 +199,32 @@ namespace tjs::core::simulation {
 			}
 		}
 
+		void process_vehicle_state(AgentData& agent, TrafficSimulationSystem& system) {
+			auto& vehicle = *agent.vehicle;
+			switch (vehicle.state) {
+				case VehicleState::PendingMove: {
+					check_move_beginning(agent, system);
+					adjust_lane(agent, system);
+					vehicle.state = VehicleState::Moving;
+				} break;
+				case VehicleState::Moving: {
+					// TODO[simulation]: cycle for movement with different lanes
+					adjust_speed(vehicle);
+					move_vehicle(vehicle, system);
+					check_next_target(agent, system);
+				} break;
+				case VehicleState::Stopped:
+				case VehicleState::Undefined:
+				case VehicleState::Count:
+					break;
+			}
+		}
+
 		void update_agent(AgentData& agent, TrafficSimulationSystem& system) {
 			if (agent.currentGoal == nullptr) {
 				return;
 			}
-
-			auto& vehicle = *agent.vehicle;
-
-			adjust_lane(agent, system);
-			adjust_speed(vehicle);
-
-			// TODO[simulation]: cycle for movement with different lanes
-			agent.vehicle->state = VehicleState::Moving;
-			move_vehicle(vehicle, system);
-			check_next_target(agent, system);
+			process_vehicle_state(agent, system);
 		}
 	} // namespace movement_details
 
