@@ -3,6 +3,7 @@
 #include <core/simulation/strategic/strategic_planning_module.h>
 #include <core/simulation/tactical/tactical_planning_module.h>
 #include <core/simulation/movement/vehicle_movement_module.h>
+#include <core/simulation/simulation_settings.h>
 
 #include <common/message_dispatcher/message_dispatcher.h>
 
@@ -22,7 +23,7 @@ namespace tjs::core::simulation {
 		using Agents = std::vector<AgentData>;
 
 	public:
-		TrafficSimulationSystem(core::WorldData& data, core::model::DataModelStore& store);
+		TrafficSimulationSystem(core::WorldData& data, core::model::DataModelStore& store, SimulationSettings& settings);
 		~TrafficSimulationSystem();
 
 		void initialize();
@@ -58,6 +59,10 @@ namespace tjs::core::simulation {
 			return _message_dispatcher;
 		}
 
+		SimulationSettings& settings() {
+			return _settings;
+		}
+
 	private:
 		Agents _agents;
 
@@ -66,6 +71,7 @@ namespace tjs::core::simulation {
 		TacticalPlanningModule _tacticalModule;
 		VehicleMovementModule _vehicleMovementModule;
 		core::model::DataModelStore& _store;
+		SimulationSettings& _settings;
 
 		core::WorldData& _worldData;
 

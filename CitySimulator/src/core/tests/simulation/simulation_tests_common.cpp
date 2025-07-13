@@ -22,7 +22,7 @@ namespace tjs::core::tests {
 		world.vehicles().push_back(v);
 
 		store.create<model::VehicleAnalyzeData>();
-		system = std::make_unique<tjs::core::simulation::TrafficSimulationSystem>(world, store);
+		system = std::make_unique<tjs::core::simulation::TrafficSimulationSystem>(world, store, settings);
 		system->initialize();
 		RandomGenerator::set_seed(42);
 	}

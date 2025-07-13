@@ -59,8 +59,8 @@ namespace tjs::core {
 			Vehicle vehicle;
 			vehicle.uid = RandomGenerator::get().next_int(1, 10000000);
 			vehicle.type = RandomGenerator::get().next_enum<VehicleType>();
-			vehicle.currentSpeed = RandomGenerator::get().next_float(0.0f, 100.0f);
-			vehicle.maxSpeed = RandomGenerator::get().next_float(0.0f, 100.0f);
+			vehicle.currentSpeed = 0;
+			vehicle.maxSpeed = RandomGenerator::get().next_float(40, 100.0f);
 			vehicle.coordinates = coordinates;
 			vehicle.currentSegmentIndex = 0;
 			//vehicle.currentWay = find_way(*nodeIt);

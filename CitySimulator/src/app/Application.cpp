@@ -16,6 +16,10 @@ namespace tjs {
 		: _commandLine(argc, argv) {
 	}
 
+	void Application::load_settings() {
+		_settings.load();
+	}
+
 	void Application::setup(
 		std::unique_ptr<IRenderer>&& renderer,
 		std::unique_ptr<UISystem>&& uiSystem,
@@ -28,7 +32,6 @@ namespace tjs {
 		_worldData = std::move(worldData);
 		_simulationSystem = std::move(simulationSystem);
 
-		_settings.load();
 		_frameStats.init(_settings.render.targetFPS);
 	}
 

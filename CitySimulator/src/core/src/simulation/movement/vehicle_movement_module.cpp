@@ -111,7 +111,7 @@ namespace tjs::core::simulation {
 		}
 
 		void move_vehicle(Vehicle& vehicle, TrafficSimulationSystem& system) {
-			double delta_time = system.timeModule().state().timeDelta;
+			double delta_time = system.timeModule().state().fixed_dt();
 			const double speed_mps = vehicle.currentSpeed * 1000.0 / 3600.0;
 			const double max_move = speed_mps * delta_time;
 

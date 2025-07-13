@@ -11,9 +11,14 @@
 
 namespace tjs::core::simulation {
 
-	TrafficSimulationSystem::TrafficSimulationSystem(core::WorldData& data, core::model::DataModelStore& store)
-		: _worldData(data)
+	TrafficSimulationSystem::TrafficSimulationSystem(
+		core::WorldData& data,
+		core::model::DataModelStore& store,
+		core::SimulationSettings& settings)
+		: _settings(settings)
+		, _worldData(data)
 		, _store(store)
+		, _timeModule(*this)
 		, _strategicModule(*this)
 		, _tacticalModule(*this)
 		, _vehicleMovementModule(*this) {
@@ -39,6 +44,7 @@ namespace tjs::core::simulation {
 				0 });
 		}
 
+		_timeModule.initialize();
 		_strategicModule.initialize();
 		_tacticalModule.initialize();
 		_vehicleMovementModule.initialize();
@@ -57,13 +63,13 @@ namespace tjs::core::simulation {
 			return;
 		}
 
-		_strategicModule.update();
-		_tacticalModule.update();
-		_vehicleMovementModule.update();
+		for (int i = 0; i < _settings.steps_on_update; ++i) {
+			step();
+		}
 	}
 
 	void TrafficSimulationSystem::step() {
-		_timeModule.step();
+		_timeModule.tick();
 
 		_strategicModule.update();
 		_tacticalModule.update();

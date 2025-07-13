@@ -117,6 +117,7 @@ namespace tjs {
 			return _commandLine;
 		}
 
+		void load_settings();
 		void setup(
 			std::unique_ptr<IRenderer>&& renderer,
 			std::unique_ptr<UISystem>&& uiSystem,
