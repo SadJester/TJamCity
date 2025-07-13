@@ -12,10 +12,11 @@ namespace tjs::core {
 
 	void TimeModule::initialize() {
 		_timeState.timeMultiplier = TimeModule::DEFAULT_TIME_MULTIPLIER;
-		_timeState.init_start_time(SimClock::from_time_t(std::mktime(new std::tm {
+		std::tm start_time {
 			0, 0, 6,   // sec, min, hour
 			13, 6, 125 // day, month (0-based), years since 1900 => 2025-07-13
-		})));
+		};
+		_timeState.init_start_time(SimClock::from_time_t(std::mktime(&start_time)));
 		_timeState.set_fixed_delta(_system.settings().step_delta_sec);
 	}
 
