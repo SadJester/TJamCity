@@ -1,12 +1,22 @@
 #include <core/stdafx.h>
 
 #include <core/simulation/time_module.h>
+#include <core/simulation/simulation_system.h>
 
 namespace tjs::core {
 
-	TimeModule::TimeModule(double stepDelta)
-		: _stepDelta(stepDelta) {
+	TimeModule::TimeModule(simulation::TrafficSimulationSystem& system, double stepDelta)
+		: _system(system)
+		, _stepDelta(stepDelta) {
+	}
+
+	void TimeModule::initialize() {
 		_timeState.timeMultiplier = TimeModule::DEFAULT_TIME_MULTIPLIER;
+		_timeState.init_start_time(SimClock::from_time_t(std::mktime(new std::tm {
+			0, 0, 6,   // sec, min, hour
+			13, 6, 125 // day, month (0-based), years since 1900 => 2025-07-13
+		})));
+		_timeState.set_fixed_delta(_system.settings().step_delta_sec);
 	}
 
 	void TimeModule::update(double realTimeDelta) {
@@ -35,6 +45,15 @@ namespace tjs::core {
 		_timeState.timeMultiplier = value;
 	}
 
+	void TimeModule::set_step_delta(double value) {
+		if (value <= 0.0) {
+			// TODO: algo error handling
+			throw std::invalid_argument("Step delta must be positive");
+		}
+		_stepDelta = value;
+		_timeState.set_fixed_delta(value);
+	}
+
 	const TimeState& TimeModule::state() const {
 		return _timeState;
 	}
@@ -48,9 +67,10 @@ namespace tjs::core {
 	void TimeModule::resume() {
 		_timeState.isPaused = false;
 	}
-	void TimeModule::step() {
+	void TimeModule::tick() {
 		_timeState.stepRequested = true;
 		update(_stepDelta);
+		_timeState.tick();
 		_timeState.stepRequested = false;
 	}
 

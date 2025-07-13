@@ -51,11 +51,15 @@ namespace tjs {
 			argc,
 			argv);
 
+		// First load all settings
+		application.load_settings();
+
 		setup_store_models(application);
 		setup_logic(application);
 
 		auto worldData = std::make_unique<tjs::core::WorldData>();
-		auto simulationSystem = std::make_unique<core::simulation::TrafficSimulationSystem>(*worldData, application.stores());
+		auto simulationSystem = std::make_unique<core::simulation::TrafficSimulationSystem>(
+			*worldData, application.stores(), application.settings().simulationSettings);
 
 		application.setup(
 			std::make_unique<tjs::render::SDLRenderer>(application),

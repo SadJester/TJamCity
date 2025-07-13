@@ -4,6 +4,7 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QDoubleSpinBox>
+#include <QSpinBox>
 
 namespace tjs {
 	class Application;
@@ -18,7 +19,8 @@ namespace tjs {
 
 		private slots:
 			void onStartPauseClicked();
-			void onMultiplierChanged(double value);
+			void onStepDeltaChanged(double value);
+			void onStepsOnUpdateChanged(int value);
 			void onStepClicked();
 			void updateTimeLabel();
 			void updateButtonStates();
@@ -26,7 +28,8 @@ namespace tjs {
 		private:
 			Application& _application;
 			QPushButton* _startPauseButton;
-			QDoubleSpinBox* _speedSpinBox;
+			QDoubleSpinBox* _stepDeltaSpinBox;
+			QSpinBox* _steps_on_update;
 			QPushButton* _stepButton;
 			QLabel* _timeLabel;
 			bool _isRunning = false;
