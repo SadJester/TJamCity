@@ -449,8 +449,6 @@ namespace tjs::core {
 	} // namespace details
 
 	void details::preprocess_segment(WorldSegment& segment) {
-		segment.rebuild_grid();
-
 		// Build junctions information
 		segment.junctions.clear();
 		for (auto& [nid, node] : segment.nodes) {
@@ -481,6 +479,9 @@ namespace tjs::core {
 	void details::create_road_network(WorldSegment& segment) {
 		algo::ContractionBuilder builder;
 		builder.build_graph(*segment.road_network);
+
+		segment.rebuild_grid();
+
 		algo::LaneConnectorBuilder::build_lane_connections(*segment.road_network);
 	}
 
