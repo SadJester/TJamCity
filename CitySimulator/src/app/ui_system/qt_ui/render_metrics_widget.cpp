@@ -60,6 +60,8 @@ namespace tjs {
 		}
 
 		void RenderMetricsWidget::updateFrame() {
+			++_update_counter;
+
 			// Update FPS label
 			auto& stats = _app.frameStats();
 			fpsLabel->setText(
@@ -90,10 +92,14 @@ namespace tjs {
 				QString("Render time: %1 ms")
 					.arg(stats.render_time().get() * 1000.0f, 0, 'f', 2));
 
-			auto* metrics = _app.stores().get_entry<core::model::RenderMetricsData>();
-			if (metrics) {
-				trianglesLabel->setText(
-					QString("Triangles: %1").arg(QLocale(QLocale::Russian).toString(metrics->triangles_last_frame)));
+			if (_update_counter > 15) {
+				auto* metrics = _app.stores().get_entry<core::model::RenderMetricsData>();
+				if (metrics) {
+					trianglesLabel->setText(
+						QString("Triangles: %1").arg(_locale.toString(metrics->triangles_last_frame)));
+				}
+
+				_update_counter = 0;
 			}
 
 			update();

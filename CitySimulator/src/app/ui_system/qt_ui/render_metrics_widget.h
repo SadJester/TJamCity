@@ -2,6 +2,7 @@
 
 #include <QWidget>
 #include <QLabel>
+#include <QLocale>
 
 namespace tjs {
 	class Application;
@@ -25,6 +26,10 @@ namespace tjs {
 
 		private slots:
 			void updateFrame();
+
+		private:
+			QLocale _locale { QLocale::system() };
+			int _update_counter = 0;
 		};
 	} // namespace ui
 } // namespace tjs

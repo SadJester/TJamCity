@@ -52,16 +52,17 @@ namespace tjs::app::logic {
 		auto& ways = _application.worldData().segments().front()->ways;
 
 		core::Node* nearest = nullptr;
-		float bestDist = _maxDistance * _maxDistance;
+		const double squared_max_dist = _maxDistance * _maxDistance;
+		float best_dist = squared_max_dist;
 
 		for (auto& way_pair : ways) {
 			for (auto node : way_pair.second->nodes) {
 				FPoint node_point = visualization::convert_to_screen_f(node->coordinates, render->screen_center, render->metersPerPixel);
 				float dx = static_cast<float>(node_point.x - event.x);
 				float dy = static_cast<float>(node_point.y - event.y);
-				float dist = dx * dx + dy * dy;
-				if (dist < bestDist) {
-					bestDist = dist;
+				float squared_dist = dx * dx + dy * dy;
+				if (squared_dist < best_dist) {
+					best_dist = squared_dist;
 					nearest = node;
 				}
 			}
