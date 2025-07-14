@@ -6,10 +6,12 @@
 #include "data/map_renderer_data.h"
 #include <events/map_events.h>
 
-#include <cmath>
-#include <SDL3/SDL.h>
-#include <algorithm>
+#include <visualization/elements/map_element.h>
+
 #include <core/math_constants.h>
+#include <core/data_layer/world_data.h>
+
+#include <SDL3/SDL.h>
 
 namespace tjs::app::logic {
 
@@ -38,35 +40,35 @@ namespace tjs::app::logic {
 
 		_dragging = true;
 
-		auto* cache = _application.stores().get_entry<core::model::PersistentRenderData>();
 		auto* debug = _application.stores().get_entry<core::model::SimulationDebugData>();
-		if (!cache || !debug) {
+		auto* render = _application.stores().get_entry<core::model::MapRendererData>();
+		if (!debug || !render) {
 			return;
 		}
 
-		visualization::NodeRenderInfo* nearest = nullptr;
-		float bestDist = _maxDistance;
-		for (auto& [id, info] : cache->nodes) {
-			float dx = static_cast<float>(info.screenPos.x - event.x);
-			float dy = static_cast<float>(info.screenPos.y - event.y);
-			float dist = std::sqrt(dx * dx + dy * dy);
-			if (dist < bestDist) {
-				bestDist = dist;
-				nearest = &info;
+		if (_application.worldData().segments().empty()) {
+			return;
+		}
+		auto& ways = _application.worldData().segments().front()->ways;
+
+		core::Node* nearest = nullptr;
+		const double squared_max_dist = _maxDistance * _maxDistance;
+		float best_dist = squared_max_dist;
+
+		for (auto& way_pair : ways) {
+			for (auto node : way_pair.second->nodes) {
+				FPoint node_point = visualization::convert_to_screen_f(node->coordinates, render->screen_center, render->metersPerPixel);
+				float dx = static_cast<float>(node_point.x - event.x);
+				float dy = static_cast<float>(node_point.y - event.y);
+				float squared_dist = dx * dx + dy * dy;
+				if (squared_dist < best_dist) {
+					best_dist = squared_dist;
+					nearest = node;
+				}
 			}
 		}
 
-		if (debug->selectedNode) {
-			debug->selectedNode->selected = false;
-		}
-
-		if (nearest) {
-			nearest->selected = true;
-			debug->selectedNode = nearest;
-		} else {
-			debug->selectedNode = nullptr;
-		}
-
+		debug->selectedNode = nearest;
 		update_map_positioning();
 	}
 

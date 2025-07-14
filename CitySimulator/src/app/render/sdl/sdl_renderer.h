@@ -3,6 +3,7 @@
 #include <SDL3/SDL.h>
 
 #include "render/render_base.h"
+#include <data/render_metrics_data.h>
 
 namespace tjs {
 	class Application;
@@ -28,6 +29,8 @@ namespace tjs {
 
 		private:
 			Application& _application;
+			core::model::RenderMetricsData& _metrics;
+			std::size_t _trianglesCount = 0;
 			SDL_Window* _sdlWindow = nullptr;
 			SDL_Renderer* _sdlRenderer = nullptr;
 

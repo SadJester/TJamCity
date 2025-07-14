@@ -2,10 +2,12 @@
 #include "ui_system/qt_ui/main_window.h"
 
 #include "Application.h"
+#include <data/render_metrics_data.h>
 
 #include <QTimer>
 #include <QWidget>
 #include <QVBoxLayout>
+#include <QLocale>
 
 namespace tjs {
 	namespace ui {
@@ -40,10 +42,16 @@ namespace tjs {
 			renderTimeLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 			renderTimeLabel->setStyleSheet("font-size: 12px; font-weight: bold;");
 
+			trianglesLabel = new QLabel("Triangles: 0", this);
+			trianglesLabel->setAlignment(Qt::AlignLeft);
+			trianglesLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+			trianglesLabel->setStyleSheet("font-size: 12px; font-weight: bold;");
+
 			layout->addWidget(fpsLabel);
 			layout->addWidget(simulationUpdateLabel);
 			layout->addWidget(systemsUpdateLabel);
 			layout->addWidget(renderTimeLabel);
+			layout->addWidget(trianglesLabel);
 
 			// Connect to parent's timer
 			if (parent && parent->timer()) {
@@ -52,6 +60,8 @@ namespace tjs {
 		}
 
 		void RenderMetricsWidget::updateFrame() {
+			++_update_counter;
+
 			// Update FPS label
 			auto& stats = _app.frameStats();
 			fpsLabel->setText(
@@ -81,6 +91,16 @@ namespace tjs {
 			renderTimeLabel->setText(
 				QString("Render time: %1 ms")
 					.arg(stats.render_time().get() * 1000.0f, 0, 'f', 2));
+
+			if (_update_counter > 15) {
+				auto* metrics = _app.stores().get_entry<core::model::RenderMetricsData>();
+				if (metrics) {
+					trianglesLabel->setText(
+						QString("Triangles: %1").arg(_locale.toString(metrics->triangles_last_frame)));
+				}
+
+				_update_counter = 0;
+			}
 
 			update();
 		}

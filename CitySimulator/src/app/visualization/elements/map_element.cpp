@@ -176,13 +176,14 @@ namespace tjs::visualization {
 	}
 
 	FPoint convert_to_screen_f(const Coordinates& coord, const Position& screen_center, double mpp) {
-		auto pos = convert_to_screen(coord, screen_center, mpp);
-		return { static_cast<float>(pos.x), static_cast<float>(pos.y) };
+		float screenX = static_cast<float>(screen_center.x) + static_cast<float>(coord.x / mpp);
+		float screenY = static_cast<float>(screen_center.y) - static_cast<float>(coord.y / mpp);
+		return { screenX, screenY };
 	}
 
 	void draw_dashed_line(IRenderer& renderer,
-		const Position& start,
-		const Position& end,
+		const FPoint& start,
+		const FPoint& end,
 		double metersPerPixel,
 		float thickness,
 		FColor color,
@@ -202,14 +203,14 @@ namespace tjs::visualization {
 		double progress = 0.0;
 		while (progress < dist) {
 			double seg_end = std::min(dist, progress + dash_px);
-			Position p1 { static_cast<int>(start.x + dir_x * progress), static_cast<int>(start.y + dir_y * progress) };
-			Position p2 { static_cast<int>(start.x + dir_x * seg_end), static_cast<int>(start.y + dir_y * seg_end) };
+			FPoint p1 { static_cast<float>(start.x + dir_x * progress), static_cast<float>(start.y + dir_y * progress) };
+			FPoint p2 { static_cast<float>(start.x + dir_x * seg_end), static_cast<float>(start.y + dir_y * seg_end) };
 			drawThickLine(renderer, { p1, p2 }, metersPerPixel, thickness, color);
 			progress += dash_px + gap_px;
 		}
 	}
 
-	int drawThickLine(IRenderer& renderer, const std::vector<Position>& nodes, double metersPerPixel, float thickness, FColor color) {
+	int drawThickLine(IRenderer& renderer, const std::vector<FPoint>& nodes, double metersPerPixel, float thickness, FColor color) {
 		if (nodes.size() < 2) {
 			return 0;
 		}
@@ -439,7 +440,7 @@ namespace tjs::visualization {
 		const bool render_nodes = static_cast<uint32_t>(render_data.visibleLayers & model::MapRendererLayer::Nodes) != 0;
 		auto& screen_center = render_data.screen_center;
 		double mpp = render_data.metersPerPixel;
-		visualization::NodeRenderInfo* selected_node = debug_data.selectedNode;
+		core::Node* selected_node = debug_data.selectedNode;
 
 		enum class LaneType {
 			None,
@@ -462,11 +463,14 @@ namespace tjs::visualization {
 				altered_color = FColor::Blue;
 			}
 
-			Position start = convert_to_screen(lane.centerLine.front(), screen_center, mpp);
-			Position end = convert_to_screen(lane.centerLine.back(), screen_center, mpp);
+			FPoint start = convert_to_screen_f(lane.centerLine.front(), screen_center, mpp);
+			FPoint end = convert_to_screen_f(lane.centerLine.back(), screen_center, mpp);
+
+			Position is_start { static_cast<int>(start.x), static_cast<int>(start.y) };
+			Position is_end { static_cast<int>(end.x), static_cast<int>(end.y) };
 
 			// Only draw if both points are visible
-			if (!line_outside_screen(start, end, renderer.screen_width(), renderer.screen_height(), (thickness / mpp) * 2)) {
+			if (!line_outside_screen(is_start, is_end, renderer.screen_width(), renderer.screen_height(), (thickness / mpp) * 2)) {
 				drawThickLine(renderer, { start, end }, mpp, thickness, color);
 				LaneDirectionRenderer::render_lane_arrow(renderer, lane, mpp, screen_center, Constants::ARROW_COLOR);
 
@@ -476,7 +480,7 @@ namespace tjs::visualization {
 			}
 		};
 
-		const Node* selected = selected_node != nullptr ? selected_node->node : nullptr;
+		const Node* selected = selected_node;
 		const auto& ways = segment.sorted_ways;
 
 		const bool filter = render_data.networkOnlyForSelected && !debug_data.reachableNodes.empty();
@@ -534,9 +538,11 @@ namespace tjs::visualization {
 							(l0.centerLine.back().x + l1.centerLine.back().x) * 0.5,
 							(l0.centerLine.back().y + l1.centerLine.back().y) * 0.5
 						};
-						Position start = convert_to_screen(start_world, screen_center, mpp);
-						Position end = convert_to_screen(end_world, screen_center, mpp);
-						if (!line_outside_screen(start, end, renderer.screen_width(), renderer.screen_height())) {
+						FPoint start = convert_to_screen_f(start_world, screen_center, mpp);
+						FPoint end = convert_to_screen_f(end_world, screen_center, mpp);
+						Position is_start { static_cast<int>(start.x), static_cast<int>(start.y) };
+						Position is_end { static_cast<int>(end.x), static_cast<int>(end.y) };
+						if (!line_outside_screen(is_start, is_end, renderer.screen_width(), renderer.screen_height())) {
 							draw_dashed_line(
 								renderer,
 								start,
@@ -573,9 +579,11 @@ namespace tjs::visualization {
 							(lf.centerLine.back().x + lb.centerLine.front().x) * 0.5,
 							(lf.centerLine.back().y + lb.centerLine.front().y) * 0.5
 						};
-						Position start = convert_to_screen(start_world, screen_center, mpp);
-						Position end = convert_to_screen(end_world, screen_center, mpp);
-						if (!line_outside_screen(start, end, renderer.screen_width(), renderer.screen_height())) {
+						FPoint start = convert_to_screen_f(start_world, screen_center, mpp);
+						FPoint end = convert_to_screen_f(end_world, screen_center, mpp);
+						Position is_start { static_cast<int>(start.x), static_cast<int>(start.y) };
+						Position is_end { static_cast<int>(end.x), static_cast<int>(end.y) };
+						if (!line_outside_screen(is_start, is_end, renderer.screen_width(), renderer.screen_height())) {
 							drawThickLine(
 								renderer,
 								{ start, end },
@@ -637,12 +645,14 @@ namespace tjs::visualization {
 		// Render edges from edge graph
 		for (const auto& [node, edges] : network.edge_graph) {
 			const bool is_node_filtered = filter && !_debugData.reachableNodes.contains(node->uid);
-			const Position start = convert_to_screen(node->coordinates);
+			const FPoint start = convert_to_screen_f(node->coordinates, _render_data.screen_center, _render_data.metersPerPixel);
 			for (const Edge* edge : edges) {
 				Node* neighbor = edge->end_node;
 				const bool is_neighbor_filtered = filter && !_debugData.reachableNodes.contains(neighbor->uid);
-				const Position end = convert_to_screen(neighbor->coordinates);
-				if (line_outside_screen(start, end, renderer.screen_width(), renderer.screen_height())) {
+				const FPoint end = convert_to_screen_f(neighbor->coordinates, _render_data.screen_center, _render_data.metersPerPixel);
+				Position is_start { static_cast<int>(start.x), static_cast<int>(start.y) };
+				Position is_end { static_cast<int>(end.x), static_cast<int>(end.y) };
+				if (line_outside_screen(is_start, is_end, renderer.screen_width(), renderer.screen_height())) {
 					continue;
 				}
 

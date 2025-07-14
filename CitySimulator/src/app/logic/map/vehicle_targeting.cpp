@@ -1,13 +1,16 @@
 #include "stdafx.h"
 #include "logic/map/vehicle_targeting.h"
-#include "Application.h"
-#include "data/persistent_render_data.h"
 
+#include "Application.h"
+
+#include "data/map_renderer_data.h"
+
+#include <visualization/elements/map_element.h>
+#include <core/data_layer/world_data.h>
 #include <core/store_models/vehicle_analyze_data.h>
 #include <core/simulation/agent/agent_data.h>
 #include <core/simulation/simulation_system.h>
 #include <events/vehicle_events.h>
-#include <cmath>
 
 namespace tjs::app::logic {
 	VehicleTargeting::VehicleTargeting(Application& app)
@@ -28,23 +31,29 @@ namespace tjs::app::logic {
 			return;
 		}
 
-		auto* cache = _application.stores().get_entry<core::model::PersistentRenderData>();
+		auto* render = _application.stores().get_entry<core::model::MapRendererData>();
 		auto* model = _application.stores().get_entry<core::model::VehicleAnalyzeData>();
-		if (!cache || !model) {
+		if (!model || !render) {
 			return;
 		}
 
+		if (_application.worldData().vehicles().empty()) {
+			return;
+		}
+		auto& vehicles = _application.worldData().vehicles();
+
 		core::Vehicle* nearest = nullptr;
 		float best_dist = _maxDistance;
-		for (auto& info : cache->vehicles) {
-			float dx = static_cast<float>(info.screenPos.x - event.x);
-			float dy = static_cast<float>(info.screenPos.y - event.y);
-			float dist = std::sqrt(dx * dx + dy * dy);
+		for (auto& info : vehicles) {
+			FPoint node_point = visualization::convert_to_screen_f(info.coordinates, render->screen_center, render->metersPerPixel);
+			float dx = static_cast<float>(node_point.x - event.x);
+			float dy = static_cast<float>(node_point.y - event.y);
+			float dist = dx * dx + dy * dy;
 			float scaler = _application.settings().render.vehicleScaler == 0 ? 1 : _application.settings().render.vehicleScaler;
 			float scaled_dist = dist / scaler;
 			if (scaled_dist < best_dist) {
 				best_dist = dist;
-				nearest = info.vehicle;
+				nearest = &info;
 			}
 		}
 

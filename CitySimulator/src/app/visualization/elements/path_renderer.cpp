@@ -13,6 +13,7 @@
 #include <core/store_models/vehicle_analyze_data.h>
 #include <core/simulation/agent/agent_data.h>
 #include <data/map_renderer_data.h>
+#include <visualization/elements/map_element.h>
 
 #include <visualization/Scene.h>
 #include <visualization/scene_system.h>
@@ -43,11 +44,11 @@ namespace tjs::visualization {
 		}
 
 		auto& path = model->agent->path;
-		std::vector<Position> toVisitPoints;
+		std::vector<FPoint> toVisitPoints;
 		toVisitPoints.reserve(path.size() + 2);
 
 		const auto _add_point = [&toVisitPoints, this](const Coordinates& coordinates) {
-			toVisitPoints.push_back(convert_to_screen(
+			toVisitPoints.push_back(convert_to_screen_f(
 				coordinates,
 				_mapRendererData.screen_center,
 				_mapRendererData.metersPerPixel));

@@ -8,6 +8,7 @@
 #include <core/data_layer/road_network.h>
 
 #include <events/project_events.h>
+#include <render/render_primitives.h>
 
 namespace tjs {
 	class Application;
@@ -55,7 +56,11 @@ namespace tjs::visualization {
 		std::string _current_file;
 	};
 
-	int drawThickLine(IRenderer& renderer, const std::vector<Position>& nodes, double metersPerPixel, float thickness, FColor color);
+	int drawThickLine(IRenderer& renderer, const std::vector<FPoint>& nodes, double metersPerPixel, float thickness, FColor color);
+	FPoint convert_to_screen_f(
+		const core::Coordinates& coord,
+		const Position& screen_center,
+		double meters_per_pixel);
 	Position convert_to_screen(
 		const core::Coordinates& coord,
 		const Position& screen_center,
