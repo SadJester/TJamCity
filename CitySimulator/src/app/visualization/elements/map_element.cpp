@@ -440,7 +440,7 @@ namespace tjs::visualization {
 		const bool render_nodes = static_cast<uint32_t>(render_data.visibleLayers & model::MapRendererLayer::Nodes) != 0;
 		auto& screen_center = render_data.screen_center;
 		double mpp = render_data.metersPerPixel;
-		visualization::NodeRenderInfo* selected_node = debug_data.selectedNode;
+		core::Node* selected_node = debug_data.selectedNode;
 
 		enum class LaneType {
 			None,
@@ -480,7 +480,7 @@ namespace tjs::visualization {
 			}
 		};
 
-		const Node* selected = selected_node != nullptr ? selected_node->node : nullptr;
+		const Node* selected = selected_node;
 		const auto& ways = segment.sorted_ways;
 
 		const bool filter = render_data.networkOnlyForSelected && !debug_data.reachableNodes.empty();

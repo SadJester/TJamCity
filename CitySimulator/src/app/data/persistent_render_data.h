@@ -8,14 +8,7 @@ namespace tjs::core::model {
 	struct PersistentRenderData : public IDataModel {
 		static std::type_index get_type() { return typeid(PersistentRenderData); }
 
-		std::unordered_map<uint64_t, visualization::NodeRenderInfo> nodes;
-		std::unordered_map<uint64_t, visualization::WayRenderInfo> ways;
-		std::vector<visualization::VehicleRenderInfo> vehicles;
-
 		void reinit() override {
-			nodes.clear();
-			ways.clear();
-			vehicles.clear();
 		}
 	};
 

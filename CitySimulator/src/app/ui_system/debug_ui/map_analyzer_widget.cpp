@@ -38,7 +38,7 @@ namespace tjs::ui {
 			return;
 		}
 
-		const auto* node = debug->selectedNode->node;
+		const auto* node = debug->selectedNode;
 		_nodeId->setText(QString("Node: %1").arg(node->uid));
 		_coords->setText(QString("Coords: %1, %2").arg(node->coordinates.latitude).arg(node->coordinates.longitude));
 		if (auto* render = _application.stores().get_entry<core::model::MapRendererData>(); render) {
