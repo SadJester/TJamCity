@@ -17,6 +17,7 @@ namespace tjs {
 			QLabel* simulationUpdateLabel;
 			QLabel* systemsUpdateLabel;
 			QLabel* renderTimeLabel;
+			QLabel* trianglesLabel;
 			Application& _app;
 
 		public:

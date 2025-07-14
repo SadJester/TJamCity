@@ -15,7 +15,9 @@ namespace tjs::render {
 	const int SCREEN_HEIGHT = 768;
 
 	SDLRenderer::SDLRenderer(Application& application)
-		: _application(application) {
+		: _application(application)
+		, _metrics(*application.stores().get_entry<core::model::RenderMetricsData>()) {
+		_trianglesCount = 0;
 	}
 
 	SDLRenderer::~SDLRenderer() {
@@ -185,6 +187,8 @@ namespace tjs::render {
 			return;
 		}
 
+		_trianglesCount = 0;
+
 		SDL_SetRenderDrawColorFloat(_sdlRenderer, _clearColor.a, _clearColor.r, _clearColor.g, _clearColor.b);
 		SDL_RenderClear(_sdlRenderer);
 	}
@@ -193,6 +197,8 @@ namespace tjs::render {
 		if (!_sdlRenderer) {
 			return;
 		}
+
+		_metrics.triangles_last_frame = _trianglesCount;
 
 		// Present the renderer
 		SDL_RenderPresent(_sdlRenderer);
@@ -245,6 +251,7 @@ namespace tjs::render {
 				geometry.indices.data(),
 				geometry.indices.size());
 		}
+		_trianglesCount += geometry.indices.size() / 3;
 	}
 
 	void SDLRenderer::draw_circle(int centerX, int centerY, int radius, bool fill) {
