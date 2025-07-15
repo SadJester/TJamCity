@@ -3,4 +3,7 @@ add_external_project(
     VAR_NAME JSON
     GIT_REPOSITORY https://github.com/nlohmann/json.git
     GIT_TAG "v3.12.0"
+    CMAKE_ARGS
+        -DJSON_BuildTests=OFF
+        -DJSON_MultipleHeaders=ON
 )
