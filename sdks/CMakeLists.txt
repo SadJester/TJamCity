@@ -1,13 +1,11 @@
 include(ExternalProject)
 include(FetchContent)
 
+include(third_party_utils)
 
-if(WIN32)
-    set(THIRDPARTY_INSTALL_FOLDER ${CMAKE_BINARY_DIR}/../sdks/installed)
-else()
-    set(THIRDPARTY_INSTALL_FOLDER ${CMAKE_BINARY_DIR}/../sdks/installed/${CMAKE_CFG_INTDIR})
-endif()
 
+set(THIRDPARTY_INSTALL_FOLDER "${CMAKE_CURRENT_LIST_DIR}/_install")
+message(STATUS "[SDKS][General] Install dir: ${THIRDPARTY_INSTALL_FOLDER}")
 
 add_subdirectory(nlohmann_json)
 add_subdirectory(pugixml)

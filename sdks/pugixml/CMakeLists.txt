@@ -1,13 +1,5 @@
-set(PUGI_INSTALL_DIR ${THIRDPARTY_INSTALL_FOLDER}/pugi)
-set(PUGI_INCLUDE_DIR ${PUGI_INSTALL_DIR}/include CACHE PATH INTERNAL)
-set(PUGI_LIB_DIR ${PUGI_INSTALL_DIR}/lib CACHE PATH INTERNAL)
-
-message(STATUS "[SDKS][Pugi] Install dir: ${PUGI_INSTALL_DIR}")
-message(STATUS "[SDKS][Pugi] Include dir: ${PUGI_INCLUDE_DIR}")
-message(STATUS "[SDKS][Pugi] Library dir: ${PUGI_LIB_DIR}")
-
-ExternalProject_Add(pugixml 
-	GIT_REPOSITORY https://github.com/zeux/pugixml GIT_TAG "v1.15"
-	UPDATE_COMMAND ""
-	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${PUGI_INSTALL_DIR}
+add_external_project(
+    MODULE_NAME pugixml
+    GIT_REPOSITORY https://github.com/zeux/pugixml
+    GIT_TAG "v1.15"
 )

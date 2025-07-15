@@ -1,13 +1,5 @@
-set(JSON_INSTALL_DIR ${THIRDPARTY_INSTALL_FOLDER}/nlohman_json)
-set(JSON_INCLUDE_DIR ${JSON_INSTALL_DIR}/include CACHE PATH INTERNAL)
-set(JSON_LIB_DIR ${JSON_INSTALL_DIR}/lib CACHE PATH INTERNAL)
-
-message(STATUS "[SDKS][NLOHMANJSON] Install dir: ${JSON_INSTALL_DIR}")
-message(STATUS "[SDKS][NLOHMANJSON] Include dir: ${JSON_INCLUDE_DIR}")
-message(STATUS "[SDKS][NLOHMANJSON] Library dir: ${JSON_LIB_DIR}")
-
-ExternalProject_Add(nlohmann_json 
-    GIT_REPOSITORY https://github.com/nlohmann/json.git GIT_TAG "v3.12.0"
-	UPDATE_COMMAND ""
-	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${JSON_INSTALL_DIR}
+add_external_project(
+    MODULE_NAME nlohmann_json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG "v3.12.0"
 )
