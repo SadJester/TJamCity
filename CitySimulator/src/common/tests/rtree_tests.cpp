@@ -39,8 +39,8 @@ TEST(RTreeTest, HandlesManyInserts) {
 	std::vector<int> out;
 	tree.query(BoundingBox { 2.25, 0, 7.25, 1 }, std::back_inserter(out));
 	std::sort(out.begin(), out.end());
-	ASSERT_EQ(out.size(), 5);
-	for (int i = 3; i <= 7; i++) {
-		EXPECT_EQ(out[i - 3], i);
+	ASSERT_EQ(out.size(), 6);
+	for (int i = 2; i <= 7; i++) {
+		EXPECT_EQ(out[i - 2], i);
 	}
 }
