@@ -6,6 +6,7 @@
 namespace tjs::core {
 	struct Edge;
 	struct Lane;
+	struct Vehicle;
 
 	struct LaneLink {
 		Lane* from = nullptr;
@@ -24,5 +25,6 @@ namespace tjs::core {
 		TurnDirection turn = TurnDirection::None;
 		std::vector<LaneLinkHandler> outgoing_connections;
 		std::vector<LaneLinkHandler> incoming_connections;
+		std::vector<Vehicle*> vehicles;
 	};
 } // namespace tjs::core

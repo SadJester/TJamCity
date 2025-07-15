@@ -37,7 +37,7 @@ namespace tjs::core {
 		WayInfo* currentWay;
 		int currentSegmentIndex;
 		float rotationAngle; // orientation in radians
-		const Lane* current_lane;
+		Lane* current_lane;
 		double s_on_lane;
 		double lateral_offset;
 		VehicleState state;

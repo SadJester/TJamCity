@@ -6,6 +6,7 @@
 #include <core/data_layer/world_data.h>
 #include <core/map_math/earth_math.h>
 #include <core/data_layer/road_network.h>
+#include <core/data_layer/lane_vehicle_utils.h>
 
 namespace tjs::core::simulation {
 	VehicleMovementModule::VehicleMovementModule(TrafficSimulationSystem& system)
@@ -53,9 +54,9 @@ namespace tjs::core::simulation {
 		return result;
 	}
 
-	const Lane* find_lane(const Coordinates& coordinates, const RoadNetwork& network) {
+	Lane* find_lane(const Coordinates& coordinates, RoadNetwork& network) {
 		double min_distance = std::numeric_limits<double>::max();
-		const Lane* candidate = nullptr;
+		Lane* candidate = nullptr;
 		for (auto& edge : network.edges) {
 			for (auto& lane : edge.lanes) {
 				double distance = core::algo::euclidean_distance(lane.parent->start_node->coordinates, coordinates);
@@ -79,10 +80,20 @@ namespace tjs::core::simulation {
 					if (
 						parent_edge != target_edge
 						&& parent_edge->start_node == target_edge->start_node) {
+						Lane* old_lane = vehicle.current_lane;
 						vehicle.current_lane = &target_edge->lanes[0];
+						if (old_lane) {
+							remove_vehicle(*old_lane, &vehicle);
+						}
+						insert_vehicle_sorted(*vehicle.current_lane, &vehicle);
 					} else {
 						// TODO[simulation]: error handling when cannot find out edge
+						Lane* old_lane = vehicle.current_lane;
 						vehicle.current_lane = &target_edge->lanes[0];
+						if (old_lane) {
+							remove_vehicle(*old_lane, &vehicle);
+						}
+						insert_vehicle_sorted(*vehicle.current_lane, &vehicle);
 					}
 					vehicle.s_on_lane = 0.f;
 					agent.path.erase(agent.path.begin());
@@ -101,6 +112,9 @@ namespace tjs::core::simulation {
 
 			// TODO: REMOVE HACK
 			vehicle.current_lane = find_lane(vehicle.coordinates, road_network);
+			if (vehicle.current_lane) {
+				insert_vehicle_sorted(*vehicle.current_lane, &vehicle);
+			}
 		}
 
 		void adjust_speed(Vehicle& vehicle) {
@@ -110,20 +124,12 @@ namespace tjs::core::simulation {
 				vehicle.maxSpeed);
 		}
 
-		void move_vehicle(Vehicle& vehicle, TrafficSimulationSystem& system) {
-			double delta_time = system.timeModule().state().fixed_dt();
-			const double speed_mps = vehicle.currentSpeed * 1000.0 / 3600.0;
-			const double max_move = speed_mps * delta_time;
+		void move_vehicle(Vehicle& vehicle, Lane& lane, double move) {
+			const auto& start = lane.centerLine.front();
+			const auto& end = lane.centerLine.back();
 
-			const Lane* lane = vehicle.current_lane;
-			const auto& start = lane->centerLine.front();
-			const auto& end = lane->centerLine.back();
-
-			double remaining = lane->length - vehicle.s_on_lane;
-			double move = std::min(max_move, remaining);
 			vehicle.s_on_lane += move;
-
-			vehicle.coordinates = move_towards(start, end, vehicle.s_on_lane, lane->length);
+			vehicle.coordinates = move_towards(start, end, vehicle.s_on_lane, lane.length);
 
 			core::Coordinates dir {};
 			dir.x = end.x - start.x;
@@ -131,71 +137,74 @@ namespace tjs::core::simulation {
 			vehicle.rotationAngle = atan2(dir.y, dir.x);
 		}
 
-		void check_next_target(AgentData& agent, TrafficSimulationSystem& system) {
-			auto& vehicle = *agent.vehicle;
-			if (vehicle.s_on_lane < vehicle.current_lane->length) {
-				return;
-			}
+		void advance_vehicle(AgentData& agent, TrafficSimulationSystem& system) {
+			Vehicle& vehicle = *agent.vehicle;
+			double delta_time = system.timeModule().state().fixed_dt();
+			double speed_mps = vehicle.currentSpeed * 1000.0 / 3600.0;
+			double remaining_move = speed_mps * delta_time;
 
-			// TODO[simulation]: make in define and debug data
-			//if (agent.current_goal->end_node->uid == 16) {
-			//_system.timeModule().pause();
-			//}
+			while (remaining_move > 0 && vehicle.current_lane) {
+				Lane* lane = vehicle.current_lane;
+				double to_end = lane->length - vehicle.s_on_lane;
+				double move = std::min(remaining_move, to_end);
 
-			if (agent.path.empty()) {
-				vehicle.state = VehicleState::Stopped;
-				vehicle.error = MovementError::NoPath;
-				return;
-			}
+				move_vehicle(vehicle, *lane, move);
+				update_vehicle_position(*lane, &vehicle);
 
-			const auto& outgoing = vehicle.current_lane->outgoing_connections;
-
-			Lane* next_lane = nullptr;
-			auto& next_edge = *agent.path.front();
-			for (auto& link : outgoing) {
-				if (link->to->parent == &next_edge) {
-					next_lane = link->to;
+				remaining_move -= move;
+				if (remaining_move <= 0) {
 					break;
 				}
-			}
 
-			// Try to teleport to another lane
-			// in future should be changed by TacticalModule + change lane mechanism)
-			if (!next_lane) {
-				Lane* current_teleport = nullptr;
-				for (auto& lane : next_edge.lanes) {
-					for (auto& link : lane.incoming_connections) {
-						if (link->from->parent == vehicle.current_lane->parent) {
-							current_teleport = link->from;
-							next_lane = &lane;
-							break;
-						}
+				if (agent.path.empty()) {
+					vehicle.state = VehicleState::Stopped;
+					vehicle.error = MovementError::NoPath;
+					break;
+				}
+
+				const auto& outgoing = lane->outgoing_connections;
+				Lane* next_lane = nullptr;
+				auto& next_edge = *agent.path.front();
+				for (auto& link : outgoing) {
+					if (link->to->parent == &next_edge) {
+						next_lane = link->to;
+						break;
 					}
 				}
-				if (current_teleport) {
-					vehicle.current_lane = current_teleport;
-					vehicle.s_on_lane = current_teleport->length;
-					vehicle.coordinates = move_towards(
-						vehicle.current_lane->centerLine.front(),
-						vehicle.current_lane->centerLine.back(),
-						vehicle.s_on_lane,
-						vehicle.current_lane->length);
+
+				if (!next_lane) {
+					Lane* current_teleport = nullptr;
+					for (auto& l : next_edge.lanes) {
+						for (auto& link : l.incoming_connections) {
+							if (link->from->parent == vehicle.current_lane->parent) {
+								current_teleport = link->from;
+								next_lane = &l;
+								break;
+							}
+						}
+					}
+					if (current_teleport) {
+						remove_vehicle(*lane, &vehicle);
+						vehicle.current_lane = current_teleport;
+						vehicle.s_on_lane = current_teleport->length;
+						move_vehicle(vehicle, *vehicle.current_lane, 0.0);
+						insert_vehicle_sorted(*vehicle.current_lane, &vehicle);
+						lane = vehicle.current_lane;
+					}
 				}
-			}
 
-			if (next_lane) {
-				vehicle.current_lane = next_lane;
-				vehicle.s_on_lane = 0;
-				vehicle.coordinates = move_towards(
-					vehicle.current_lane->centerLine.front(),
-					vehicle.current_lane->centerLine.back(),
-					vehicle.s_on_lane,
-					vehicle.current_lane->length);
-
-				agent.path.erase(agent.path.begin());
-			} else {
-				vehicle.state = VehicleState::Stopped;
-				vehicle.error = outgoing.empty() ? MovementError::NoOutgoingConnections : MovementError::NoNextLane;
+				if (next_lane) {
+					remove_vehicle(*lane, &vehicle);
+					vehicle.current_lane = next_lane;
+					vehicle.s_on_lane = 0;
+					move_vehicle(vehicle, *vehicle.current_lane, 0.0);
+					agent.path.erase(agent.path.begin());
+					insert_vehicle_sorted(*vehicle.current_lane, &vehicle);
+				} else {
+					vehicle.state = VehicleState::Stopped;
+					vehicle.error = outgoing.empty() ? MovementError::NoOutgoingConnections : MovementError::NoNextLane;
+					break;
+				}
 			}
 		}
 
@@ -210,8 +219,7 @@ namespace tjs::core::simulation {
 				case VehicleState::Moving: {
 					// TODO[simulation]: cycle for movement with different lanes
 					adjust_speed(vehicle);
-					move_vehicle(vehicle, system);
-					check_next_target(agent, system);
+					advance_vehicle(agent, system);
 				} break;
 				case VehicleState::Stopped:
 				case VehicleState::Undefined:

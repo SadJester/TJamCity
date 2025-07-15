@@ -5,6 +5,7 @@
 #include <core/map_math/contraction_builder.h>
 #include <core/map_math/lane_connector_builder.h>
 #include <core/math_constants.h>
+#include <core/data_layer/lane_vehicle_utils.h>
 
 #include <core/random_generator.h>
 #include <sstream>
@@ -71,6 +72,7 @@ namespace tjs::core {
 			vehicle.error = MovementError::None;
 
 			vehicles.push_back(vehicle);
+			insert_vehicle_sorted(*vehicle.current_lane, &vehicles.back());
 		}
 
 		return true;
