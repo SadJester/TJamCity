@@ -55,7 +55,7 @@ Basic functionality
 ======================================
 */
 TEST_F(SpatialGridTest, AddSingleWay) {
-	grid.add_way(way1.get());
+	add_way(grid, way1.get());
 
 	// Should be added to two cells (for node1 and node2)
 	EXPECT_EQ(grid.spatialGrid.size(), 2);
@@ -74,8 +74,8 @@ TEST_F(SpatialGridTest, AddSingleWay) {
 }
 
 TEST_F(SpatialGridTest, AddMultipleWays) {
-	grid.add_way(way1.get());
-	grid.add_way(way2.get());
+	add_way(grid, way1.get());
+	add_way(grid, way2.get());
 
 	// node1 is shared by both ways
 	auto key1 = std::make_pair(10, 20);
@@ -105,7 +105,7 @@ TEST_F(SpatialGridTest, NegativeCoordinates) {
 	auto negativeWay = std::make_unique<WayInfo>();
 	negativeWay->nodes.push_back(negativeNode.get());
 
-	grid.add_way(negativeWay.get());
+	add_way(grid, negativeWay.get());
 
 	auto key = std::make_pair(-5, -10); // -5.5/1.0 = -5.5 → static_cast<int> = -5?
 	ASSERT_TRUE(grid.spatialGrid.count(key));
@@ -116,7 +116,7 @@ TEST_F(SpatialGridTest, EmptyWay) {
 	auto emptyWay = std::make_unique<WayInfo>();
 
 	// Should handle gracefully
-	EXPECT_NO_THROW(grid.add_way(emptyWay.get()));
+	EXPECT_NO_THROW(add_way(grid, emptyWay.get()));
 	EXPECT_TRUE(grid.spatialGrid.empty());
 }
 
@@ -126,7 +126,7 @@ TEST_F(SpatialGridTest, DuplicateNodes) {
 	dupWay->nodes.push_back(node1.get());
 	dupWay->nodes.push_back(node1.get()); // Duplicate
 
-	grid.add_way(dupWay.get());
+	add_way(grid, dupWay.get());
 
 	// Should only be added once per unique cell
 	auto key = std::make_pair(10, 20);
@@ -144,7 +144,7 @@ TEST_F(SpatialGridTest, DifferentCellSizes) {
 	SpatialGrid largeGrid;
 	largeGrid.cellSize = 10.0; // Larger cells
 
-	largeGrid.add_way(way1.get());
+	add_way(largeGrid, way1.get());
 
 	// With cellSize=10, both nodes should map to same cell (1,2)
 	auto key = std::make_pair(1, 2);
@@ -152,7 +152,7 @@ TEST_F(SpatialGridTest, DifferentCellSizes) {
 	EXPECT_EQ(largeGrid.spatialGrid[key].size(), 1);
 
 	// Original grid with cellSize=1 should have separate cells
-	grid.add_way(way1.get());
+	add_way(grid, way1.get());
 	EXPECT_GT(grid.spatialGrid.size(), 1);
 }
 
@@ -160,7 +160,7 @@ TEST_F(SpatialGridTest, VerySmallCellSize) {
 	SpatialGrid tinyGrid;
 	tinyGrid.cellSize = 0.001; // 1mm cells
 
-	tinyGrid.add_way(way1.get());
+	add_way(tinyGrid, way1.get());
 
 	// Each node should be in a distinct cell
 	EXPECT_EQ(tinyGrid.spatialGrid.size(), 2);
@@ -199,7 +199,7 @@ TEST_F(SpatialGridTest, AddManyWaysPerformance) {
 	// Time the insertion
 	auto start = std::chrono::high_resolution_clock::now();
 	for (auto& way : ways) {
-		grid.add_way(way.get());
+		add_way(grid, way.get());
 	}
 	auto end = std::chrono::high_resolution_clock::now();
 
@@ -221,16 +221,16 @@ get_ways_in_cell
 */
 
 TEST_F(SpatialGridTest, GetWaysInCellExisting) {
-	grid.add_way(way1.get());
+	add_way(grid, way1.get());
 
 	// Test for node1's cell (10,20)
-	auto result = grid.get_ways_in_cell(10, 20);
+	auto result = grid.get_entries_in_cell(10, 20);
 	ASSERT_TRUE(result.has_value());
 	EXPECT_EQ(result.value().get().size(), 1);
 	EXPECT_EQ(result.value().get()[0], way1.get());
 
 	// Test for node2's cell (15,25)
-	result = grid.get_ways_in_cell(15, 25);
+	result = grid.get_entries_in_cell(15, 25);
 	ASSERT_TRUE(result.has_value());
 	EXPECT_EQ(result.value().get().size(), 1);
 	EXPECT_EQ(result.value().get()[0], way1.get());
@@ -238,21 +238,21 @@ TEST_F(SpatialGridTest, GetWaysInCellExisting) {
 
 TEST_F(SpatialGridTest, GetWaysInCellNonExisting) {
 	// Empty grid case
-	auto result = grid.get_ways_in_cell(0, 0);
+	auto result = grid.get_entries_in_cell(0, 0);
 	EXPECT_FALSE(result.has_value());
 
 	// Non-existent cell in non-empty grid
-	grid.add_way(way1.get());
-	result = grid.get_ways_in_cell(99, 99);
+	add_way(grid, way1.get());
+	result = grid.get_entries_in_cell(99, 99);
 	EXPECT_FALSE(result.has_value());
 }
 
 TEST_F(SpatialGridTest, GetWaysInCellMultipleWays) {
-	grid.add_way(way1.get());
-	grid.add_way(way2.get());
+	add_way(grid, way1.get());
+	add_way(grid, way2.get());
 
 	// Cell (10,20) should have both ways
-	auto result = grid.get_ways_in_cell(10, 20);
+	auto result = grid.get_entries_in_cell(10, 20);
 	ASSERT_TRUE(result.has_value());
 	EXPECT_EQ(result.value().get().size(), 2);
 
@@ -277,20 +277,20 @@ TEST_F(SpatialGridTest, GetWaysInCellNegativeCoords) {
 	auto negativeWay = std::make_unique<WayInfo>();
 	negativeWay->nodes.push_back(negativeNode.get());
 
-	grid.add_way(negativeWay.get());
+	add_way(grid, negativeWay.get());
 
-	auto result = grid.get_ways_in_cell(-5, -10);
+	auto result = grid.get_entries_in_cell(-5, -10);
 	ASSERT_TRUE(result.has_value());
 	EXPECT_EQ(result.value().get().size(), 1);
 	EXPECT_EQ(result.value().get()[0], negativeWay.get());
 }
 
 TEST_F(SpatialGridTest, GetWaysInCellConstCorrectness) {
-	grid.add_way(way1.get());
+	add_way(grid, way1.get());
 
 	// Test const version
 	const auto& constGrid = grid;
-	auto result = constGrid.get_ways_in_cell(10, 20);
+	auto result = constGrid.get_entries_in_cell(10, 20);
 	ASSERT_TRUE(result.has_value());
 	EXPECT_EQ(result.value().get().size(), 1);
 }
@@ -302,11 +302,11 @@ get_ways_in_cell with coordinates
 */
 
 TEST_F(SpatialGridTest, GetWaysByCoordinatesExisting) {
-	grid.add_way(way1.get());
+	add_way(grid, way1.get());
 
 	// Test with node1's exact coordinates
 	Coordinates coords = make_xy(10.0, 20.0);
-	auto result = grid.get_ways_in_cell(coords);
+	auto result = grid.get_entries_in_cell(coords);
 
 	ASSERT_TRUE(result.has_value());
 	EXPECT_EQ(result->get().size(), 1);
@@ -314,11 +314,11 @@ TEST_F(SpatialGridTest, GetWaysByCoordinatesExisting) {
 }
 
 TEST_F(SpatialGridTest, GetWaysByCoordinatesWithinCell) {
-	grid.add_way(way1.get());
+	add_way(grid, way1.get());
 
 	// Coordinates that should map to same cell as node1 (10,20)
 	Coordinates coords = make_xy(10.7, 20.3); // Within (10.0-11.0, 20.0-21.0)
-	auto result = grid.get_ways_in_cell(coords);
+	auto result = grid.get_entries_in_cell(coords);
 
 	ASSERT_TRUE(result.has_value());
 	EXPECT_EQ(result->get().size(), 1);
@@ -328,13 +328,13 @@ TEST_F(SpatialGridTest, GetWaysByCoordinatesWithinCell) {
 TEST_F(SpatialGridTest, GetWaysByCoordinatesNonExisting) {
 	// Empty grid case
 	Coordinates coords = make_xy(0.0, 0.0);
-	auto result = grid.get_ways_in_cell(coords);
+	auto result = grid.get_entries_in_cell(coords);
 	EXPECT_FALSE(result.has_value());
 
 	// Non-existent coordinates in non-empty grid
-	grid.add_way(way1.get());
+	add_way(grid, way1.get());
 	coords = make_xy(100.0, 100.0);
-	result = grid.get_ways_in_cell(coords);
+	result = grid.get_entries_in_cell(coords);
 	EXPECT_FALSE(result.has_value());
 }
 
@@ -346,11 +346,11 @@ TEST_F(SpatialGridTest, GetWaysByCoordinatesCellBoundary) {
 
 	auto boundaryWay = std::make_unique<WayInfo>();
 	boundaryWay->nodes.push_back(boundaryNode.get());
-	grid.add_way(boundaryWay.get());
+	add_way(grid, boundaryWay.get());
 
 	// Test right on cell boundary (15/10=1.5 → cell 1)
 	Coordinates coords = make_xy(15.0, 25.0);
-	auto result = grid.get_ways_in_cell(coords);
+	auto result = grid.get_entries_in_cell(coords);
 
 	ASSERT_TRUE(result.has_value());
 	EXPECT_EQ(result->get().size(), 1);
@@ -365,11 +365,11 @@ TEST_F(SpatialGridTest, GetWaysByCoordinatesNegativeValues) {
 
 	auto negativeWay = std::make_unique<WayInfo>();
 	negativeWay->nodes.push_back(negativeNode.get());
-	grid.add_way(negativeWay.get());
+	add_way(grid, negativeWay.get());
 
 	// Should map to cell (-3,-2)
 	Coordinates coords = make_xy(-12.3, -7.8);
-	auto result = grid.get_ways_in_cell(coords);
+	auto result = grid.get_entries_in_cell(coords);
 
 	ASSERT_TRUE(result.has_value());
 	EXPECT_EQ(result->get().size(), 1);
@@ -377,11 +377,11 @@ TEST_F(SpatialGridTest, GetWaysByCoordinatesNegativeValues) {
 }
 
 TEST_F(SpatialGridTest, GetWaysByCoordinatesConstCorrectness) {
-	grid.add_way(way1.get());
+	add_way(grid, way1.get());
 
 	const auto& constGrid = grid;
 	Coordinates coords = make_xy(10.0, 20.0);
-	auto result = constGrid.get_ways_in_cell(coords);
+	auto result = constGrid.get_entries_in_cell(coords);
 
 	ASSERT_TRUE(result.has_value());
 	EXPECT_EQ(result->get().size(), 1);

@@ -3,36 +3,9 @@
 #include <core/data_layer/data_types.h>
 #include <core/data_layer/road_network.h>
 
+#include <common/math/bounding_box.h>
+
 namespace tjs::core {
-	void SpatialGrid::add_way(WayInfo* way) {
-		if (way == nullptr) {
-			return;
-		}
-
-		for (auto& node : way->nodes) {
-			auto gridKey = std::make_pair(
-				static_cast<int>(node->coordinates.x / cellSize),
-				static_cast<int>(node->coordinates.y / cellSize));
-			auto& cell = spatialGrid[gridKey];
-			if (std::ranges::find(cell, way) == cell.end()) {
-				cell.emplace_back(way);
-			}
-		}
-	}
-
-	std::optional<std::reference_wrapper<const SpatialGrid::WaysInCell>> SpatialGrid::get_ways_in_cell(Coordinates coordinates) const {
-		return get_ways_in_cell(
-			static_cast<int>(coordinates.x / cellSize),
-			static_cast<int>(coordinates.y / cellSize));
-	}
-
-	std::optional<std::reference_wrapper<const SpatialGrid::WaysInCell>> SpatialGrid::get_ways_in_cell(int x, int y) const {
-		auto it = spatialGrid.find(std::make_pair(x, y));
-		if (it != spatialGrid.end()) {
-			return it->second;
-		}
-		return std::nullopt;
-	}
 
 	void WorldSegment::rebuild_grid() {
 		double min_x = std::numeric_limits<double>::max() - 1;
@@ -55,7 +28,37 @@ namespace tjs::core {
 		spatialGrid.cellSize = diff / 5;
 
 		for (const auto& [_, way] : ways) {
-			spatialGrid.add_way(way.get());
+			add_way(spatialGrid, way.get());
+		}
+	}
+
+	void add_way(SpatialGrid& grid, WayInfo* way) {
+		if (way == nullptr) {
+			return;
+		}
+
+		for (auto* node : way->nodes) {
+			grid.add_entry(way, node->coordinates);
+		}
+
+		for (auto& edgeHandler : way->edges) {
+			const auto& edge = *edgeHandler;
+			for (const auto& lane : edge.lanes) {
+				if (lane.centerLine.empty()) {
+					continue;
+				}
+				common::BoundingBox box { lane.centerLine.front().x,
+					lane.centerLine.front().y,
+					lane.centerLine.front().x,
+					lane.centerLine.front().y };
+				for (const auto& c : lane.centerLine) {
+					box.min_x = std::min(box.min_x, c.x);
+					box.min_y = std::min(box.min_y, c.y);
+					box.max_x = std::max(box.max_x, c.x);
+					box.max_y = std::max(box.max_y, c.y);
+				}
+				grid.add_tree_entry(box, const_cast<Lane*>(&lane));
+			}
 		}
 	}
 
