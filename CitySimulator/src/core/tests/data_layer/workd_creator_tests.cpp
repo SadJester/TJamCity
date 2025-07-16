@@ -7,46 +7,16 @@
 #include <core/map_math/lane_connector_builder.h>
 
 #include <data_loader_mixin.h>
+#include <simulation/simulation_tests_common.h>
 #include <data_layer/world_utils.h>
 
 using namespace tjs;
 using namespace tjs::core;
 
-class WorldCreatorTests
-	: public ::testing::Test,
-	  public ::tests::DataLoaderMixin {
+class WorldCreatorTests : public ::tests::SimulationTestsCommon {
 protected:
-	void SetUp() override {
-		Lane::reset_id();
-		Edge::reset_id();
-		ASSERT_TRUE(load_map());
-		ASSERT_TRUE(prepare());
-	}
-
-	virtual bool prepare() {
-		details::preprocess_segment(*world.segments()[0]);
-
-		algo::ContractionBuilder builder;
-		builder.build_graph(*world.segments()[0]->road_network);
-
-		return true;
-	}
-
-	virtual bool load_map() {
-		bool result = WorldCreator::loadOSMData(world, data_file("test_lanes.osmx").string());
-		return world.segments().size() == 1;
-	}
-
-	Node* get_node(uint64_t id) {
-		return world.segments()[0]->nodes[id].get();
-	}
-
-	WayInfo* get_way(uint64_t id) {
-		return world.segments()[0]->ways[id].get();
-	}
-
-	RoadNetwork& get_road_network() {
-		return *world.segments()[0]->road_network;
+	std::string default_map() const override {
+		return "test_lanes.osmx";
 	}
 
 	const std::vector<LaneLinkHandler>& outgoing(Edge& edge, size_t index) {
@@ -56,9 +26,6 @@ protected:
 	const std::vector<LaneLinkHandler>& incoming(Edge& edge, size_t index) {
 		return edge.lanes[index].incoming_connections;
 	}
-
-protected:
-	tjs::core::WorldData world;
 };
 
 class BaseLaneFixture : public ::testing::Test {

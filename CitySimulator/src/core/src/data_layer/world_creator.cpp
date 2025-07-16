@@ -5,6 +5,7 @@
 #include <core/map_math/contraction_builder.h>
 #include <core/map_math/lane_connector_builder.h>
 #include <core/math_constants.h>
+#include <core/data_layer/lane_vehicle_utils.h>
 
 #include <core/random_generator.h>
 #include <sstream>
@@ -71,6 +72,7 @@ namespace tjs::core {
 			vehicle.error = MovementError::None;
 
 			vehicles.push_back(vehicle);
+			insert_vehicle_sorted(*vehicle.current_lane, &vehicles.back());
 		}
 
 		return true;
@@ -449,8 +451,6 @@ namespace tjs::core {
 	} // namespace details
 
 	void details::preprocess_segment(WorldSegment& segment) {
-		segment.rebuild_grid();
-
 		// Build junctions information
 		segment.junctions.clear();
 		for (auto& [nid, node] : segment.nodes) {
@@ -481,6 +481,9 @@ namespace tjs::core {
 	void details::create_road_network(WorldSegment& segment) {
 		algo::ContractionBuilder builder;
 		builder.build_graph(*segment.road_network);
+
+		segment.rebuild_grid();
+
 		algo::LaneConnectorBuilder::build_lane_connections(*segment.road_network);
 	}
 

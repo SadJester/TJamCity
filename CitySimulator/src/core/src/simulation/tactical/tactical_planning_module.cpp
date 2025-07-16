@@ -61,6 +61,12 @@ namespace tjs::core::simulation {
 			agent.currentGoal = nullptr;
 			if (!success) {
 				agent.goalFailCount++;
+				if (agent.goalFailCount >= 5) {
+					agent.stucked = true;
+				}
+			} else {
+				agent.goalFailCount = 0;
+				agent.stucked = false;
 			}
 		}
 

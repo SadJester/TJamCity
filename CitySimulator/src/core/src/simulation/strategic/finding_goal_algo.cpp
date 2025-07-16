@@ -17,7 +17,7 @@ namespace tjs::core::simulation {
 		double minRadius,
 		double maxRadius) {
 		// Step 1: Find the grid cell for the given coordinate
-		auto origin_cell = grid.get_ways_in_cell(coord);
+		auto origin_cell = grid.get_entries_in_cell(coord);
 		if (!origin_cell.has_value()) {
 			return nullptr;
 		}
@@ -46,7 +46,7 @@ namespace tjs::core::simulation {
 			int target_y = origin_y + static_cast<int>(radius * std::sin(angle));
 
 			// Step 3: Get ways in the target cell and pick a random way's first node
-			auto target_cell = grid.get_ways_in_cell(target_x, target_y);
+			auto target_cell = grid.get_entries_in_cell(std::make_pair(target_x, target_y));
 			if (target_cell.has_value() && !target_cell->get().empty()) {
 				const auto& ways = target_cell->get();
 				core::WayInfo* random_way = ways[RandomGenerator::get().next_int(0, ways.size() - 1)];
@@ -60,7 +60,7 @@ namespace tjs::core::simulation {
 			}
 		}
 
-		int random_inc = RandomGenerator::get().next_int(0, grid.spatialGrid.size());
+		int random_inc = RandomGenerator::get().next_int(0, grid.spatialGrid.size() - 1);
 		auto it = grid.spatialGrid.begin();
 		std::advance(it, random_inc);
 

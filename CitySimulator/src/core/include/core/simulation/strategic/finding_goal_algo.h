@@ -1,9 +1,13 @@
 #pragma once
 
+#include <common/spatial/spatial_grid.h>
+
 namespace tjs::core {
 	struct Node;
-	struct SpatialGrid;
 	struct Coordinates;
+	struct WayInfo;
+	struct Lane;
+	using SpatialGrid = tjs::common::SpatialGrid<WayInfo, Lane>;
 } // namespace tjs::core
 
 namespace tjs::core::simulation {

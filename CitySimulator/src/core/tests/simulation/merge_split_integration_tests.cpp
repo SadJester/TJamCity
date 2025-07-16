@@ -9,7 +9,7 @@
 using namespace tjs::core;
 using namespace tjs::core::simulation;
 
-class MergeSplitIntegrationTest : public ::testing::Test, public ::tests::DataLoaderMixin, public ::tests::SimulationTestsCommon {
+class MergeSplitIntegrationTest : public ::tests::SimulationTestsCommon {
 protected:
 	void SetUp() override {
 		ASSERT_TRUE(WorldCreator::loadOSMData(world, data_file("cross_merge.osmx").string()));

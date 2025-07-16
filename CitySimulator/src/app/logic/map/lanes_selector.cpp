@@ -41,7 +41,7 @@ namespace tjs::app::logic {
 	}
 
 	void LanesSelector::on_mouse_event(const render::RendererMouseEvent& event) {
-		if (event.button != render::RendererMouseEvent::ButtonType::Left || event.state != render::RendererMouseEvent::ButtonState::Pressed || !event.ctrl) {
+		if (event.button != render::RendererMouseEvent::ButtonType::Left || event.state != render::RendererMouseEvent::ButtonState::Pressed) {
 			return;
 		}
 

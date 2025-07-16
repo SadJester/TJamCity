@@ -190,26 +190,24 @@ namespace tjs::core::algo {
 			for (Edge* out_edge : outgoing) {
 				size_t& processed_lanes = outgoing_processed[out_edge];
 				TurnDirection desired = relative_direction(in_edge, out_edge);
-				// adjust first lane index for primary
-				const bool is_primary = in_edge == primary;
-				if (is_primary) {
-					int needed_lanes = 0;
-					for (Lane& from_lane : in_edge->lanes) {
-						if (!is_turn_allowed(from_lane, desired)) {
-							continue;
-						}
-						++needed_lanes;
+
+				// adjust lanes depending on previous iterations and lanes count
+				int needed_lanes = 0;
+				for (Lane& from_lane : in_edge->lanes) {
+					if (!is_turn_allowed(from_lane, desired)) {
+						continue;
 					}
-					size_t candidate_out_idx = 0;
-					if (processed_lanes + needed_lanes <= out_edge->lanes.size()) {
-						candidate_out_idx = processed_lanes;
-					} else {
-						candidate_out_idx = processed_lanes;
-						while (candidate_out_idx != 0 && (candidate_out_idx + needed_lanes) >= out_edge->lanes.size()) {
-							--candidate_out_idx;
-						}
-						processed_lanes = candidate_out_idx;
+					++needed_lanes;
+				}
+				size_t candidate_out_idx = 0;
+				if (processed_lanes + needed_lanes <= out_edge->lanes.size()) {
+					candidate_out_idx = processed_lanes;
+				} else {
+					candidate_out_idx = processed_lanes;
+					while (candidate_out_idx != 0 && (candidate_out_idx + needed_lanes) >= out_edge->lanes.size()) {
+						--candidate_out_idx;
 					}
+					processed_lanes = candidate_out_idx;
 				}
 
 				for (Lane& from_lane : in_edge->lanes) {

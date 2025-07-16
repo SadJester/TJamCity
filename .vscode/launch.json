@@ -142,6 +142,25 @@
                 }
             ],
             "preLaunchTask": "cs_mac_build_debug",
+        },
+        {
+            "name": "(Mac) [UnitTests][Debug] TJC_Common_tests",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/cs/Debug/bin/common.Tests",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for lldb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": false
+                }
+            ],
+            "preLaunchTask": "cs_mac_build_debug",
         }
     ]
 }

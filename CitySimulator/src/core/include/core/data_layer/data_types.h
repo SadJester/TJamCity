@@ -5,6 +5,7 @@
 #include <core/data_layer/way_info.h>
 #include <core/data_layer/node.h>
 #include <core/data_layer/road_network.h>
+#include <common/spatial/spatial_grid.h>
 
 namespace tjs::core {
 	enum class VehicleType : char {
@@ -36,7 +37,7 @@ namespace tjs::core {
 		WayInfo* currentWay;
 		int currentSegmentIndex;
 		float rotationAngle; // orientation in radians
-		const Lane* current_lane;
+		Lane* current_lane;
 		double s_on_lane;
 		double lateral_offset;
 		VehicleState state;
@@ -44,39 +45,7 @@ namespace tjs::core {
 	};
 	static_assert(std::is_pod<Vehicle>::value, "Data object expect to be POD");
 
-	struct Building {
-		int uid;
-	};
-	static_assert(std::is_pod<Building>::value, "Data object expect to be POD");
-
-	struct TrafficLight {
-		int uid;
-	};
-	static_assert(std::is_pod<TrafficLight>::value, "Data object expect to be POD");
-
-	struct PairHash {
-		template<typename T1, typename T2>
-		std::size_t operator()(const std::pair<T1, T2>& p) const {
-			auto hash1 = std::hash<T1> {}(p.first);
-			auto hash2 = std::hash<T2> {}(p.second);
-			// Combine hashes (boost::hash_combine-like approach)
-			return hash1 ^ (hash2 << 1);
-		}
-	};
-
-	struct SpatialGrid {
-		// Spatial grid: Maps grid cell (x, y) to list of WayInfo* in that cell
-
-		using GridKey = std::pair<int, int>;
-		using WaysInCell = std::vector<WayInfo*>;
-		std::unordered_map<GridKey, WaysInCell, PairHash> spatialGrid;
-		double cellSize = SimulationConstants::GRID_CELL_SIZE; // Meters per grid cell (adjust based on road density)
-
-		void add_way(WayInfo* way);
-
-		std::optional<std::reference_wrapper<const WaysInCell>> get_ways_in_cell(Coordinates coordinates) const;
-		std::optional<std::reference_wrapper<const WaysInCell>> get_ways_in_cell(int x, int y) const;
-	};
+	using SpatialGrid = tjs::common::SpatialGrid<WayInfo, Lane>;
 
 	struct SegmentBoundingBox {
 		Coordinates left;
@@ -105,4 +74,6 @@ namespace tjs::core {
 
 		void rebuild_grid();
 	};
+
+	void add_way(SpatialGrid& grid, WayInfo* way);
 } // namespace tjs::core
