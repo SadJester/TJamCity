@@ -1,3 +1,6 @@
+get_filename_component(CURRENT_DIR_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+
+set(FETCHCONTENT_BASE_DIR ${THIRDPARTY_INSTALL_FOLDER}/${CURRENT_DIR_NAME})
 include(FetchContent)
 
 FetchContent_Declare(
