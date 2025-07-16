@@ -7,6 +7,9 @@
 #include <core/math_constants.h>
 #include <core/map_math/earth_math.h>
 #include <core/data_layer/way_info.h>
+#include <core/data_layer/lane_vehicle_utils.h>
+#include <core/simulation/time_module.h>
+#include <core/map_math/lane_connector_builder.h>
 
 #include <simulation/simulation_tests_common.h>
 #include <data_loader_mixin.h>
@@ -28,6 +31,7 @@ protected:
 	virtual bool prepare() override {
 		bool result = ::tests::SimulationTestsCommon::prepare();
 		create_basic_system();
+		algo::LaneConnectorBuilder::build_lane_connections(*get_segment().road_network);
 		place_at_position();
 		return result;
 	}
@@ -180,4 +184,71 @@ TEST_F(VehicleMovementModuleTest, SpeedIsCappedAtMaxSpeed) {
 
 	// verify speed is set correctely - will be broken when accel will be added
 	EXPECT_EQ(agent.vehicle->currentSpeed, 30);
+}
+
+TEST_F(VehicleMovementModuleTest, LaneChangeOccursWhenExceedingLaneLength) {
+	auto& agent = getAgent();
+
+	auto& segment = get_segment();
+	ASSERT_FALSE(segment.ways.empty());
+	auto& way = segment.ways.begin()->second;
+	ASSERT_GE(way->edges.size(), 2u);
+	auto& first_edge = *way->edges[0];
+	auto& f_lane = first_edge.lanes[0];
+	auto& second_edge = f_lane.outgoing_connections[0]->to->parent;
+
+	agent.vehicle->current_lane = &first_edge.lanes[0];
+	agent.vehicle->coordinates = first_edge.lanes[0].centerLine.front();
+	insert_vehicle_sorted(*agent.vehicle->current_lane, agent.vehicle);
+
+	agent.currentGoal = second_edge->end_node;
+	agent.vehicle->state = VehicleState::Moving;
+	agent.path.push_back(&(*second_edge));
+
+	const double delta = (first_edge.lanes[0].length / (way->maxSpeed / 3.6)) + 10.0;
+	const_cast<TimeState&>(system->timeModule().state()).set_fixed_delta(delta);
+	system->vehicleMovementModule().update();
+
+	EXPECT_EQ(agent.vehicle->current_lane->parent->get_id(), second_edge->get_id());
+	EXPECT_TRUE(agent.path.empty());
+	EXPECT_GT(agent.vehicle->s_on_lane, 0.0);
+	EXPECT_TRUE(std::find(
+					first_edge.lanes[0].vehicles.begin(),
+					first_edge.lanes[0].vehicles.end(),
+					agent.vehicle)
+				== first_edge.lanes[0].vehicles.end());
+	EXPECT_TRUE(std::find(
+					second_edge->lanes[0].vehicles.begin(),
+					second_edge->lanes[0].vehicles.end(),
+					agent.vehicle)
+				!= second_edge->lanes[0].vehicles.end());
+}
+
+TEST_F(VehicleMovementModuleTest, VehiclesRemainSortedAfterUpdate) {
+	auto& agent = getAgent();
+
+	auto& way = get_segment().ways.begin()->second;
+	auto& edge = way->edges[0];
+	auto& lane = edge->lanes[0];
+
+	agent.vehicle->current_lane = &lane;
+	agent.vehicle->coordinates = lane.centerLine.front();
+	agent.vehicle->s_on_lane = 20.0;
+	agent.vehicle->state = VehicleState::Moving;
+	agent.currentGoal = lane.parent->end_node;
+
+	Vehicle other {};
+	other.uid = 2;
+	other.current_lane = &lane;
+	other.s_on_lane = 10.0;
+	other.coordinates = lane.centerLine.front();
+
+	lane.vehicles.push_back(agent.vehicle);
+	lane.vehicles.push_back(&other); // intentionally unsorted
+
+	system->timeModule().update(1.0);
+	system->vehicleMovementModule().update();
+
+	ASSERT_EQ(lane.vehicles.size(), 2u);
+	EXPECT_LE(lane.vehicles[0]->s_on_lane, lane.vehicles[1]->s_on_lane);
 }
