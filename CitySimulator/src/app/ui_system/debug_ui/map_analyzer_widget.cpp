@@ -20,7 +20,7 @@ namespace tjs::ui {
 
 		_networkOnly = new QCheckBox("Network only for selected", this);
 		layout->addWidget(_networkOnly);
-		connect(_networkOnly, &QCheckBox::stateChanged, this, &MapAnalyzerWidget::onNetworkOnlyChanged);
+		connect(_networkOnly, &QCheckBox::checkStateChanged, this, &MapAnalyzerWidget::onNetworkOnlyChanged);
 
 		QTimer* timer = new QTimer(this);
 		connect(timer, &QTimer::timeout, this, &MapAnalyzerWidget::updateInfo);
