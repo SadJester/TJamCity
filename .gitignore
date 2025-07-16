@@ -38,3 +38,6 @@
 # installed packages
 /vcpkg_installed/*
 /tools/bin/*
+
+# installed sdks
+sdks/_install
