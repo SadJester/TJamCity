@@ -441,6 +441,7 @@ namespace tjs::visualization {
 		auto& screen_center = render_data.screen_center;
 		double mpp = render_data.metersPerPixel;
 		core::Node* selected_node = debug_data.selectedNode;
+		const bool simplified = render_data.metersPerPixel > render_data.simplifiedViewThreshold;
 
 		enum class LaneType {
 			None,
@@ -498,6 +499,35 @@ namespace tjs::visualization {
 					outgoing_highlight.insert(link->to);
 				}
 			}
+		}
+
+		if (simplified) {
+			for (const WayInfo* way : ways) {
+				auto color = get_way_color(way->type);
+				float thickness = static_cast<float>(way->laneWidth * way->lanes);
+				for (auto edge : way->edges) {
+					FPoint start = convert_to_screen_f(edge->start_node->coordinates, screen_center, mpp);
+					FPoint end = convert_to_screen_f(edge->end_node->coordinates, screen_center, mpp);
+					Position is_start { static_cast<int>(start.x), static_cast<int>(start.y) };
+					Position is_end { static_cast<int>(end.x), static_cast<int>(end.y) };
+					if (!line_outside_screen(is_start, is_end, renderer.screen_width(), renderer.screen_height(), (thickness / mpp) * 2)) {
+						drawThickLine(renderer, { start, end }, mpp, thickness, color);
+					}
+				}
+			}
+
+			if (render_nodes && mpp < Constants::DRAW_LANE_DETAILS_MPP) {
+				for (auto& [_, node] : segment.nodes) {
+					if (!node->hasTag(NodeTags::Way)) {
+						continue;
+					}
+					const bool is_filtered = filter && !debug_data.reachableNodes.contains(node->uid);
+					if (!is_filtered) {
+						draw_node(renderer, *node, node.get() == selected, screen_center, mpp);
+					}
+				}
+			}
+			return;
 		}
 
 		for (const WayInfo* way : ways) {

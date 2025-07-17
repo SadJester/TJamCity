@@ -111,6 +111,18 @@ namespace tjs {
 			floatLayout->addWidget(vehicleSizeMultipler);
 			mainLayout->addLayout(floatLayout);
 
+			QHBoxLayout* simplifiedLayout = new QHBoxLayout();
+			QLabel* simplifiedLabel = new QLabel("Simplified MPP:", this);
+			simplifiedThreshold = new QDoubleSpinBox(this);
+			simplifiedThreshold->setRange(1.0, 100.0);
+			simplifiedThreshold->setSingleStep(1.0);
+			if (auto* renderData = _application.stores().get_entry<core::model::MapRendererData>()) {
+				simplifiedThreshold->setValue(renderData->simplifiedViewThreshold);
+			}
+			simplifiedLayout->addWidget(simplifiedLabel);
+			simplifiedLayout->addWidget(simplifiedThreshold);
+			mainLayout->addLayout(simplifiedLayout);
+
 			// Random seed checkbox and spinbox
 			randomSeed = new QCheckBox(tr("Random Seed"), this);
 			randomSeed->setChecked(_application.settings().simulationSettings.randomSeed);
@@ -132,6 +144,12 @@ namespace tjs {
 
 			connect(vehicleSizeMultipler, &QDoubleSpinBox::valueChanged, [this](double value) {
 				_application.settings().render.vehicleScaler = value;
+			});
+
+			connect(simplifiedThreshold, &QDoubleSpinBox::valueChanged, [this](double value) {
+				if (auto* renderData = _application.stores().get_entry<core::model::MapRendererData>()) {
+					renderData->simplifiedViewThreshold = value;
+				}
 			});
 
 			connect(randomSeed, &QCheckBox::checkStateChanged, [this](int state) {

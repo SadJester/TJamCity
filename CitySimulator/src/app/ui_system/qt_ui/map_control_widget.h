@@ -50,6 +50,7 @@ namespace tjs {
 
 			QSpinBox* vehicleCount = nullptr;
 			QDoubleSpinBox* vehicleSizeMultipler = nullptr;
+			QDoubleSpinBox* simplifiedThreshold = nullptr;
 			QCheckBox* randomSeed = nullptr;
 			QSpinBox* seedValue = nullptr;
 			QPushButton* _regenerateVehiclesButton = nullptr;

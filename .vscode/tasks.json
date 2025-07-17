@@ -58,7 +58,7 @@
             "command": "cmake",
             "args": [
                 "--build",
-                "${workspaceFolder}/.cmake/cs",
+                "${workspaceFolder}/.cmake/cs/Release",
 				"--preset",
 				"mac-build-release"
             ],

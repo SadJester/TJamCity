@@ -31,7 +31,8 @@ namespace tjs::core::model {
 		// Rendering options
 		bool showBoundingBox = false;
 		bool showLaneMarkers = true;
-		double laneMarkerVisibilityThreshold = 50.0; // meters per pixel threshold
+		double laneMarkerVisibilityThreshold = 1.0; // meters per pixel threshold
+		double simplifiedViewThreshold = 1.2;       // meters per pixel threshold
 
 		bool networkOnlyForSelected = false;
 
