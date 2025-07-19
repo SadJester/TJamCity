@@ -162,7 +162,6 @@ namespace tjs {
 			});
 
 			connect(_regenerateVehiclesButton, &QPushButton::clicked, [this]() {
-				tjs::core::WorldCreator::createRandomVehicles(_application.worldData(), _application.settings().simulationSettings);
 				_application.simulationSystem().initialize();
 			});
 

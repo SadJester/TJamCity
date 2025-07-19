@@ -9,6 +9,7 @@
 #include <core/data_layer/world_data.h>
 #include <core/data_layer/data_types.h>
 #include <core/data_layer/road_network.h>
+#include <core/data_layer/vehicle.h>
 #include <core/math_constants.h>
 #include <core/store_models/vehicle_analyze_data.h>
 #include <core/simulation/agent/agent_data.h>

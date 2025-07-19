@@ -21,6 +21,7 @@ namespace tjs::core::simulation {
 		, _timeModule(*this)
 		, _strategicModule(*this)
 		, _tacticalModule(*this)
+		, _vehicle_system(*this)
 		, _vehicleMovementModule(*this) {
 	}
 
@@ -28,7 +29,12 @@ namespace tjs::core::simulation {
 	}
 
 	void TrafficSimulationSystem::initialize() {
-		auto& vehicles = _worldData.vehicles();
+		_timeModule.initialize();
+
+		_vehicle_system.initialize();
+		_vehicle_system.create_vehicles();
+
+		auto& vehicles = _vehicle_system.vehicles();
 
 		_agents.clear();
 		_agents.shrink_to_fit();
@@ -44,7 +50,6 @@ namespace tjs::core::simulation {
 				0 });
 		}
 
-		_timeModule.initialize();
 		_strategicModule.initialize();
 		_tacticalModule.initialize();
 		_vehicleMovementModule.initialize();
@@ -54,6 +59,13 @@ namespace tjs::core::simulation {
 		}
 
 		_message_dispatcher.handle_message(events::SimulationInitialized {}, "simulation");
+	}
+
+	void TrafficSimulationSystem::release() {
+		_vehicle_system.release();
+		_strategicModule.release();
+		_tacticalModule.release();
+		_vehicleMovementModule.release();
 	}
 
 	void TrafficSimulationSystem::update(double realTimeDelta) {

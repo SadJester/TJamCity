@@ -47,7 +47,8 @@ namespace tjs::core::tests {
 		v.s_on_lane = 0.0;
 		v.lateral_offset = 0.0;
 		v.state = VehicleState::Stopped;
-		world.vehicles().push_back(v);
+
+		system->vehicle_system().vehicles().push_back(v);
 
 		store.create<model::VehicleAnalyzeData>();
 		system = std::make_unique<tjs::core::simulation::TrafficSimulationSystem>(world, store, settings);

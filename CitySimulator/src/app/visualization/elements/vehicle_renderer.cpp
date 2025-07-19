@@ -10,6 +10,8 @@
 #include <core/data_layer/data_types.h>
 #include <core/store_models/idata_model.h>
 #include <core/data_layer/world_data.h>
+#include <core/simulation/simulation_system.h>
+#include <core/simulation/transport_management/vehicle_system.h>
 
 #include <visualization/elements/map_element.h>
 #include <data/persistent_render_data.h>
@@ -34,7 +36,7 @@ namespace tjs::visualization {
 
 	void VehicleRenderer::render(IRenderer& renderer) {
 		TJS_TRACY_NAMED("VehicleRenderer_Render");
-		for (auto& vehicle : _application.worldData().vehicles()) {
+		for (auto& vehicle : _application.simulationSystem().vehicle_system().vehicles()) {
 			render(renderer, vehicle);
 		}
 	}

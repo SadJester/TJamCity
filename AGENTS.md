@@ -39,6 +39,7 @@ All instructions follow the principles of **modularity**, **stateless logic**, a
 - all includes must be with <> and not ""
 - Use forward declarations in header files where it is possible
 - Split into header and cpp files declaration and implementation if it is not template
+- Write #pragma once instead of #ifdef in .h files
 
 ---
 

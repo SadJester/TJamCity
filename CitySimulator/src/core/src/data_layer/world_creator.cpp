@@ -5,7 +5,6 @@
 #include <core/map_math/contraction_builder.h>
 #include <core/map_math/lane_connector_builder.h>
 #include <core/math_constants.h>
-#include <core/data_layer/lane_vehicle_utils.h>
 
 #include <core/random_generator.h>
 #include <sstream>
@@ -27,55 +26,6 @@ namespace tjs::core {
 		}
 
 		return result;
-	}
-
-	bool WorldCreator::createRandomVehicles(WorldData& data, const SimulationSettings& settings) {
-		auto& vehicles = data.vehicles();
-		vehicles.clear();
-
-		vehicles.reserve(settings.vehiclesCount);
-
-		// Get all nodes from the road network
-		auto& segment = data.segments()[0];
-
-		std::vector<core::Edge*> all_edges;
-		all_edges.reserve(segment->road_network->edges.size());
-
-		for (auto& edge : segment->road_network->edges) {
-			all_edges.push_back(&edge);
-		}
-
-		// TODO: RandomGenerator<Context>
-		if (!settings.randomSeed) {
-			RandomGenerator::set_seed(settings.seedValue);
-		}
-
-		// Generate vehicles
-		for (size_t i = 0; i < settings.vehiclesCount; ++i) {
-			// Randomly select a node for the vehicle's coordinates
-			auto edge_it = std::next(all_edges.begin(), RandomGenerator::get().next_int(0, all_edges.size() - 1));
-			const Coordinates& coordinates = (*edge_it)->start_node->coordinates;
-
-			// Create a vehicle with random attributes and the selected node's coordinates
-			Vehicle vehicle;
-			vehicle.uid = RandomGenerator::get().next_int(1, 10000000);
-			vehicle.type = RandomGenerator::get().next_enum<VehicleType>();
-			vehicle.currentSpeed = 0;
-			vehicle.maxSpeed = RandomGenerator::get().next_float(40, 100.0f);
-			vehicle.coordinates = coordinates;
-			vehicle.currentSegmentIndex = 0;
-			//vehicle.currentWay = find_way(*nodeIt);
-			vehicle.current_lane = &(*edge_it)->lanes[0];
-			vehicle.s_on_lane = 0.0;
-			vehicle.lateral_offset = 0.0;
-			vehicle.state = VehicleState::Stopped;
-			vehicle.error = MovementError::None;
-
-			vehicles.push_back(vehicle);
-			insert_vehicle_sorted(*vehicle.current_lane, &vehicles.back());
-		}
-
-		return true;
 	}
 
 	namespace details {

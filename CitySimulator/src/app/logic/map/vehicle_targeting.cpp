@@ -6,10 +6,10 @@
 #include "data/map_renderer_data.h"
 
 #include <visualization/elements/map_element.h>
-#include <core/data_layer/world_data.h>
 #include <core/store_models/vehicle_analyze_data.h>
 #include <core/simulation/agent/agent_data.h>
 #include <core/simulation/simulation_system.h>
+#include <core/simulation/transport_management/vehicle_system.h>
 #include <events/vehicle_events.h>
 
 namespace tjs::app::logic {
@@ -37,10 +37,10 @@ namespace tjs::app::logic {
 			return;
 		}
 
-		if (_application.worldData().vehicles().empty()) {
+		if (_application.simulationSystem().vehicle_system().vehicles().empty()) {
 			return;
 		}
-		auto& vehicles = _application.worldData().vehicles();
+		auto& vehicles = _application.simulationSystem().vehicle_system().vehicles();
 
 		core::Vehicle* nearest = nullptr;
 		float best_dist = _maxDistance;
