@@ -25,6 +25,8 @@ namespace tjs::core::simulation {
 			return _vehicles;
 		}
 
+		void commit();
+
 	private:
 		TrafficSimulationSystem& _system;
 

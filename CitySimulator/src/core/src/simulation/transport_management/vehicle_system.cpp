@@ -24,6 +24,9 @@ namespace tjs::core::simulation {
 	void VehicleSystem::release() {
 	}
 
+	void VehicleSystem::commit() {
+	}
+
 	void VehicleSystem::create_vehicles() {
 		auto& settings = _system.settings();
 		auto& vehicles = _vehicles;
