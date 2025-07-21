@@ -8,6 +8,8 @@
 #include <core/data_layer/road_network.h>
 #include <core/data_layer/lane_vehicle_utils.h>
 
+#include <core/simulation/movement/lane_agnostic_movement.h>
+
 namespace tjs::core::simulation {
 	VehicleMovementModule::VehicleMovementModule(TrafficSimulationSystem& system)
 		: _system(system) {
@@ -23,9 +25,15 @@ namespace tjs::core::simulation {
 		TJS_TRACY_NAMED("VehicleMovement_Update");
 		auto& agents = _system.agents();
 
-		for (size_t i = 0; i < agents.size(); ++i) {
-			movement_details::update_agent(agents[i], _system);
-		}
+		auto& vs = _system.vehicle_system();
+		auto& buf = vs.vehicle_buffers();
+		auto& lane_rt = vs.lane_runtime();
+
+		double dt = _system.timeModule().state().fixed_dt();
+
+		phase1_simd(agents, buf, lane_rt, dt);
+		phase2_commit(agents, buf, lane_rt);
+		_system.vehicle_system().commit();
 	}
 
 	static core::Coordinates move_towards(

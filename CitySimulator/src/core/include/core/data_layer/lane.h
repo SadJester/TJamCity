@@ -26,5 +26,11 @@ namespace tjs::core {
 		std::vector<LaneLinkHandler> outgoing_connections;
 		std::vector<LaneLinkHandler> incoming_connections;
 		std::vector<Vehicle*> vehicles;
+
+		size_t index_in_edge;
+		size_t index_in_buffer;
+
+		Lane* left() const;
+		Lane* right() const;
 	};
 } // namespace tjs::core

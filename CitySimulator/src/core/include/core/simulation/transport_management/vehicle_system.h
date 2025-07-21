@@ -4,6 +4,8 @@
 
 #include <core/data_layer/vehicle.h>
 
+#include <core/simulation/movement/lane_agnostic_movement.h>
+
 namespace tjs::core::simulation {
 	class TrafficSimulationSystem;
 
@@ -32,6 +34,13 @@ namespace tjs::core::simulation {
 
 		VehicleBuffers _buffers;
 		std::vector<Vehicle> _vehicles;
+
+		std::vector<LaneRuntime> _lane_runtime;
+
+	public:
+		std::vector<LaneRuntime>& lane_runtime() {
+			return _lane_runtime;
+		}
 	};
 
 } // namespace tjs::core::simulation

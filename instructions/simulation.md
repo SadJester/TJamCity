@@ -4,6 +4,11 @@ This document defines the core structure of the simulation tick and how entities
 
 ---
 
+## World structure
+
+Lanes are stored in Edge::lanes and creates from right to left. So lanes[0] is the most right lane.
+
+
 ## ⏱️ Timestep Flow
 
 In TrafficSimulationSystem makes SimulationSettings::steps_on_update steps on each update. Each step has fixed SimulationSettings::step_delta_sec.

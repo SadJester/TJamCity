@@ -19,15 +19,82 @@ namespace tjs::core::simulation {
 	}
 
 	void VehicleSystem::initialize() {
+		if (_system.worldData().segments().empty()) {
+			return;
+		}
+
+		auto& segment = _system.worldData().segments()[0];
+		auto& network = *segment->road_network;
+
+		_lane_runtime.clear();
+		for (auto& edge : network.edges) {
+			for (auto& lane : edge.lanes) {
+				_lane_runtime.push_back({ &lane,
+					lane.length,
+					edge.way->maxSpeed,
+					{} });
+				lane.index_in_buffer = _lane_runtime.size() - 1;
+			}
+		}
 	}
 
 	void VehicleSystem::release() {
 	}
 
+	static core::Coordinates lane_position(const Lane& lane, double s) {
+		if (lane.centerLine.empty()) {
+			return {};
+		}
+		const auto& start = lane.centerLine.front();
+		const auto& end = lane.centerLine.back();
+		if (s <= 0.0) {
+			return start;
+		}
+		if (lane.length <= 1e-6) {
+			return end;
+		}
+		double fraction = s / lane.length;
+		Coordinates result {};
+		result.x = start.x + fraction * (end.x - start.x);
+		result.y = start.y + fraction * (end.y - start.y);
+		return result;
+	}
+
+	static float lane_rotation(const Lane& lane) {
+		if (lane.centerLine.empty()) {
+			return 0.0f;
+		}
+		const auto& start = lane.centerLine.front();
+		const auto& end = lane.centerLine.back();
+		return static_cast<float>(atan2(end.y - start.y, end.x - start.x));
+	}
+
 	void VehicleSystem::commit() {
+		for (size_t i = 0; i < _vehicles.size(); ++i) {
+			Vehicle& v = _vehicles[i];
+			v.current_lane = _buffers.lane[i];
+			v.currentSpeed = _buffers.v_curr[i];
+			v.s_on_lane = _buffers.s_curr[i];
+			v.lateral_offset = _buffers.lateral_off[i];
+			if (v.current_lane) {
+				v.coordinates = lane_position(*v.current_lane, v.s_on_lane);
+				v.rotationAngle = lane_rotation(*v.current_lane);
+			}
+		}
+
+		for (LaneRuntime& rt : _lane_runtime) {
+			rt.static_lane->vehicles.clear();
+			for (std::size_t idx : rt.idx) {
+				rt.static_lane->vehicles.push_back(&_vehicles[idx]);
+			}
+		}
 	}
 
 	void VehicleSystem::create_vehicles() {
+		if (_system.worldData().segments().empty()) {
+			return;
+		}
+
 		auto& settings = _system.settings();
 		auto& vehicles = _vehicles;
 		vehicles.clear();
@@ -72,6 +139,42 @@ namespace tjs::core::simulation {
 
 			vehicles.push_back(vehicle);
 			insert_vehicle_sorted(*vehicle.current_lane, &vehicles.back());
+
+			for (LaneRuntime& rt : _lane_runtime) {
+				if (rt.static_lane == vehicle.current_lane) {
+					rt.idx.push_back(vehicles.size() - 1);
+					break;
+				}
+			}
+		}
+
+		const size_t count = vehicles.size();
+		_buffers.s_curr.resize(count);
+		_buffers.s_next.resize(count);
+		_buffers.v_curr.resize(count);
+		_buffers.v_next.resize(count);
+		_buffers.desired_v.resize(count);
+		_buffers.length.resize(count);
+		_buffers.lateral_off.resize(count);
+		_buffers.lane.resize(count);
+		_buffers.lane_target.assign(count, nullptr);
+		_buffers.flags.resize(count, 0);
+		_buffers.v_max_speed.resize(count, 0);
+		_buffers.uids.resize(count, 0);
+
+		for (size_t i = 0; i < count; ++i) {
+			const Vehicle& v = vehicles[i];
+			_buffers.s_curr[i] = v.s_on_lane;
+			_buffers.s_next[i] = v.s_on_lane;
+			_buffers.v_curr[i] = v.currentSpeed;
+			_buffers.v_next[i] = v.currentSpeed;
+			_buffers.desired_v[i] = v.maxSpeed;
+			_buffers.length[i] = 4.0f; // default length
+			_buffers.lateral_off[i] = v.lateral_offset;
+			_buffers.lane[i] = v.current_lane;
+			_buffers.flags[i] = 0;
+			_buffers.v_max_speed[i] = v.maxSpeed;
+			_buffers.uids[i] = v.uid;
 		}
 	}
 

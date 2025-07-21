@@ -67,6 +67,7 @@ namespace tjs::core::algo {
 
 			Lane& lane = edge.lanes[logical_idx];
 
+			lane.index_in_edge = logical_idx;
 			lane.parent = &edge;
 			lane.orientation = orientation;
 			lane.width = way->laneWidth;

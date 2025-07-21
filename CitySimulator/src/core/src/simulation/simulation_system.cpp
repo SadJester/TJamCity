@@ -45,7 +45,9 @@ namespace tjs::core::simulation {
 				nullptr,
 				&vehicles[i],
 				{},
-				0.0,
+				0,
+				0,
+				0.0f,
 				false,
 				0 });
 		}
