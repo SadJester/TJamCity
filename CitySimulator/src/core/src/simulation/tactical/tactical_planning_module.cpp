@@ -30,11 +30,11 @@ namespace tjs::core::simulation {
 	}
 
 	namespace simulation_details {
-		std::vector<Edge*> find_path(const Lane* start_lane, Node* goal, RoadNetwork& road_network) {
+		std::vector<Edge*> find_path(Node* start, Node* goal, RoadNetwork& road_network) {
 			std::vector<Edge*> result;
 			// TODO[simulation]: somehow it must be find without hacks
 			// auto edge_path = core::algo::PathFinder::find_edge_path_a_star_from_lane(road_network, start_lane, goal);
-			auto edge_path = core::algo::PathFinder::find_edge_path_a_star(road_network, start_lane->parent->start_node, goal);
+			auto edge_path = core::algo::PathFinder::find_edge_path_a_star(road_network, start, goal);
 
 			result.reserve(edge_path.size());
 			for (const auto* edge : edge_path) {
@@ -61,6 +61,7 @@ namespace tjs::core::simulation {
 
 		void reset_goals(AgentData& agent, bool success) {
 			agent.currentGoal = nullptr;
+			agent.path.clear();
 			if (!success) {
 				agent.goalFailCount++;
 				if (agent.goalFailCount >= 5) {
@@ -98,48 +99,60 @@ namespace tjs::core::simulation {
 				return;
 			}
 
+			if (vehicle.state == VehicleState::Stopped && vehicle.error == MovementError::NoOutgoingConnections) {
+				reset_goals(agent, true);
+				agent.stucked = true;
+				return;
+			}
+
+			if (vehicle.state == VehicleState::Stopped && (vehicle.error == MovementError::IncorrectEdge || vehicle.error == MovementError::IncorrectLane)) {
+				// need rebuild path
+				agent.path.clear();
+				vehicle.error = MovementError::None;
+			}
+
 			// new goal
 			if (agent.path.empty() && vehicle.state == VehicleState::Stopped) {
-				Node* start_node_1 = find_nearest_node(vehicle.coordinates, road_network);
 				Node* start_node = vehicle.current_lane->parent->start_node;
 
 				Node* goal_node = agent.currentGoal;
+				auto& buf = system.vehicle_system().vehicle_buffers();
 
 				if (start_node && goal_node) {
-					agent.path = find_path(vehicle.current_lane, goal_node, road_network);
+					agent.path = find_path(start_node, goal_node, road_network);
+					if (!agent.path.empty()) {
+						// TODO: remove hack of teleporting
+						// Fetch current lane - teleporting
+						{
+							auto parent_edge = vehicle.current_lane->parent;
+							auto target_edge = agent.path.front();
+							auto& vehicles = system.vehicle_system().vehicle_buffers();
+							auto& lane_rt = system.vehicle_system().lane_runtime();
+							auto teleport_to_lane = [&](Lane* from, Lane* to) {
+								vehicle.current_lane = to;
+								vehicles.lane[i] = to;
+								// buf.s_curr[i] = 0.0f;
+								move_index(i, lane_rt, from, to, buf.s_curr);
+							};
 
-					// TODO: remove hack of teleporting
-					// Fetch current lane - teleporting
-					{
-						auto parent_edge = vehicle.current_lane->parent;
-						auto target_edge = agent.path.front();
-						auto& vehicles = system.vehicle_system().vehicle_buffers();
-						auto& buf = system.vehicle_system().vehicle_buffers();
-						auto& lane_rt = system.vehicle_system().lane_runtime();
-						auto teleport_to_lane = [&](Lane* from, Lane* to) {
-							vehicle.current_lane = to;
-							vehicles.lane[i] = to;
-
-							move_index(i, lane_rt, from, to, buf.s_curr);
-						};
-
-						if (parent_edge != target_edge) {
-							if (parent_edge->start_node == target_edge->start_node) {
-								teleport_to_lane(vehicle.current_lane, &target_edge->lanes[0]);
-							} else {
-								// TODO[simulation]: error handling when cannot find out edge
-								teleport_to_lane(vehicle.current_lane, &target_edge->lanes[0]);
+							if (parent_edge != target_edge) {
+								if (parent_edge->start_node == target_edge->start_node) {
+									teleport_to_lane(vehicle.current_lane, &target_edge->lanes[0]);
+								} else {
+									// TODO[simulation]: error handling when cannot find out edge
+									teleport_to_lane(vehicle.current_lane, &target_edge->lanes[0]);
+								}
 							}
 						}
-					}
 
-					if (!agent.path.empty()) {
 						agent.path_offset = 0;
 						agent.goal_lane_mask = 1u << vehicle.current_lane->index_in_edge; // must stay in lane until node
 
 						agent.distanceTraveled = 0.0; // Reset distance for new path
 						agent.goalFailCount = 0;
 						vehicle.state = VehicleState::PendingMove;
+						buf.flags[i] &= ~FL_ERROR;
+
 					} else {
 						reset_goals(agent, false);
 					}

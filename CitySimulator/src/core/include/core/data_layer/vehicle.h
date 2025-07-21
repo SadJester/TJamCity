@@ -20,6 +20,8 @@ namespace tjs::core {
 		None,
 		NoOutgoingConnections,
 		NoPath,
+		IncorrectEdge,
+		IncorrectLane,
 		NoNextLane);
 
 	ENUM(VehicleState, uint8_t,

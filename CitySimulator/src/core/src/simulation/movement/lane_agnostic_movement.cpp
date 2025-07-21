@@ -4,6 +4,7 @@
 #include <core/simulation/transport_management/vehicle_state.h>
 #include <core/data_layer/lane.h>
 #include <core/data_layer/edge.h>
+#include <core/data_layer/vehicle.h>
 
 #include <core/simulation/agent/agent_data.h>
 
@@ -47,7 +48,7 @@ namespace tjs::core::simulation {
 		/* threaded outer loop over lanes */
 
 		static constexpr float T_MIN = 0.f;
-		static constexpr float D_PREP = 10.0f;
+		static constexpr float D_PREP = 50.0f;
 
 		// #pragma omp parallel for schedule(dynamic,4)
 		for (std::size_t L = 0; L < lane_rt.size(); ++L) {
@@ -64,6 +65,10 @@ namespace tjs::core::simulation {
 			for (std::size_t k = 0; k < n; ++k) {
 				std::size_t i = idx[k];
 
+				if (buf.flags[i] & FL_ERROR) {
+					continue;
+				}
+
 				const AgentData& ag = agents[i];
 
 				//----------------- longitudinal IDM ----------------------
@@ -74,7 +79,7 @@ namespace tjs::core::simulation {
 				const float v_next = v + a * dt;
 				// TODO[simulation]: clamp speed based on vehicle and way
 				const float max_speed = rt.max_speed;
-				buf.v_next[i] = v_next > max_speed ? v_next : v_next;
+				buf.v_next[i] = v_next > max_speed ? max_speed : v_next;
 				buf.s_next[i] = s + v * dt + 0.5 * a * dt * dt;
 
 				// ─── 2. lane-change decision (simplified) ─────────────
@@ -127,13 +132,14 @@ namespace tjs::core::simulation {
 	//                        2) shortest lateral hop (|id diff|)
 	//                        3) first found
 	//------------------------------------------------------------------
-	inline Lane* choose_entry_lane(const Lane* src_lane, const Edge* next_edge) {
+	inline Lane* choose_entry_lane(const Lane* src_lane, const Edge* next_edge, MovementError& err) {
 		Lane* best = nullptr;
 		bool best_is_yield = true; // so non-yield wins
 		int best_shift = INT_MAX;  // minimise |Δlane|
 
 		const std::size_t src_idx = src_lane->index_in_edge; // local index in its edge
-
+		bool correct_edge = false;
+		err = MovementError::None;
 		for (LaneLinkHandler h : src_lane->outgoing_connections) {
 			const LaneLink& link = *h;
 			Lane* tgt = link.to;
@@ -142,6 +148,7 @@ namespace tjs::core::simulation {
 				continue;
 			}
 
+			correct_edge = true;
 			bool is_yield = link.yield;
 			int shift = std::abs(int(tgt->index_in_edge) - int(src_idx));
 
@@ -152,12 +159,18 @@ namespace tjs::core::simulation {
 			}
 		}
 
-		if (!best) {
-			// TODO[simulation]: algo error handling
-			throw std::runtime_error(
-				"Route impossible: no LaneLink from edge " + std::to_string(src_lane->parent->get_id()) + " to edge " + std::to_string(next_edge->get_id()) + '.');
+		if (src_lane->outgoing_connections.empty()) {
+			err = MovementError::NoOutgoingConnections;
+			return nullptr;
 		}
-
+		if (!best) {
+			err = correct_edge ? MovementError::IncorrectLane : MovementError::IncorrectEdge;
+			// TODO[simulation]: algo error handling
+			//throw std::runtime_error(
+			//	"Route impossible: no LaneLink from edge " + std::to_string(src_lane->parent->get_id()) + " to edge " + std::to_string(next_edge->get_id()) + '.');
+			return src_lane->outgoing_connections[0]->to;
+		}
+		err = MovementError::None;
 		return best;
 	}
 
@@ -213,14 +226,29 @@ namespace tjs::core::simulation {
 				if (ag.path_offset >= ag.path.size()) {             // finished trip
 					move_index(i, lane_rt, lane, lane, buf.s_curr); // erase only
 					set_state(buf.flags[i], ST_FOLLOW);             // idle state
-					goto next_vehicle;                              // despawn else
+					buf.flags[i] |= FL_ERROR;
+					ag.vehicle->state = VehicleState::Stopped;
+					ag.vehicle->error = MovementError::NoPath;
+					goto next_vehicle; // despawn else
 				}
 				Edge* next_edge = ag.path[ag.path_offset];
-				Lane* entry = choose_entry_lane(lane, next_edge);
-				move_index(i, lane_rt, lane, entry, buf.s_curr);
-				lane = entry;
-				buf.lane[i] = entry;
-				ag.goal_lane_mask = build_goal_mask(*lane->parent, *ag.path[ag.path_offset + 1]);
+				MovementError err;
+				Lane* entry = choose_entry_lane(lane, next_edge, err);
+
+				if (err != MovementError::None) {
+					ag.vehicle->error = err;
+					ag.vehicle->state = VehicleState::Stopped;
+				} else {
+					ag.goal_lane_mask = build_goal_mask(*lane->parent, *ag.path[ag.path_offset + 1]);
+				}
+
+				if (entry != nullptr) {
+					move_index(i, lane_rt, lane, entry, buf.s_curr);
+					lane = entry;
+					buf.lane[i] = entry;
+				} else {
+					goto next_vehicle; // despawn else
+				}
 			}
 			buf.s_curr[i] = remain;
 
