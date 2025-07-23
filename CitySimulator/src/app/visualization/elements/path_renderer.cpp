@@ -44,41 +44,54 @@ namespace tjs::visualization {
 			return;
 		}
 
-		auto& path = model->agent->path;
-		std::vector<FPoint> toVisitPoints;
-		toVisitPoints.reserve(path.size() + 2);
+		auto* agent = model->agent;
+		auto& path = agent->path;
+		size_t path_offset = agent->path_offset;
+		if (path.empty() || path_offset >= path.size()) {
+			return;
+		}
 
-		const auto _add_point = [&toVisitPoints, this](const Coordinates& coordinates) {
-			toVisitPoints.push_back(convert_to_screen_f(
-				coordinates,
-				_mapRendererData.screen_center,
-				_mapRendererData.metersPerPixel));
+		const Coordinates& vehicle_pos = agent->vehicle->coordinates;
+
+		auto convert = [this](const Coordinates& coordinates) {
+			return convert_to_screen_f(coordinates, _mapRendererData.screen_center, _mapRendererData.metersPerPixel);
 		};
 
-		_add_point(model->agent->vehicle->coordinates);
-		if (!path.empty()) {
-			_add_point(path[0]->start_node->coordinates);
+		// Prepare screen coordinates
+		std::vector<FPoint> past_points;
+		std::vector<FPoint> future_points;
+
+		// Vehicle position
+		past_points.push_back(convert(vehicle_pos));
+
+		// From vehicle position back to start of path (reverse order for blue path)
+		for (int i = static_cast<int>(path_offset); i >= 0; --i) {
+			if (i != path_offset) {
+				past_points.push_back(convert(path[i]->end_node->coordinates));
+			}
+			past_points.push_back(convert(path[i]->start_node->coordinates));
 		}
 
-		// To visit nodes
-		for (size_t i = 0; i < path.size(); ++i) {
-			_add_point(path[i]->end_node->coordinates);
+		// From vehicle forward to destination (green)
+		future_points.push_back(convert(vehicle_pos));
+		for (size_t i = path_offset; i < path.size(); ++i) {
+			future_points.push_back(convert(path[i]->end_node->coordinates));
 		}
 
-		// only last segment - position of goal
-		if (path.empty()) {
-			_add_point(model->agent->currentGoal->coordinates);
-		}
+		// Draw past path in Blue
+		static constexpr float thickness = 3.5f;
+		drawThickLine(renderer, past_points, _mapRendererData.metersPerPixel, thickness, FColor::Blue);
 
-		// TODO: thickness of path in settings
-		static float thickness = 3.5f;
-		drawThickLine(renderer, toVisitPoints, _mapRendererData.metersPerPixel, thickness, Constants::PATH_COLOR);
+		// Draw future path in Green
+		drawThickLine(renderer, future_points, _mapRendererData.metersPerPixel, thickness, FColor::Green);
 
+		// Draw goal marker
 		renderer.set_draw_color(FColor::Yellow);
-		const auto currentGoal = tjs::visualization::convert_to_screen(
-			model->agent->currentGoal->coordinates,
+		const auto current_goal_screen = convert_to_screen(
+			agent->currentGoal->coordinates,
 			_mapRendererData.screen_center,
 			_mapRendererData.metersPerPixel);
-		renderer.draw_circle(currentGoal.x, currentGoal.y, 5.0f, true);
+		renderer.draw_circle(current_goal_screen.x, current_goal_screen.y, 5.0f, true);
 	}
+
 } // namespace tjs::visualization

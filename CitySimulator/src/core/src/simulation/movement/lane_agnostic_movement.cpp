@@ -239,7 +239,7 @@ namespace tjs::core::simulation {
 					ag.vehicle->error = err;
 					ag.vehicle->state = VehicleState::Stopped;
 				} else {
-					ag.goal_lane_mask = build_goal_mask(*lane->parent, *ag.path[ag.path_offset + 1]);
+					ag.goal_lane_mask = build_goal_mask(*entry->parent, *ag.path[ag.path_offset + 1]);
 				}
 
 				if (entry != nullptr) {
