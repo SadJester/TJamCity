@@ -122,9 +122,11 @@ namespace tjs::core::simulation {
 
 				if (start_lane && goal_node) {
 					agent.path = find_path(start_lane, goal_node, road_network);
+					Edge* first_edge = agent.path.front();
+					agent.path.insert(agent.path.begin(), start_lane->parent);
 					if (!agent.path.empty()) {
 						agent.path_offset = 0;
-						agent.goal_lane_mask = build_goal_mask(*start_lane->parent, *agent.path.front());
+						agent.goal_lane_mask = build_goal_mask(*start_lane->parent, *first_edge);
 
 						agent.distanceTraveled = 0.0; // Reset distance for new path
 						agent.goalFailCount = 0;
