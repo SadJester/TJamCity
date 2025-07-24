@@ -27,7 +27,8 @@ namespace tjs::core::algo {
 		// ────────────────────────────────────────────────────────────────────
 		static std::vector<const Edge*> find_edge_path_a_star_from_lane(const RoadNetwork& network,
 			const Lane* start_lane,
-			Node* target);
+			Node* target,
+			bool look_adjacent_lanes);
 
 	private:
 		// Вспомогательная функция для проверки возможности перехода через shortcut

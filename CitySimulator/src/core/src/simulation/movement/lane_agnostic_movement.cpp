@@ -71,6 +71,10 @@ namespace tjs::core::simulation {
 
 				const AgentData& ag = agents[i];
 
+				if (ag.path.empty()) {
+					continue;
+				}
+
 				//----------------- longitudinal IDM ----------------------
 				float v = buf.v_curr[i];
 				double s = buf.s_curr[i];
@@ -86,6 +90,10 @@ namespace tjs::core::simulation {
 				double dist = lane->length - s; // to node
 				bool near = dist < D_PREP;
 				bool ok = (ag.goal_lane_mask >> lane->index_in_edge) & 1;
+
+				if (lane->get_id() == 22 && ag.path.size() > ag.path_offset + 1 && ag.path[ag.path_offset + 1]->get_id() == 73) {
+					std::cout << "";
+				}
 
 				if (near && !ok && buf.lane_target[i] == nullptr) {
 					if ((buf.flags[i] & FL_COOLDOWN) == 0) {
@@ -216,6 +224,11 @@ namespace tjs::core::simulation {
 		/* -------- (ii) overshoot & route advance --------------------- */
 		for (size_t i = 0; i < agents.size(); ++i) {
 			AgentData& ag = agents[i];
+
+			if (ag.path.empty()) {
+				continue;
+			}
+
 			double remain = buf.s_curr[i];
 			Lane* lane = buf.lane[i];
 
@@ -229,6 +242,8 @@ namespace tjs::core::simulation {
 					buf.flags[i] |= FL_ERROR;
 					ag.vehicle->state = VehicleState::Stopped;
 					ag.vehicle->error = MovementError::NoPath;
+					buf.s_curr[i] = lane->length;
+					buf.s_next[i] = buf.s_curr[i];
 					goto next_vehicle; // despawn else
 				}
 				Edge* next_edge = ag.path[ag.path_offset];
@@ -238,6 +253,7 @@ namespace tjs::core::simulation {
 				if (err != MovementError::None) {
 					ag.vehicle->error = err;
 					ag.vehicle->state = VehicleState::Stopped;
+					Lane* entry1 = choose_entry_lane(lane, next_edge, err);
 				} else {
 					ag.goal_lane_mask = build_goal_mask(*entry->parent, *ag.path[ag.path_offset + 1]);
 				}

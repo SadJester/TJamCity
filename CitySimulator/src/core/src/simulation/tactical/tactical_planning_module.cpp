@@ -30,12 +30,13 @@ namespace tjs::core::simulation {
 	}
 
 	namespace simulation_details {
-		std::vector<Edge*> find_path(Lane* start_lane, Node* goal, RoadNetwork& road_network) {
+		std::vector<Edge*> find_path(Lane* start_lane, Node* goal, RoadNetwork& road_network, bool look_adjacent_lanes) {
 			std::vector<Edge*> result;
 			auto edge_path = core::algo::PathFinder::find_edge_path_a_star_from_lane(
 				road_network,
 				start_lane,
-				goal);
+				goal,
+				look_adjacent_lanes);
 			result.reserve(edge_path.size());
 			for (const auto* edge : edge_path) {
 				result.push_back(const_cast<Edge*>(edge));
@@ -59,7 +60,7 @@ namespace tjs::core::simulation {
 			return nearest;
 		}
 
-		void reset_goals(AgentData& agent, bool success) {
+		void reset_goals(AgentData& agent, bool success, bool mark = true) {
 			agent.currentGoal = nullptr;
 			agent.path.clear();
 			if (!success) {
@@ -119,12 +120,18 @@ namespace tjs::core::simulation {
 
 				Node* goal_node = agent.currentGoal;
 				auto& buf = system.vehicle_system().vehicle_buffers();
-
 				if (start_lane && goal_node) {
-					agent.path = find_path(start_lane, goal_node, road_network);
-					Edge* first_edge = agent.path.front();
-					agent.path.insert(agent.path.begin(), start_lane->parent);
+					const bool find_adjacent = vehicle.s_on_lane < (vehicle.current_lane->length - 10.0);
+					agent.path = find_path(start_lane, goal_node, road_network, false);
+
+					if (agent.path.empty()) {
+						agent.path = find_path(start_lane, goal_node, road_network, find_adjacent);
+					}
+
 					if (!agent.path.empty()) {
+						Edge* first_edge = agent.path.front();
+						agent.path.insert(agent.path.begin(), start_lane->parent);
+
 						agent.path_offset = 0;
 						agent.goal_lane_mask = build_goal_mask(*start_lane->parent, *first_edge);
 

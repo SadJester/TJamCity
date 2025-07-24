@@ -160,7 +160,8 @@ namespace tjs::core::algo {
 	// ────────────────────────────────────────────────────────────────────
 	std::vector<const Edge*> PathFinder::find_edge_path_a_star_from_lane(const RoadNetwork& network,
 		const Lane* start_lane,
-		Node* target) {
+		Node* target,
+		bool look_adjacent_lanes) {
 		using NodeEntry = std::pair<double, Node*>; // (fScore , node)
 		std::priority_queue<NodeEntry,
 			std::vector<NodeEntry>,
@@ -195,8 +196,12 @@ namespace tjs::core::algo {
 			}
 		};
 
-		for (const Lane& ln : start_lane->parent->lanes) {
-			seed_successors(&ln);
+		if (look_adjacent_lanes) {
+			for (auto& lane : start_lane->parent->lanes) {
+				seed_successors(&lane);
+			}
+		} else {
+			seed_successors(start_lane);
 		}
 
 		/* normal A* loop --------------------------------------------- */
