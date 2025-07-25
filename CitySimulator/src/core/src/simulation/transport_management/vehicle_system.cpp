@@ -31,7 +31,7 @@ namespace tjs::core::simulation {
 			for (auto& lane : edge.lanes) {
 				_lane_runtime.push_back({ &lane,
 					lane.length,
-					edge.way->maxSpeed,
+					edge.way->maxSpeed / 3.6f,
 					{} });
 				lane.index_in_buffer = _lane_runtime.size() - 1;
 			}

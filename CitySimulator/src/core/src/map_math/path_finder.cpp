@@ -204,6 +204,17 @@ namespace tjs::core::algo {
 			seed_successors(start_lane);
 		}
 
+		auto has_transition = [](const Edge& from, const Edge& to) -> bool {
+			for (auto& lane : from.lanes) {
+				for (auto& link : lane.outgoing_connections) {
+					if (link->to->parent == &to) {
+						return true;
+					}
+				}
+			}
+			return false;
+		};
+
 		/* normal A* loop --------------------------------------------- */
 		while (!open_set.empty()) {
 			Node* current = open_set.top().second;
@@ -233,6 +244,15 @@ namespace tjs::core::algo {
 
 			for (const Edge* edge : it->second) {
 				Node* neighbor = edge->end_node;
+
+				// SKIP if no transition from previous edge to this one
+				if (came_by_edge.contains(current)) {
+					const Edge* from_edge = came_by_edge[current];
+					if (!has_transition(*from_edge, *edge)) {
+						continue;
+					}
+				}
+
 				double tentative_g = g_score[current] + edge->length;
 
 				if (!g_score.contains(neighbor) || tentative_g < g_score[neighbor]) {

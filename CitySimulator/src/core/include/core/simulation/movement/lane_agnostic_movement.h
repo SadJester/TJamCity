@@ -11,7 +11,7 @@ namespace tjs::core::simulation {
 	struct LaneRuntime {
 		Lane* static_lane = nullptr;
 		double length;
-		int max_speed;
+		float max_speed;
 		std::vector<std::size_t> idx;
 	};
 

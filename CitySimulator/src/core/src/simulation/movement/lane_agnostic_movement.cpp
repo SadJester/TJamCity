@@ -48,7 +48,7 @@ namespace tjs::core::simulation {
 		/* threaded outer loop over lanes */
 
 		static constexpr float T_MIN = 0.f;
-		static constexpr float D_PREP = 50.0f;
+		static constexpr float D_PREP = 80.0f;
 
 		// #pragma omp parallel for schedule(dynamic,4)
 		for (std::size_t L = 0; L < lane_rt.size(); ++L) {
@@ -146,9 +146,8 @@ namespace tjs::core::simulation {
 		int best_shift = INT_MAX;  // minimise |Δlane|
 
 		const std::size_t src_idx = src_lane->index_in_edge; // local index in its edge
-		bool correct_edge = false;
 		err = MovementError::None;
-		for (LaneLinkHandler h : src_lane->outgoing_connections) {
+		for (const LaneLinkHandler& h : src_lane->outgoing_connections) {
 			const LaneLink& link = *h;
 			Lane* tgt = link.to;
 			// wrong edge
@@ -156,7 +155,6 @@ namespace tjs::core::simulation {
 				continue;
 			}
 
-			correct_edge = true;
 			bool is_yield = link.yield;
 			int shift = std::abs(int(tgt->index_in_edge) - int(src_idx));
 
@@ -172,7 +170,24 @@ namespace tjs::core::simulation {
 			return nullptr;
 		}
 		if (!best) {
-			err = correct_edge ? MovementError::IncorrectLane : MovementError::IncorrectEdge;
+			bool has_connection = false;
+			for (auto& lane : src_lane->parent->lanes) {
+				if (&lane == src_lane) {
+					continue;
+				}
+				for (auto& link : lane.outgoing_connections) {
+					if (link->to->parent == next_edge) {
+						has_connection = true;
+						break;
+					}
+				}
+				if (has_connection) {
+					break;
+				}
+			}
+
+			// If has connection we are on the wrong lane, if not - totally wrong edge (how we get here?)
+			err = has_connection ? MovementError::IncorrectLane : MovementError::IncorrectEdge;
 			// TODO[simulation]: algo error handling
 			//throw std::runtime_error(
 			//	"Route impossible: no LaneLink from edge " + std::to_string(src_lane->parent->get_id()) + " to edge " + std::to_string(next_edge->get_id()) + '.');
@@ -253,7 +268,6 @@ namespace tjs::core::simulation {
 				if (err != MovementError::None) {
 					ag.vehicle->error = err;
 					ag.vehicle->state = VehicleState::Stopped;
-					Lane* entry1 = choose_entry_lane(lane, next_edge, err);
 				} else {
 					ag.goal_lane_mask = build_goal_mask(*entry->parent, *ag.path[ag.path_offset + 1]);
 				}

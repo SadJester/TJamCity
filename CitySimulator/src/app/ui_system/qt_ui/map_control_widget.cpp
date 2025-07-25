@@ -93,7 +93,7 @@ namespace tjs {
 			QHBoxLayout* intLayout = new QHBoxLayout();
 			QLabel* intLabel = new QLabel("Vehicles count:", this);
 			vehicleCount = new QSpinBox(this);
-			vehicleCount->setRange(1, 1000);
+			vehicleCount->setRange(1, 10000000);
 			vehicleCount->setValue(_application.settings().simulationSettings.vehiclesCount);
 			intLayout->addWidget(intLabel);
 			intLayout->addWidget(vehicleCount);
