@@ -45,6 +45,7 @@ namespace tjs::core::simulation {
 		VehicleBuffers& buf, // one object, not “in/out”
 		const std::vector<LaneRuntime>& lane_rt,
 		double dt) {
+		TJS_TRACY_NAMED("VehicleMovement_Phase1");
 		/* threaded outer loop over lanes */
 
 		static constexpr float T_MIN = 0.f;
@@ -57,21 +58,11 @@ namespace tjs::core::simulation {
 			const std::size_t n = rt.idx.size();
 			const float lane_length = rt.length;
 
-			// TODO: must be removed from simd
-			const Lane* lane = rt.static_lane;
-			const size_t lane_idx = lane->index_in_edge;
-
 			/* scalar inner loop for clarity — replace with gather/SIMD later */
 			for (std::size_t k = 0; k < n; ++k) {
 				std::size_t i = idx[k];
 
 				if (buf.flags[i] & FL_ERROR) {
-					continue;
-				}
-
-				const AgentData& ag = agents[i];
-
-				if (ag.path.empty()) {
 					continue;
 				}
 
@@ -87,16 +78,16 @@ namespace tjs::core::simulation {
 				buf.s_next[i] = s + v * dt + 0.5 * a * dt * dt;
 
 				// ─── 2. lane-change decision (simplified) ─────────────
-				double dist = lane->length - s; // to node
+				double dist = rt.length - s; // to node
 				bool near = dist < D_PREP;
-				bool ok = (ag.goal_lane_mask >> lane->index_in_edge) & 1;
 
-				if (lane->get_id() == 22 && ag.path.size() > ag.path_offset + 1 && ag.path[ag.path_offset + 1]->get_id() == 73) {
-					std::cout << "";
-				}
+				if (near && buf.lane_target[i] == nullptr) {
+					// TODO: must be removed from simd?
+					const Lane* lane = rt.static_lane;
+					const AgentData& ag = agents[i];
+					bool ok = (ag.goal_lane_mask >> lane->index_in_edge) & 1;
 
-				if (near && !ok && buf.lane_target[i] == nullptr) {
-					if ((buf.flags[i] & FL_COOLDOWN) == 0) {
+					if (ok && (buf.flags[i] & FL_COOLDOWN) == 0) {
 						Lane* left = lane->left();   // lane->turn == TurnDirection::Left  ? nullptr : lane->parent->lanes[lane->index_in_edge-1];
 						Lane* right = lane->right(); //lane->turn == TurnDirection::Right ? nullptr : lane->parent->lanes[lane->index_in_edge+1];
 
@@ -232,6 +223,7 @@ namespace tjs::core::simulation {
 		std::vector<AgentData>& agents,
 		VehicleBuffers& buf,
 		std::vector<LaneRuntime>& lane_rt) {
+		TJS_TRACY_NAMED("VehicleMovement_Phase2");
 		/* -------- (i) swap snapshot ---------------------------------- */
 		buf.s_curr.swap(buf.s_next);
 		buf.v_curr.swap(buf.v_next);

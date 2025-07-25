@@ -75,6 +75,7 @@ namespace tjs::core::simulation {
 		}
 
 		void update_agent(size_t i, AgentData& agent, TrafficSimulationSystem& system) {
+			TJS_TRACY_NAMED("TacticalPlanning::update_agent");
 			if (agent.vehicle == nullptr || agent.currentGoal == nullptr) {
 				return;
 			}
@@ -141,6 +142,7 @@ namespace tjs::core::simulation {
 						buf.flags[i] &= ~FL_ERROR;
 
 					} else {
+						buf.flags[i] |= FL_ERROR;
 						reset_goals(agent, false);
 					}
 				}

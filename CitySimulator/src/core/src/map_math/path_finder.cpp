@@ -162,6 +162,7 @@ namespace tjs::core::algo {
 		const Lane* start_lane,
 		Node* target,
 		bool look_adjacent_lanes) {
+		TJS_TRACY_NAMED("PathFinder::find_edge_path_a_star_from_lane");
 		using NodeEntry = std::pair<double, Node*>; // (fScore , node)
 		std::priority_queue<NodeEntry,
 			std::vector<NodeEntry>,
