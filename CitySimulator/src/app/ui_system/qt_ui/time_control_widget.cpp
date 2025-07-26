@@ -88,6 +88,7 @@ namespace tjs {
 				_startPauseButton->setText("Pause");
 			}
 			_isRunning = !_isRunning;
+			_application.settings().simulationSettings.simulation_paused = !_isRunning;
 			updateButtonStates();
 		}
 

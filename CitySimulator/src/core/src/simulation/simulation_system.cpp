@@ -49,6 +49,10 @@ namespace tjs::core::simulation {
 		_tacticalModule.initialize();
 		_vehicleMovementModule.initialize();
 
+		if (!_settings.simulation_paused) {
+			_timeModule.pause();
+		}
+
 		if (_agents.size() == 1) {
 			_store.get_entry<core::model::VehicleAnalyzeData>()->agent = &_agents[0];
 		}

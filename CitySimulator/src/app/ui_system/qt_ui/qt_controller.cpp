@@ -48,7 +48,10 @@ namespace tjs {
 			// Create main window
 			MainWindow* window = new MainWindow(_application);
 			window->setWindowTitle("TJS");
-			window->resize(700, 800);
+
+			const auto& win_settings = _application.settings().general.qt_window;
+			window->resize(win_settings.width, win_settings.height);
+			window->move(win_settings.x, win_settings.y);
 
 			// Create main widget to hold everything
 			QWidget* mainWidget = new QWidget(window);
