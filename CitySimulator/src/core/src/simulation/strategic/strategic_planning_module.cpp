@@ -41,7 +41,7 @@ namespace tjs::core::simulation {
 		auto& segment = worldData.segments().front();
 
 		const double min_radius = segment->spatialGrid.cellSize * 4;
-		const double max_radius = segment->spatialGrid.cellSize * 200;
+		const double max_radius = segment->spatialGrid.cellSize * 2000;
 
 		auto node = find_random_goal(
 			segment->spatialGrid,
