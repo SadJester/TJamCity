@@ -48,7 +48,17 @@ namespace tjs {
 			// Create main window
 			MainWindow* window = new MainWindow(_application);
 			window->setWindowTitle("TJS");
-			window->resize(700, 800);
+
+			const auto& win_settings = _application.settings().general.qt_window;
+			const int MIN_WIDTH = 200;
+			const int MIN_HEIGHT = 200;
+			window->resize(std::max(win_settings.width, MIN_WIDTH), std::max(win_settings.height, MIN_HEIGHT));
+			window->setMinimumSize(MIN_WIDTH, MIN_HEIGHT);
+
+			QRect screenGeometry = QApplication::primaryScreen()->availableGeometry();
+			int x = std::clamp(win_settings.x, 0, screenGeometry.width() - win_settings.width);
+			int y = std::clamp(win_settings.y, 0, screenGeometry.height() - win_settings.height);
+			window->move(x, y);
 
 			// Create main widget to hold everything
 			QWidget* mainWidget = new QWidget(window);
