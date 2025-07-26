@@ -47,6 +47,7 @@ namespace tjs::core::simulation {
 			float t_headway = 1.5f;  // safe time headway [s]
 			float a_max = 1.0f;      // maximum acceleration [m/s²]
 			float b_comf = 2.0f;     // comfortable deceleration [m/s²] (positive)
+			float b_hard = 7.5f;     // max deceleration [m/s²] (positive)
 			float v_desired = 30.0f; // desired cruise speed [m/s]
 			float delta = 4.0f;      // acceleration exponent (4 = standard IDM)
 		};
@@ -54,6 +55,17 @@ namespace tjs::core::simulation {
 		// -----------------------------------------------------------------------------
 		// GAP HELPERS
 		// -----------------------------------------------------------------------------
+
+		inline float safe_entry_speed(const float v_leader,
+			const float gap,
+			const double dt) noexcept {
+			// Prevent division by zero when dt≈0
+			if (dt <= 1e-6) {
+				return v_leader;
+			}
+			// Allow the follower to close the entire gap within the next tick
+			return v_leader + gap / static_cast<float>(dt);
+		}
 
 		// Physical bumper‑to‑bumper gap between follower and its leader.
 		// Negative/zero gaps are clamped to 0 to avoid division by zero downstream.
@@ -101,8 +113,19 @@ namespace tjs::core::simulation {
 			// IDM equation
 			float a = p.a_max * (1.0f - term_free - term_int);
 
-			// Clip acceleration to physically reasonable bounds
-			a = std::clamp(a, -p.b_comf, p.a_max);
+			/* ---------- braking envelope ------------------------------------ */
+			//  | a_max |        normal IDM
+			//  |       |________________________________
+			// 0|                                   .
+			//  |                                   .
+			//  |-b_comf|---- comfortable driving ---.
+			//  |-b_hard| emergency only (collision!)|
+			//
+			if (a < -p.b_comf) {
+				// Let the model go as far as -b_hard,
+				// but never *increase* braking beyond what IDM asked for
+				a = std::max(a, -p.b_hard);
+			}
 			return a;
 		}
 
@@ -126,10 +149,6 @@ namespace tjs::core::simulation {
 			const auto* idx = rt.idx.data(); // sorted rear→front indices
 			const std::size_t n = rt.idx.size();
 
-			if (rt.static_lane->get_id() == 32) {
-				std::cout << "";
-			}
-
 			// ---------------------------------------------------------------------
 			// Scalar inner loop – one follower row at a time (will become gather/SIMD)
 			// ---------------------------------------------------------------------
@@ -149,6 +168,7 @@ namespace tjs::core::simulation {
 				// ─── 1b. Gather leader state (if any) ────────────────────────────
 				float s_gap = 1e9f;   // sentinel = "free road"
 				float v_leader = v_f; // same speed → Δv = 0
+
 				if (k > 0) {
 					const size_t j = idx[k - 1];
 					const float s_l = buf.s_curr[j];
@@ -330,58 +350,88 @@ namespace tjs::core::simulation {
 	inline bool gap_ok(const LaneRuntime& tgt_rt,
 		const std::vector<double>& s_curr,
 		const std::vector<float>& length,
+		const std::vector<float>& v_curr,
 		const double s_new, // tentative bumper pos
 		const float len_new,
-		const sim::idm_params_t& p) {
+		const sim::idm_params_t& p,
+		const double dt,
+		const std::size_t row_newcomer) {
 		const auto& idx = tgt_rt.idx; // descending s_curr
 
-		// Find insertion point as Phase‑2 would
+		// Find insertion point (same as before)
 		auto it = std::lower_bound(idx.begin(), idx.end(), s_new,
 			[&](std::size_t j, double pos) {
 				return s_curr[j] > pos;
 			});
 
-		// Leader gap
+		auto enough_gap_and_brake = [&](float gap,
+										float v_follow,
+										float v_lead) -> bool {
+			if (gap < p.s0) {
+				return false; // hard minimum jam distance
+			}
+
+			float delta_v = v_follow - v_lead; // +ve when closing
+			if (delta_v <= 0.0f) {
+				return true; // diverging – fine
+			}
+
+			// (i) Brake needed to **stop** before leader using constant decel
+			float req_brake = (delta_v * delta_v) / (2.0f * std::max(1e-3f, gap - p.s0));
+			if (req_brake > p.b_hard + 1e-4f) {
+				return false;
+			}
+
+			// (ii) Per‑tick decel limit (so we don't exceed −b_comf in this step)
+			float per_tick = delta_v / static_cast<float>(dt);
+			if (per_tick > p.b_hard + 1e-4f) {
+				// return false;
+			}
+
+			return true;
+		};
+
+		/* ---------- leader gap ------------------------------------------------- */
 		if (it != idx.begin()) {
 			std::size_t j_lead = *(it - 1);
 			float gap = sim::actual_gap(static_cast<float>(s_curr[j_lead]),
 				static_cast<float>(s_new),
-				length[j_lead], // len_leader
-				len_new);       // len_follower
-			if (gap < p.s0) {
+				length[j_lead], len_new);
+			if (!enough_gap_and_brake(gap, /* follower = newcomer */
+					v_curr[row_newcomer], v_curr[j_lead])) {
 				return false;
 			}
 		}
 
-		// Follower gap
+		/* ---------- follower (vehicle behind newcomer) ------------------------- */
 		if (it != idx.end()) {
 			std::size_t j_follow = *it;
 			float gap = sim::actual_gap(static_cast<float>(s_new),
 				static_cast<float>(s_curr[j_follow]),
-				len_new,           // leader = newcomer
-				length[j_follow]); // follower behind
-			if (gap < p.s0) {
+				len_new, length[j_follow]);
+			if (!enough_gap_and_brake(gap, /* follower behind */
+					v_curr[j_follow], v_curr[row_newcomer])) {
 				return false;
 			}
 		}
 
-		return true; // safe from both front and rear
+		return true;
 	}
 
 	void phase2_commit(std::vector<AgentData>& agents,
 		VehicleBuffers& buf,
-		std::vector<LaneRuntime>& lane_rt) {
+		std::vector<LaneRuntime>& lane_rt,
+		const double dt) // unchanged param list
+	{
 		TJS_TRACY_NAMED("VehicleMovement_Phase2");
 
-		/* (i) swap snapshot ------------------------------------------------------ */
 		buf.s_curr.swap(buf.s_next);
 		buf.v_curr.swap(buf.v_next);
 
-		/* ID‑model params needed for jam distance */
 		static const sim::idm_params_t p_idm {};
 
-		/* (ii) overshoot & route advance ---------------------------------------- */
-		for (size_t i = 0; i < agents.size(); ++i) {
+		/* ---------------- edge hop loop -------------------------------------- */
+		for (std::size_t i = 0; i < agents.size(); ++i) {
 			AgentData& ag = agents[i];
 			if (ag.path.empty()) {
 				continue;
@@ -391,12 +441,10 @@ namespace tjs::core::simulation {
 			Lane* lane = buf.lane[i];
 
 			while (remain >= lane->length - 1e-6) {
-				remain -= lane->length; // distance past node centre
+				remain -= lane->length;
 
-				/* ---------------- advance to next edge --------------------- */
 				++ag.path_offset;
 				if (ag.path_offset >= ag.path.size()) {
-					/* trip finished – despawn/idle same as before */
 					move_index(i, lane_rt, lane, lane, buf.s_curr);
 					set_state(buf.flags[i], ST_FOLLOW);
 					buf.flags[i] |= FL_ERROR;
@@ -404,44 +452,50 @@ namespace tjs::core::simulation {
 					ag.vehicle->error = MovementError::NoPath;
 					buf.s_curr[i] = lane->length;
 					buf.s_next[i] = buf.s_curr[i];
-					break; // exit while, vehicle done
+					break;
 				}
 
 				Edge* next_edge = ag.path[ag.path_offset];
 				MovementError err;
 				Lane* entry = choose_entry_lane(lane, next_edge, err);
-
 				if (err != MovementError::None || !entry) {
 					ag.vehicle->error = err == MovementError::None ? MovementError::IncorrectEdge : err;
 					ag.vehicle->state = VehicleState::Stopped;
-					break; // stop processing this car
+					break;
 				}
 
-				/* ---------------- safety gap test -------------------------- */
 				if (!gap_ok(lane_rt[entry->index_in_buffer],
-						buf.s_curr,
-						buf.length,
-						remain, // tentative position in target
-						buf.length[i],
-						p_idm)) {
-					// Not safe: stop just before the node; treat remain=lane->length
+						buf.s_curr, buf.length, buf.v_curr,
+						remain, buf.length[i],
+						p_idm, dt, i)) {
 					buf.s_curr[i] = lane->length - 0.01;
 					buf.s_next[i] = buf.s_curr[i];
-					break; // wait until next tick
+					break;
 				}
 
-				/* ---------------- commit the hop --------------------------- */
+				/* ----- commit hop ------------------------------------------- */
 				buf.s_curr[i] = remain;
 				move_index(i, lane_rt, lane, entry, buf.s_curr);
 				lane = entry;
 				buf.lane[i] = entry;
 				ag.goal_lane_mask = build_goal_mask(*entry->parent, *ag.path[ag.path_offset + 1]);
+
+				/* ----- SUMO‑style speed clamp ------------------------------ */
+				const auto& tgt_idx = lane_rt[entry->index_in_buffer].idx;
+				if (!tgt_idx.empty() && tgt_idx.front() != i) {
+					std::size_t j_lead = tgt_idx.front();
+					float gap_leader = sim::actual_gap(static_cast<float>(buf.s_curr[j_lead]),
+						static_cast<float>(buf.s_curr[i]),
+						buf.length[j_lead], buf.length[i]);
+					float v_safe = sim::safe_entry_speed(buf.v_curr[j_lead], gap_leader, dt);
+					buf.v_curr[i] = std::clamp(v_safe, 0.0f, buf.v_curr[i]);
+				}
 			}
 		}
 
-		/* (iii) lateral commitments – unchanged ------------------------------ */
+		/* ---------------- lateral loop --------------------------------------- */
 		for (LaneRuntime& rt : lane_rt) {
-			auto idx_copy = rt.idx; // copy, rt.idx mutates inside loop
+			auto idx_copy = rt.idx;
 			for (std::size_t row : idx_copy) {
 				Lane* tgt = buf.lane_target[row];
 				if (!tgt) {
@@ -449,18 +503,27 @@ namespace tjs::core::simulation {
 				}
 
 				if (gap_ok(lane_rt[tgt->index_in_buffer],
-						buf.s_curr,
-						buf.length,
-						buf.s_curr[row],
-						buf.length[row],
-						p_idm)) {
+						buf.s_curr, buf.length, buf.v_curr,
+						buf.s_curr[row], buf.length[row],
+						p_idm, dt, row)) {
 					move_index(row, lane_rt, rt.static_lane, tgt, buf.s_curr);
 					buf.lane[row] = tgt;
 					buf.lane_target[row] = nullptr;
 					set_state(buf.flags[row], ST_FOLLOW);
-					buf.flags[row] |= FL_COOLDOWN; // start cool‑down
+					buf.flags[row] |= FL_COOLDOWN;
+
+					const auto& tgt_idx = lane_rt[tgt->index_in_buffer].idx;
+					if (!tgt_idx.empty() && tgt_idx.front() != row) {
+						std::size_t j_lead = tgt_idx.front();
+						float gap_leader = sim::actual_gap(static_cast<float>(buf.s_curr[j_lead]),
+							static_cast<float>(buf.s_curr[row]),
+							buf.length[j_lead], buf.length[row]);
+						float v_safe = sim::safe_entry_speed(buf.v_curr[j_lead], gap_leader, dt);
+						buf.v_curr[row] = std::clamp(v_safe, 0.0f, buf.v_curr[row]);
+					}
 				}
 			}
 		}
 	}
+
 } // namespace tjs::core::simulation

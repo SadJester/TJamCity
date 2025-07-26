@@ -32,7 +32,7 @@ namespace tjs::core::simulation {
 		double dt = _system.timeModule().state().fixed_dt();
 
 		phase1_simd(agents, buf, lane_rt, dt);
-		phase2_commit(agents, buf, lane_rt);
+		phase2_commit(agents, buf, lane_rt, dt);
 		_system.vehicle_system().commit();
 	}
 

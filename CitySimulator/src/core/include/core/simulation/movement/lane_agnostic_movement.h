@@ -32,7 +32,8 @@ namespace tjs::core::simulation {
 	void phase2_commit(
 		std::vector<AgentData>& agents,
 		VehicleBuffers& buf,
-		std::vector<LaneRuntime>& lane_rt);
+		std::vector<LaneRuntime>& lane_rt,
+		double dt);
 
 	//------------------------------------------------------------------
 	//  move_index
