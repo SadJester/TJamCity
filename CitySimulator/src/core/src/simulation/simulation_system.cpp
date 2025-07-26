@@ -49,7 +49,7 @@ namespace tjs::core::simulation {
 		_tacticalModule.initialize();
 		_vehicleMovementModule.initialize();
 
-		if (!_settings.simulation_paused) {
+		if (_settings.simulation_paused) {
 			_timeModule.pause();
 		}
 
