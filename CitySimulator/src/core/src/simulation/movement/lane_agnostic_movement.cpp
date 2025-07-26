@@ -40,78 +40,161 @@ namespace tjs::core::simulation {
 		return 0.4f;
 	}
 
-	void phase1_simd(
-		const std::vector<AgentData>& agents,
-		VehicleBuffers& buf, // one object, not “in/out”
+	namespace sim {
+
+		struct idm_params_t {
+			float s0 = 2.0f;         // minimum jam distance [m]
+			float t_headway = 1.5f;  // safe time headway [s]
+			float a_max = 1.0f;      // maximum acceleration [m/s²]
+			float b_comf = 2.0f;     // comfortable deceleration [m/s²] (positive)
+			float v_desired = 30.0f; // desired cruise speed [m/s]
+			float delta = 4.0f;      // acceleration exponent (4 = standard IDM)
+		};
+
+		// -----------------------------------------------------------------------------
+		// GAP HELPERS
+		// -----------------------------------------------------------------------------
+
+		// Physical bumper‑to‑bumper gap between follower and its leader.
+		// Negative/zero gaps are clamped to 0 to avoid division by zero downstream.
+		inline float actual_gap(const float s_leader,
+			const float s_follower,
+			const float length_follower) noexcept {
+			return std::max(0.0f, s_leader - s_follower - length_follower);
+		}
+
+		// Desired dynamic gap s* (IDM eq. 3) that keeps time‑headway and braking distance.
+		// delta_v = v_follower - v_leader.  Positive when closing in.
+		inline float desired_gap(const float v_follower,
+			const float delta_v,
+			const idm_params_t& p) noexcept {
+			const float braking_term = (v_follower * delta_v) / (2.0f * std::sqrt(p.a_max * p.b_comf));
+			const float dyn = v_follower * p.t_headway + braking_term;
+			return p.s0 + std::max(0.0f, dyn);
+		}
+
+		// -----------------------------------------------------------------------------
+		// IDM ACCELERATION (SCALAR REFERENCE)
+		// -----------------------------------------------------------------------------
+
+		// Scalar Intelligent‑Driver‑Model acceleration.  Used by unit tests and as a
+		// readable reference for the SIMD drop‑in.
+		//
+		//   v_follower – current speed of vehicle [m/s]
+		//   v_leader   – speed of leader [m/s]
+		//   s_gap      – actual bumper‑to‑bumper distance [m]
+		//   p          – calibrated IDM parameters
+		inline float idm_scalar(const float v_follower,
+			const float v_leader,
+			const float s_gap,
+			const idm_params_t& p) noexcept {
+			const float delta_v = v_follower - v_leader; // closing speed
+			const float s_star = desired_gap(v_follower, delta_v, p);
+
+			// Free‑road acceleration and interaction (car‑following) terms
+			const float term_free = std::pow(v_follower / p.v_desired, p.delta);
+			const float term_int = std::pow(s_star / std::max(1e-3f, s_gap), 2.0f);
+
+			// IDM equation
+			float a = p.a_max * (1.0f - term_free - term_int);
+
+			// Clip acceleration to physically reasonable bounds
+			a = std::clamp(a, -p.b_comf, p.a_max);
+			return a;
+		}
+
+	} // namespace sim
+
+	void phase1_simd(const std::vector<AgentData>& agents,
+		VehicleBuffers& buf,
 		const std::vector<LaneRuntime>& lane_rt,
-		double dt) {
+		const double dt) {
 		TJS_TRACY_NAMED("VehicleMovement_Phase1");
-		/* threaded outer loop over lanes */
 
-		static constexpr float T_MIN = 0.f;
-		static constexpr float D_PREP = 80.0f;
+		static constexpr float D_PREP = 80.0f; // distance to start lane‑prep [m]
+		static constexpr float T_MIN = 1.5f;   // cool‑down expiry threshold [s]
 
+		const sim::idm_params_t idm_def {}; // default calibrated parameters
+
+		/* threaded outer loop over lanes (keep free to add OpenMP/TBB) */
 		// #pragma omp parallel for schedule(dynamic,4)
 		for (std::size_t L = 0; L < lane_rt.size(); ++L) {
 			const LaneRuntime& rt = lane_rt[L];
-			const auto* idx = rt.idx.data();
+			const auto* idx = rt.idx.data(); // sorted rear→front indices
 			const std::size_t n = rt.idx.size();
-			const float lane_length = rt.length;
 
-			/* scalar inner loop for clarity — replace with gather/SIMD later */
+			// ---------------------------------------------------------------------
+			// Scalar inner loop – one follower row at a time (will become gather/SIMD)
+			// ---------------------------------------------------------------------
 			for (std::size_t k = 0; k < n; ++k) {
-				std::size_t i = idx[k];
+				const std::size_t i = idx[k]; // follower row id
 
+				// Skip broken cars
 				if (buf.flags[i] & FL_ERROR) {
 					continue;
 				}
 
-				//----------------- longitudinal IDM ----------------------
-				float v = buf.v_curr[i];
-				double s = buf.s_curr[i];
-				float a = idm_scalar(s, v /* + leader row idx[k-1] */);
+				// ─── 1. Gather follower state ────────────────────────────────────
+				const float s_f = buf.s_curr[i]; // [m]
+				const float v_f = buf.v_curr[i]; // [m/s]
+				const float l_f = buf.length[i]; // bumper‑to‑bumper length [m]
 
-				const float v_next = v + a * dt;
-				// TODO[simulation]: clamp speed based on vehicle and way
-				const float max_speed = rt.max_speed;
-				buf.v_next[i] = v_next > max_speed ? max_speed : v_next;
-				buf.s_next[i] = s + v * dt + 0.5 * a * dt * dt;
+				// ─── 1b. Gather leader state (if any) ────────────────────────────
+				float s_gap = 1e9f;   // sentinel = "free road"
+				float v_leader = v_f; // same speed → Δv = 0
+				if (k > 0) {
+					if (rt.static_lane->get_id() == 2) {
+						std::cout << "";
+					}
 
-				// ─── 2. lane-change decision (simplified) ─────────────
-				double dist = rt.length - s; // to node
-				bool near = dist < D_PREP;
+					const std::size_t j = idx[k - 1]; // leader row ‑1 in sorted list
+					const float s_l = buf.s_curr[j];
+					v_leader = buf.v_curr[j];
+					s_gap = sim::actual_gap(s_l, s_f, l_f);
 
-				if (near && buf.lane_target[i] == nullptr) {
-					// TODO: must be removed from simd?
+					if (rt.static_lane->get_id() == 2 && rt.idx.size() > 1 && rt.idx[0] == 3 && s_gap < 20) {
+						std::cout << "";
+					}
+				}
+
+				// ─── 2. IDM acceleration ────────────────────────────────────────
+				const float a = sim::idm_scalar(v_f, v_leader, s_gap, idm_def);
+
+				// ─── 3. Kinematics update (Euler forward) ────────────────────────
+				const float v_next = std::clamp(v_f + a * static_cast<float>(dt), 0.0f, rt.max_speed);
+				buf.v_next[i] = v_next;
+				buf.s_next[i] = s_f + v_f * dt + 0.5f * a * static_cast<float>(dt * dt);
+
+				// ─── 4. Lane‑change decision (unchanged, but uses new kinematics) ─
+				const float dist_to_node = rt.length - s_f;
+				if (dist_to_node < D_PREP && buf.lane_target[i] == nullptr) {
 					const Lane* lane = rt.static_lane;
 					const AgentData& ag = agents[i];
-					bool ok = (ag.goal_lane_mask >> lane->index_in_edge) & 1;
 
-					if (ok && (buf.flags[i] & FL_COOLDOWN) == 0) {
-						Lane* left = lane->left();   // lane->turn == TurnDirection::Left  ? nullptr : lane->parent->lanes[lane->index_in_edge-1];
-						Lane* right = lane->right(); //lane->turn == TurnDirection::Right ? nullptr : lane->parent->lanes[lane->index_in_edge+1];
+					const auto want = [&](const Lane* L) -> bool {
+						return L && ((ag.goal_lane_mask >> L->index_in_edge) & 1);
+					};
 
-						auto want = [&](Lane* L) {
-							return L && ((ag.goal_lane_mask >> L->index_in_edge) & 1);
-						};
+					if (((ag.goal_lane_mask >> lane->index_in_edge) & 1) && (buf.flags[i] & FL_COOLDOWN) == 0) {
+						Lane* left = lane->left();
+						Lane* right = lane->right();
 
-						if (want(left) /*&& gap_ok(left, k, rt, buf)*/) {
+						if (want(left)) {
 							buf.lane_target[i] = left;
-						} else if (want(right) /*&& gap_ok(right, k, rt, buf)*/) {
+						} else if (want(right)) {
 							buf.lane_target[i] = right;
 						}
 
-						if (buf.lane_target[i]) { // scheduled?
+						if (buf.lane_target[i]) {
 							set_state(buf.flags[i], ST_EXECUTE);
 						}
 					}
 				}
 
-				//----------------- cool-down bookkeeping -----------------
+				// ─── 5. Cool‑down bookkeeping (unchanged) ────────────────────────
 				if (buf.flags[i] & FL_COOLDOWN) {
-					/* crude scalar timer in seconds */
-					float t = buf.lateral_off[i]; // repurpose column or add timer col.
-					t += dt;
+					float t = buf.lateral_off[i];
+					t += static_cast<float>(dt);
 					if (t > T_MIN) {
 						buf.flags[i] &= ~FL_COOLDOWN;
 						t = 0.f;
@@ -203,10 +286,29 @@ namespace tjs::core::simulation {
 
 		/* ---- 1. O(1) erase from source by swap-and-pop ---------------- */
 		{
-			auto it = std::find(v_src.begin(), v_src.end(), row);
+			const auto it = std::find(v_src.begin(), v_src.end(), row);
 			if (it != v_src.end()) {
-				std::iter_swap(it, v_src.end() - 1);
+				// Swap‑and‑pop for O(1) physical erase …
+				std::size_t moved = v_src.back();
+				*it = moved;
 				v_src.pop_back();
+
+				// … but now the element that was at the tail sits at *it* and may
+				// violate descending order.  Re‑insert it where it belongs.
+				if (!v_src.empty()) {
+					auto correct = std::upper_bound(
+						v_src.begin(), v_src.end(), moved,
+						[&](std::size_t lhs, std::size_t rhs) {
+							return s_curr[lhs] > s_curr[rhs]; // descending
+						});
+
+					// Rotate [first, middle, last): moves *it* to `correct` with O(distance)
+					if (correct < it) {
+						std::rotate(correct, it, it + 1);
+					} else if (correct > it) {
+						std::rotate(it, it + 1, correct);
+					}
+				}
 			}
 		}
 
@@ -214,7 +316,9 @@ namespace tjs::core::simulation {
 		const double s = s_curr[row];
 		auto it_ins = std::lower_bound(
 			v_tgt.begin(), v_tgt.end(), s,
-			[&](std::size_t j, double pos) { return s_curr[j] > pos; });
+			[&](std::size_t j, double pos) {
+				return s_curr[j] > pos;
+			});
 
 		v_tgt.insert(it_ins, row);
 	}
@@ -265,6 +369,7 @@ namespace tjs::core::simulation {
 				}
 
 				if (entry != nullptr) {
+					buf.s_curr[i] = remain;
 					move_index(i, lane_rt, lane, entry, buf.s_curr);
 					lane = entry;
 					buf.lane[i] = entry;
@@ -272,7 +377,7 @@ namespace tjs::core::simulation {
 					goto next_vehicle; // despawn else
 				}
 			}
-			buf.s_curr[i] = remain;
+			//buf.s_curr[i] = remain;
 
 		next_vehicle:;
 		}
