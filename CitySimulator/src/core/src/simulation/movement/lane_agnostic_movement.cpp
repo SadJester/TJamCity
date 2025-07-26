@@ -137,8 +137,9 @@ namespace tjs::core::simulation {
 		const double dt) {
 		TJS_TRACY_NAMED("VehicleMovement_Phase1");
 
-		static constexpr float D_PREP = 80.0f; // distance to start lane‑prep [m]
-		static constexpr float T_MIN = 1.5f;   // cool‑down expiry threshold [s]
+		static constexpr float D_PREP_PER_LANE = 60.0f; // extra [m] per missing lane
+		static constexpr float D_PREP = 80.0f;          // distance to start lane‑prep [m]
+		static constexpr float T_MIN = 1.5f;            // cool‑down expiry threshold [s]
 
 		const sim::idm_params_t idm_def {}; // default calibrated parameters
 
@@ -191,25 +192,29 @@ namespace tjs::core::simulation {
 
 				// ─── 4. Lane‑change decision (unchanged, but uses new kinematics) ─
 				const float dist_to_node = rt.length - s_f;
-				if (dist_to_node < D_PREP && buf.lane_target[i] == nullptr) {
-					const Lane* lane = rt.static_lane;
-					const AgentData& ag = agents[i];
+				const AgentData& ag = agents[i];
 
-					const auto want = [&](const Lane* L) -> bool {
-						return L && ((ag.goal_lane_mask >> L->index_in_edge) & 1);
-					};
+				// Current and (first) desired lane indices on this edge
+				const int curr_idx = rt.static_lane->index_in_edge; // 0 = right-most
+				int goal_idx = -1;
+				for (int b = 0; b < 32; ++b) { // first set bit in goal mask
+					if ((ag.goal_lane_mask >> b) & 1) {
+						goal_idx = b;
+						break;
+					}
+				}
 
-					if (!((ag.goal_lane_mask >> lane->index_in_edge) & 1) && (buf.flags[i] & FL_COOLDOWN) == 0) {
-						Lane* left = lane->left();
-						Lane* right = lane->right();
+				if (goal_idx >= 0 && goal_idx != curr_idx && (buf.flags[i] & FL_COOLDOWN) == 0) {
+					const int lanes_delta = goal_idx - curr_idx; // +ve ⇒ need to go LEFT
+					const float prep = D_PREP + std::abs(lanes_delta) * D_PREP_PER_LANE;
 
-						if (want(left)) {
-							buf.lane_target[i] = left;
-						} else if (want(right)) {
-							buf.lane_target[i] = right;
-						}
+					if (dist_to_node < prep) {
+						Lane* neigh = (lanes_delta > 0) ? rt.static_lane->left() // move leftwards
+														  :
+														  rt.static_lane->right(); // move rightwards
 
-						if (buf.lane_target[i]) {
+						if (neigh) {
+							buf.lane_target[i] = neigh; // step one lane toward goal
 							set_state(buf.flags[i], ST_EXECUTE);
 						}
 					}
