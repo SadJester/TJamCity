@@ -16,13 +16,15 @@ namespace tjs::core {
 		size_t vehiclesCount = DEFAULT_VEHICLES_COUNT;
 		int steps_on_update = DEFAULT_STEPS_ON_UPDATE;
 		double step_delta_sec = DEFAULT_FIXED_STEP_SEC;
+		bool simulation_paused = true;
 
 		NLOHMANN_DEFINE_TYPE_INTRUSIVE(SimulationSettings,
 			randomSeed,
 			seedValue,
 			vehiclesCount,
 			steps_on_update,
-			step_delta_sec);
+			step_delta_sec,
+			simulation_paused);
 	};
 
 } // namespace tjs::core

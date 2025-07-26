@@ -30,18 +30,24 @@ namespace tjs::render {
 			return;
 		}
 
+		const auto& win_settings = _application.settings().general.sdl_window;
+
 		// Create properties for window creation
 		SDL_PropertiesID props = SDL_CreateProperties();
 		//SDL_SetPointerProperty(props, SDL_PROP_WINDOW_CREATE_PARENT_POINTER, (void*)this->winId());
 
 		// Set size
-		SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, SCREEN_WIDTH);
-		SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, SCREEN_HEIGHT);
+		SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, win_settings.width);
+		SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, win_settings.height);
 		SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, true);
 
 		// Create the SDL window using properties
 		_sdlWindow = SDL_CreateWindowWithProperties(props);
 		SDL_DestroyProperties(props);
+
+		if (_sdlWindow) {
+			SDL_SetWindowPosition(_sdlWindow, win_settings.x, win_settings.y);
+		}
 
 		if (!_sdlWindow) {
 			//qWarning("Window could not be created! SDL Error: %s", SDL_GetError());
@@ -50,7 +56,7 @@ namespace tjs::render {
 		}
 
 		// Set the window size to match the widget
-		this->set_screen_dimensions(SCREEN_WIDTH, SCREEN_HEIGHT);
+		this->set_screen_dimensions(win_settings.width, win_settings.height);
 
 		// Create the renderer
 		_sdlRenderer = SDL_CreateRenderer(_sdlWindow, nullptr);
@@ -78,6 +84,18 @@ namespace tjs::render {
 		}
 
 		if (_sdlWindow) {
+			auto& win = _application.settings().general.sdl_window;
+			int pos_x = 0;
+			int pos_y = 0;
+			int width = 0;
+			int height = 0;
+			SDL_GetWindowPosition(_sdlWindow, &pos_x, &pos_y);
+			SDL_GetWindowSize(_sdlWindow, &width, &height);
+			win.x = pos_x;
+			win.y = pos_y;
+			win.width = width;
+			win.height = height;
+
 			SDL_DestroyWindow(_sdlWindow);
 			_sdlWindow = nullptr;
 		}
@@ -171,10 +189,19 @@ namespace tjs::render {
 					_application.setFinished();
 					break;
 				}
+				case SDL_EVENT_WINDOW_MOVED: {
+					auto& win = _application.settings().general.sdl_window;
+					win.x = event.window.data1;
+					win.y = event.window.data2;
+					break;
+				}
 				case SDL_EVENT_WINDOW_RESIZED: {
 					int new_width = event.window.data1;
 					int new_height = event.window.data2;
 					this->set_screen_dimensions(new_width, new_height);
+					auto& win = _application.settings().general.sdl_window;
+					win.width = new_width;
+					win.height = new_height;
 					_eventManager.dispatch_resize_event(RenderResizeEvent { new_width, new_height });
 					break;
 				}

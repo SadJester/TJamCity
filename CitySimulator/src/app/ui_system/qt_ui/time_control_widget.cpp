@@ -27,7 +27,8 @@ namespace tjs {
 			// Create start/pause button
 			_startPauseButton = new QPushButton("Start", this);
 			connect(_startPauseButton, &QPushButton::clicked, this, &TimeControlWidget::onStartPauseClicked);
-			_isRunning = !_application.simulationSystem().timeModule().state().isPaused;
+			_isRunning = !_application.simulationSystem().timeModule().state().isPaused && !_application.simulationSystem().settings().simulation_paused;
+
 			_startPauseButton->setText(_isRunning ? "Pause" : "Start");
 			layout->addWidget(_startPauseButton);
 
@@ -88,6 +89,7 @@ namespace tjs {
 				_startPauseButton->setText("Pause");
 			}
 			_isRunning = !_isRunning;
+			_application.settings().simulationSettings.simulation_paused = !_isRunning;
 			updateButtonStates();
 		}
 

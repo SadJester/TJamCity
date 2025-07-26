@@ -17,6 +17,12 @@ namespace tjs {
 		}
 
 		void MainWindow::closeEvent(QCloseEvent* event) {
+			auto& win = _app.settings().general.qt_window;
+			const QRect geom = geometry();
+			win.x = geom.x();
+			win.y = geom.y();
+			win.width = geom.width();
+			win.height = geom.height();
 			_app.setFinished();
 		}
 	} // namespace ui

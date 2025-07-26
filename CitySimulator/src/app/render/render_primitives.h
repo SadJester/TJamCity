@@ -67,6 +67,12 @@ namespace tjs {
 			, y(y_)
 			, width(width_)
 			, height(height_) {}
+
+		NLOHMANN_DEFINE_TYPE_INTRUSIVE(Rectangle,
+			x,
+			y,
+			width,
+			height);
 	};
 	static_assert(sizeof(Rectangle) == 16, "Rectangle should be 16 bytes");
 
