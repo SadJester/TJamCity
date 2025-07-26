@@ -2,6 +2,9 @@
 #include "Application.h"
 #include "data/map_renderer_data.h"
 
+#include <core/simulation/simulation_system.h>
+#include <core/simulation/transport_management/vehicle_system.h>
+
 #include <core/data_layer/world_data.h>
 #include <core/data_layer/enums.h>
 #include <core/enum_flags.h>
@@ -153,12 +156,25 @@ namespace tjs::ui {
 			}
 		}
 
-		QString text = QString("Lane %1\nWidth: %2\nTurn: %3\nOutgoing: %4\nIncoming: %5")
+		QStringList vehicle_info;
+		const auto& lanes = _application.simulationSystem().vehicle_system().lane_runtime();
+		const auto& s_curr = _application.simulationSystem().vehicle_system().vehicle_buffers().s_curr;
+		const auto& vehicles = _application.simulationSystem().vehicle_system().vehicles();
+		const auto& rt_lane = lanes[lane->index_in_buffer];
+		for (int idx : rt_lane.idx) {
+			vehicle_info << QString("%1 (%2): %3")
+								.arg(idx)
+								.arg(vehicles[idx].uid)
+								.arg(s_curr[idx]);
+		}
+
+		QString text = QString("Lane %1\nWidth: %2\nTurn: %3\nOutgoing: %4\nIncoming: %5\nVehicles: %6")
 						   .arg(lane->get_id())
 						   .arg(lane->width)
 						   .arg(turn_to_string(lane->turn))
 						   .arg(outs.join(", "))
-						   .arg(ins.join(", "));
+						   .arg(ins.join(", "))
+						   .arg(vehicle_info.join("\n\t"));
 		_info->setText(text);
 	}
 

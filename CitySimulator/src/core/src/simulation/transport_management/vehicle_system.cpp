@@ -23,6 +23,15 @@ namespace tjs::core::simulation {
 			return;
 		}
 
+		_vehicle_configs = {
+			{ VehicleType::SimpleCar, { VehicleType::SimpleCar, 4.5f, 1.8f } },
+			{ VehicleType::SmallTruck, { VehicleType::SmallTruck, 6.5f, 2.5f } },
+			{ VehicleType::BigTruck, { VehicleType::BigTruck, 10.0f, 2.5f } },
+			{ VehicleType::Ambulance, { VehicleType::Ambulance, 5.5f, 2.2f } },
+			{ VehicleType::PoliceCar, { VehicleType::PoliceCar, 5.0f, 2.0f } },
+			{ VehicleType::FireTrack, { VehicleType::FireTrack, 8.0f, 2.5f } }
+		};
+
 		auto& segment = _system.worldData().segments()[0];
 		auto& network = *segment->road_network;
 
@@ -126,6 +135,17 @@ namespace tjs::core::simulation {
 			Vehicle vehicle;
 			vehicle.uid = RandomGenerator::get().next_int(1, 10000000);
 			vehicle.type = RandomGenerator::get().next_enum<VehicleType>();
+
+			auto it_config = _vehicle_configs.find(vehicle.type);
+
+			if (it_config == _vehicle_configs.end()) {
+				// TODO[simulation]: error handling
+				it_config = _vehicle_configs.begin();
+			}
+
+			vehicle.length = it_config->second.length;
+			vehicle.width = it_config->second.width;
+
 			vehicle.currentSpeed = 0;
 			vehicle.maxSpeed = RandomGenerator::get().next_float(40, 100.0f);
 			vehicle.coordinates = coordinates;
@@ -169,7 +189,7 @@ namespace tjs::core::simulation {
 			_buffers.v_curr[i] = v.currentSpeed;
 			_buffers.v_next[i] = v.currentSpeed;
 			_buffers.desired_v[i] = v.maxSpeed;
-			_buffers.length[i] = 4.0f; // default length
+			_buffers.length[i] = v.length;
 			_buffers.lateral_off[i] = v.lateral_offset;
 			_buffers.lane[i] = v.current_lane;
 			_buffers.flags[i] = 0;

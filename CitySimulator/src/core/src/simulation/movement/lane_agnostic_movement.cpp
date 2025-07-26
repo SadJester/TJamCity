@@ -57,10 +57,13 @@ namespace tjs::core::simulation {
 
 		// Physical bumper‑to‑bumper gap between follower and its leader.
 		// Negative/zero gaps are clamped to 0 to avoid division by zero downstream.
-		inline float actual_gap(const float s_leader,
-			const float s_follower,
-			const float length_follower) noexcept {
-			return std::max(0.0f, s_leader - s_follower - length_follower);
+		inline float actual_gap(const float s_leader_ctr,
+			const float s_follower_ctr,
+			const float len_leader,
+			const float len_follower) noexcept {
+			const float bumper_dist =
+				(s_leader_ctr - s_follower_ctr) - 0.5f * (len_leader + len_follower);
+			return std::max(0.0f, bumper_dist);
 		}
 
 		// Desired dynamic gap s* (IDM eq. 3) that keeps time‑headway and braking distance.
@@ -123,6 +126,10 @@ namespace tjs::core::simulation {
 			const auto* idx = rt.idx.data(); // sorted rear→front indices
 			const std::size_t n = rt.idx.size();
 
+			if (rt.static_lane->get_id() == 32) {
+				std::cout << "";
+			}
+
 			// ---------------------------------------------------------------------
 			// Scalar inner loop – one follower row at a time (will become gather/SIMD)
 			// ---------------------------------------------------------------------
@@ -143,10 +150,15 @@ namespace tjs::core::simulation {
 				float s_gap = 1e9f;   // sentinel = "free road"
 				float v_leader = v_f; // same speed → Δv = 0
 				if (k > 0) {
-					const std::size_t j = idx[k - 1]; // leader row ‑1 in sorted list
+					const size_t j = idx[k - 1];
 					const float s_l = buf.s_curr[j];
 					v_leader = buf.v_curr[j];
-					s_gap = sim::actual_gap(s_l, s_f, l_f);
+
+					const float s_l_ctr = buf.s_curr[j];
+					const float v_leader = buf.v_curr[j];
+					const float len_leader = buf.length[j];
+
+					s_gap = sim::actual_gap(s_l_ctr, s_f, len_leader, l_f);
 				}
 
 				// ─── 2. IDM acceleration ────────────────────────────────────────
@@ -325,25 +337,29 @@ namespace tjs::core::simulation {
 
 		// Find insertion point as Phase‑2 would
 		auto it = std::lower_bound(idx.begin(), idx.end(), s_new,
-			[&](std::size_t j, double pos) { return s_curr[j] > pos; });
+			[&](std::size_t j, double pos) {
+				return s_curr[j] > pos;
+			});
 
-		// Leader gap -----------------------------------------------------
+		// Leader gap
 		if (it != idx.begin()) {
 			std::size_t j_lead = *(it - 1);
 			float gap = sim::actual_gap(static_cast<float>(s_curr[j_lead]),
 				static_cast<float>(s_new),
-				len_new);
+				length[j_lead], // len_leader
+				len_new);       // len_follower
 			if (gap < p.s0) {
 				return false;
 			}
 		}
 
-		// Follower gap ---------------------------------------------------
+		// Follower gap
 		if (it != idx.end()) {
 			std::size_t j_follow = *it;
 			float gap = sim::actual_gap(static_cast<float>(s_new),
 				static_cast<float>(s_curr[j_follow]),
-				length[j_follow]);
+				len_new,           // leader = newcomer
+				length[j_follow]); // follower behind
 			if (gap < p.s0) {
 				return false;
 			}

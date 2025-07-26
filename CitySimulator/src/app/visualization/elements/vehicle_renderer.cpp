@@ -43,8 +43,6 @@ namespace tjs::visualization {
 
 	struct VehicleRenderSettings {
 		FColor color;
-		float length;
-		float width;
 	};
 
 	struct VehicleSettings {
@@ -54,12 +52,12 @@ namespace tjs::visualization {
 	// Initialize the vehicle settings
 	const VehicleSettings vehicleSettings = {
 		{
-			VehicleRenderSettings { FColor { 0.0f, 0.0f, 1.0f, 1.0f }, 4.5f, 1.8f },  // SimpleCar - Blue
-			VehicleRenderSettings { FColor { 1.0f, 0.0f, 0.0f, 1.0f }, 6.5f, 2.5f },  // SmallTruck - Red
-			VehicleRenderSettings { FColor { 0.0f, 1.0f, 0.0f, 1.0f }, 10.0f, 2.5f }, // BigTruck - Green
-			VehicleRenderSettings { FColor { 1.0f, 1.0f, 0.0f, 1.0f }, 5.5f, 2.2f },  // Ambulance - Yellow
-			VehicleRenderSettings { FColor { 0.0f, 1.0f, 1.0f, 1.0f }, 5.0f, 2.0f },  // PoliceCar - Cyan
-			VehicleRenderSettings { FColor { 1.0f, 0.0f, 1.0f, 1.0f }, 8.0f, 2.5f }   // FireTrack - Magenta
+			VehicleRenderSettings { FColor { 0.0f, 0.0f, 1.0f, 1.0f } }, // SimpleCar - Blue
+			VehicleRenderSettings { FColor { 1.0f, 0.0f, 0.0f, 1.0f } }, // SmallTruck - Red
+			VehicleRenderSettings { FColor { 0.0f, 1.0f, 0.0f, 1.0f } }, // BigTruck - Green
+			VehicleRenderSettings { FColor { 1.0f, 1.0f, 0.0f, 1.0f } }, // Ambulance - Yellow
+			VehicleRenderSettings { FColor { 0.0f, 1.0f, 1.0f, 1.0f } }, // PoliceCar - Cyan
+			VehicleRenderSettings { FColor { 1.0f, 0.0f, 1.0f, 1.0f } }  // FireTrack - Magenta
 		}
 	};
 
@@ -86,8 +84,8 @@ namespace tjs::visualization {
 
 		// Calculate width and height in pixels based on metersPerPixel
 		const float scaler = _application.settings().render.vehicleScaler;
-		const float widthInPixels = scaler * settings.width / metersPerPixel;
-		const float lengthInPixels = scaler * settings.length / metersPerPixel;
+		const float widthInPixels = scaler * vehicle.width / metersPerPixel;
+		const float lengthInPixels = scaler * vehicle.length / metersPerPixel;
 
 		// Define vertices for the rectangle. The vehicle length is aligned
 		// with the X-axis so that a rotation angle of 0 corresponds to

@@ -33,6 +33,8 @@ namespace tjs::core {
 		float maxSpeed;
 		Coordinates coordinates;
 		VehicleType type;
+		float length;
+		float width;
 		WayInfo* currentWay;
 		int currentSegmentIndex;
 		float rotationAngle; // orientation in radians

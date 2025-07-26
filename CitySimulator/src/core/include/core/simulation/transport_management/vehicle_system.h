@@ -9,7 +9,16 @@
 namespace tjs::core::simulation {
 	class TrafficSimulationSystem;
 
+	struct VehicleConfig {
+		VehicleType type;
+		float length;
+		float width;
+	};
+
 	class VehicleSystem {
+	public:
+		using VehicleConfigs = std::unordered_map<VehicleType, VehicleConfig>;
+
 	public:
 		VehicleSystem(TrafficSimulationSystem& system);
 
@@ -27,11 +36,16 @@ namespace tjs::core::simulation {
 			return _vehicles;
 		}
 
+		const VehicleConfigs& vehicle_configs() const {
+			return _vehicle_configs;
+		}
+
 		void commit();
 
 	private:
 		TrafficSimulationSystem& _system;
 
+		VehicleConfigs _vehicle_configs;
 		VehicleBuffers _buffers;
 		std::vector<Vehicle> _vehicles;
 
