@@ -18,6 +18,12 @@ namespace tjs::core::simulation {
 	class VehicleSystem {
 	public:
 		using VehicleConfigs = std::unordered_map<VehicleType, VehicleConfig>;
+		using Vehicles = std::vector<Vehicle>;
+		enum class CreationState {
+			InProgress,
+			Completed,
+			Error
+		};
 
 	public:
 		VehicleSystem(TrafficSimulationSystem& system);
@@ -26,13 +32,18 @@ namespace tjs::core::simulation {
 		void release();
 
 		// TODO: here must be some profile
-		void create_vehicles();
+		size_t populate();
+		size_t update();
+
+		CreationState creation_state() const noexcept {
+			return _creation_state;
+		}
 
 		VehicleBuffers& vehicle_buffers() {
 			return _buffers;
 		}
 
-		std::vector<Vehicle>& vehicles() {
+		Vehicles& vehicles() {
 			return _vehicles;
 		}
 
@@ -47,9 +58,12 @@ namespace tjs::core::simulation {
 
 		VehicleConfigs _vehicle_configs;
 		VehicleBuffers _buffers;
-		std::vector<Vehicle> _vehicles;
+		Vehicles _vehicles;
 
 		std::vector<LaneRuntime> _lane_runtime;
+
+		CreationState _creation_state = CreationState::InProgress;
+		size_t _creation_ticks = 0;
 
 	public:
 		std::vector<LaneRuntime>& lane_runtime() {

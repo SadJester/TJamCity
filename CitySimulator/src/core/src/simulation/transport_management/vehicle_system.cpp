@@ -4,6 +4,7 @@
 
 #include <core/simulation/simulation_system.h>
 #include <core/random_generator.h>
+#include <core/events/vehicle_population_events.h>
 
 //TODO[simulation]: Probably must move from here while moving further
 #include <core/data_layer/data_types.h>
@@ -45,6 +46,13 @@ namespace tjs::core::simulation {
 				lane.index_in_buffer = _lane_runtime.size() - 1;
 			}
 		}
+
+		_creation_state = CreationState::InProgress;
+		_creation_ticks = 0;
+		_buffers.clear();
+		_vehicles.clear();
+		_vehicles.reserve(_system.settings().vehiclesCount);
+		_buffers.reserve(_system.settings().vehiclesCount);
 	}
 
 	void VehicleSystem::release() {
@@ -93,109 +101,96 @@ namespace tjs::core::simulation {
 
 		for (LaneRuntime& rt : _lane_runtime) {
 			rt.static_lane->vehicles.clear();
+			rt.static_lane->vehicles.reserve(rt.idx.size());
 			for (std::size_t idx : rt.idx) {
 				rt.static_lane->vehicles.push_back(&_vehicles[idx]);
 			}
 		}
 	}
 
-	void VehicleSystem::create_vehicles() {
+	size_t VehicleSystem::populate() {
 		if (_system.worldData().segments().empty()) {
-			return;
+			return 0;
 		}
 
 		auto& settings = _system.settings();
-		auto& vehicles = _vehicles;
-		vehicles.clear();
-
-		vehicles.reserve(settings.vehiclesCount);
-
-		// Get all nodes from the road network
+		size_t created = 0;
 		auto& segment = _system.worldData().segments()[0];
 
-		std::vector<core::Edge*> all_edges;
-		all_edges.reserve(segment->road_network->edges.size());
+		const size_t max_attempts = 100;
+		size_t attempts = 0;
+		while (_vehicles.size() < settings.vehiclesCount && attempts < max_attempts) {
+			auto& edges = segment->road_network->edges;
+			auto& edge = edges[RandomGenerator::get().next_int(0, edges.size() - 1)];
+			Lane* lane = &edge.lanes[0];
 
-		for (auto& edge : segment->road_network->edges) {
-			all_edges.push_back(&edge);
-		}
+			bool allowed = lane->vehicles.empty() || lane->vehicles.back()->s_on_lane > 20.0;
+			if (!allowed) {
+				++attempts;
+				continue;
+			}
 
-		// TODO: RandomGenerator<Context>
-		if (!settings.randomSeed) {
-			RandomGenerator::set_seed(settings.seedValue);
-		}
-
-		// Generate vehicles
-		for (size_t i = 0; i < settings.vehiclesCount; ++i) {
-			// Randomly select a node for the vehicle's coordinates
-			auto edge_it = std::next(all_edges.begin(), RandomGenerator::get().next_int(0, all_edges.size() - 1));
-			const Coordinates& coordinates = (*edge_it)->start_node->coordinates;
-
-			// Create a vehicle with random attributes and the selected node's coordinates
-			Vehicle vehicle;
+			Vehicle vehicle {};
 			vehicle.uid = RandomGenerator::get().next_int(1, 10000000);
 			vehicle.type = RandomGenerator::get().next_enum<VehicleType>();
 
 			auto it_config = _vehicle_configs.find(vehicle.type);
-
 			if (it_config == _vehicle_configs.end()) {
-				// TODO[simulation]: error handling
 				it_config = _vehicle_configs.begin();
 			}
 
 			vehicle.length = it_config->second.length;
 			vehicle.width = it_config->second.width;
-
 			vehicle.currentSpeed = 0;
 			vehicle.maxSpeed = RandomGenerator::get().next_float(40, 100.0f);
-			vehicle.coordinates = coordinates;
+			vehicle.coordinates = edge.start_node->coordinates;
 			vehicle.currentSegmentIndex = 0;
-			//vehicle.currentWay = find_way(*nodeIt);
-			vehicle.current_lane = &(*edge_it)->lanes[0];
+			vehicle.current_lane = lane;
 			vehicle.s_on_lane = 0.0;
 			vehicle.lateral_offset = 0.0;
 			vehicle.state = VehicleState::Stopped;
 			vehicle.error = MovementError::None;
 
-			vehicles.push_back(vehicle);
-			insert_vehicle_sorted(*vehicle.current_lane, &vehicles.back());
+			_vehicles.push_back(vehicle);
+			insert_vehicle_sorted(*vehicle.current_lane, &_vehicles.back());
 
-			for (LaneRuntime& rt : _lane_runtime) {
-				if (rt.static_lane == vehicle.current_lane) {
-					rt.idx.push_back(vehicles.size() - 1);
-					break;
-				}
-			}
+			_lane_runtime[lane->index_in_buffer].idx.push_back(_vehicles.size() - 1);
+
+			_buffers.add_vehicle(vehicle);
+			++created;
 		}
 
-		const size_t count = vehicles.size();
-		_buffers.s_curr.resize(count);
-		_buffers.s_next.resize(count);
-		_buffers.v_curr.resize(count);
-		_buffers.v_next.resize(count);
-		_buffers.desired_v.resize(count);
-		_buffers.length.resize(count);
-		_buffers.lateral_off.resize(count);
-		_buffers.lane.resize(count);
-		_buffers.lane_target.assign(count, nullptr);
-		_buffers.flags.resize(count, 0);
-		_buffers.v_max_speed.resize(count, 0);
-		_buffers.uids.resize(count, 0);
-
-		for (size_t i = 0; i < count; ++i) {
-			const Vehicle& v = vehicles[i];
-			_buffers.s_curr[i] = v.s_on_lane;
-			_buffers.s_next[i] = v.s_on_lane;
-			_buffers.v_curr[i] = v.currentSpeed;
-			_buffers.v_next[i] = v.currentSpeed;
-			_buffers.desired_v[i] = v.maxSpeed;
-			_buffers.length[i] = v.length;
-			_buffers.lateral_off[i] = v.lateral_offset;
-			_buffers.lane[i] = v.current_lane;
-			_buffers.flags[i] = 0;
-			_buffers.v_max_speed[i] = v.maxSpeed;
-			_buffers.uids[i] = v.uid;
+		if (_vehicles.size() >= settings.vehiclesCount) {
+			_creation_state = CreationState::Completed;
 		}
+
+		return created;
+	}
+
+	size_t VehicleSystem::update() {
+		if (_creation_state != CreationState::InProgress) {
+			return 0;
+		}
+
+		size_t created = populate();
+		++_creation_ticks;
+		if (_creation_ticks > 1000 && _creation_state != CreationState::Completed) {
+			_creation_state = CreationState::Error;
+		}
+
+		bool need_send = created > 0 || _creation_state == CreationState::Error || _creation_state == CreationState::Completed;
+		if (need_send) {
+			_system.message_dispatcher().handle_message(
+				core::events::VehiclesPopulated {
+					created,
+					_vehicles.size(),
+					_system.settings().vehiclesCount,
+					_creation_ticks,
+					_creation_state == CreationState::Error },
+				"vehicle_system");
+		}
+
+		return created;
 	}
 
 } // namespace tjs::core::simulation

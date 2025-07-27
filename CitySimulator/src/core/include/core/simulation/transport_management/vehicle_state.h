@@ -2,6 +2,7 @@
 
 namespace tjs::core {
 	struct Lane;
+	struct Vehicle;
 } // namespace tjs::core
 
 namespace tjs::core::simulation {
@@ -37,6 +38,10 @@ namespace tjs::core::simulation {
 		std::vector<uint8_t> flags;     // packed bits
 
 		std::vector<size_t> uids;
+
+		void clear();
+		void add_vehicle(Vehicle& vehicle);
+		void reserve(size_t count);
 	};
 
 } // namespace tjs::core::simulation

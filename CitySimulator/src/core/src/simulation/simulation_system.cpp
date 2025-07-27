@@ -28,19 +28,15 @@ namespace tjs::core::simulation {
 	TrafficSimulationSystem::~TrafficSimulationSystem() {
 	}
 
-	void TrafficSimulationSystem::initialize() {
-		_timeModule.initialize();
+	void sync_agents(TrafficSimulationSystem::Agents& agents, VehicleSystem::Vehicles& vehicles) {
+		// Update pointers
+		for (size_t i = 0; i < agents.size(); ++i) {
+			agents[i].vehicle = &vehicles[i];
+		}
 
-		_vehicle_system.initialize();
-		_vehicle_system.create_vehicles();
-
-		auto& vehicles = _vehicle_system.vehicles();
-
-		_agents.clear();
-		_agents.shrink_to_fit();
-		_agents.reserve(vehicles.size());
-		for (size_t i = 0; i < vehicles.size(); ++i) {
-			_agents.push_back({ vehicles[i].uid,
+		// Add new vehicles
+		for (size_t i = agents.size(); i < vehicles.size(); ++i) {
+			agents.push_back({ vehicles[i].uid,
 				TacticalBehaviour::Normal,
 				nullptr,
 				&vehicles[i],
@@ -51,6 +47,17 @@ namespace tjs::core::simulation {
 				false,
 				0 });
 		}
+	}
+
+	void TrafficSimulationSystem::initialize() {
+		_timeModule.initialize();
+
+		_vehicle_system.initialize();
+		_vehicle_system.populate();
+
+		_agents.clear();
+		_agents.reserve(_settings.vehiclesCount);
+		sync_agents(_agents, _vehicle_system.vehicles());
 
 		_strategicModule.initialize();
 		_tacticalModule.initialize();
@@ -88,6 +95,11 @@ namespace tjs::core::simulation {
 
 	void TrafficSimulationSystem::step() {
 		_timeModule.tick();
+
+		size_t created = _vehicle_system.update();
+		if (created > 0) {
+			sync_agents(_agents, _vehicle_system.vehicles());
+		}
 
 		_strategicModule.update();
 		_tacticalModule.update();

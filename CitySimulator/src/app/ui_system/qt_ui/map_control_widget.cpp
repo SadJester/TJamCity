@@ -31,6 +31,7 @@ namespace tjs {
 			QVBoxLayout* mainLayout = new QVBoxLayout(this);
 
 			_application.message_dispatcher().register_handler(*this, &MapControlWidget::handle_positioning_changed, "MapControlWidget");
+			_application.simulationSystem().message_dispatcher().register_handler(*this, &MapControlWidget::handle_population, "MapControlWidget");
 
 			// File button
 			_openFileButton = new QPushButton("Open OSMX File");
@@ -79,6 +80,7 @@ namespace tjs {
 
 		MapControlWidget::~MapControlWidget() {
 			_application.message_dispatcher().unregister_handler<events::MapPositioningChanged>("MapControlWidget");
+			_application.simulationSystem().message_dispatcher().unregister_handler<core::events::VehiclesPopulated>("MapControlWidget");
 		}
 
 		void MapControlWidget::createVehicleInformation(QVBoxLayout* layout) {
@@ -137,6 +139,10 @@ namespace tjs {
 			_regenerateVehiclesButton = new QPushButton("Regenerate vehicles", this);
 			mainLayout->addWidget(_regenerateVehiclesButton);
 
+			_populationLabel = new QLabel("", this);
+			_populationLabel->setStyleSheet("color: blue;");
+			mainLayout->addWidget(_populationLabel);
+
 			// Подключения сигналов
 			connect(vehicleCount, &QSpinBox::valueChanged, [this](int value) {
 				_application.settings().simulationSettings.vehiclesCount = value;
@@ -163,6 +169,9 @@ namespace tjs {
 
 			connect(_regenerateVehiclesButton, &QPushButton::clicked, [this]() {
 				_application.simulationSystem().initialize();
+				if (_populationLabel) {
+					_populationLabel->clear();
+				}
 			});
 
 			layout->addWidget(infoFrame);
@@ -260,6 +269,30 @@ namespace tjs {
 
 		void MapControlWidget::handle_positioning_changed(const events::MapPositioningChanged& event) {
 			UpdateLabels();
+		}
+
+		void MapControlWidget::handle_population(const core::events::VehiclesPopulated& event) {
+			if (!_populationLabel) {
+				return;
+			}
+			if (event.error) {
+				_populationLabel->setText("Population error");
+				_populationLabel->setStyleSheet("color: red;");
+				return;
+			}
+			if (event.current >= event.total) {
+				_populationLabel->setText(
+					QString("Generated %1 for %2 ticks")
+						.arg(event.total)
+						.arg(event.creation_ticks));
+				_populationLabel->setStyleSheet("color: green;");
+			} else {
+				_populationLabel->setText(QString("Generation: %2/%3 (%1 in last step)")
+						.arg(event.generated)
+						.arg(event.current)
+						.arg(event.total));
+				_populationLabel->setStyleSheet("color: blue;");
+			}
 		}
 
 		void MapControlWidget::openOSMFile() {
