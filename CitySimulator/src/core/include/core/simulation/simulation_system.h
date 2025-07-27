@@ -4,6 +4,7 @@
 #include <core/simulation/tactical/tactical_planning_module.h>
 #include <core/simulation/movement/vehicle_movement_module.h>
 #include <core/simulation/simulation_settings.h>
+#include <core/simulation/simulation_debug.h>
 #include <core/simulation/transport_management/vehicle_system.h>
 
 #include <common/message_dispatcher/message_dispatcher.h>

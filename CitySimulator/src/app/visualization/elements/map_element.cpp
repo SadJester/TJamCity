@@ -3,7 +3,6 @@
 #include <visualization/elements/map_element.h>
 
 #include <data/persistent_render_data.h>
-#include <data/simulation_debug_data.h>
 #include <data/map_renderer_data.h>
 
 #include <render/render_base.h>
@@ -66,7 +65,7 @@ namespace tjs::visualization {
 		, _application(application)
 		, _render_data(*application.stores().get_entry<model::MapRendererData>())
 		, _cache(*application.stores().get_entry<core::model::PersistentRenderData>())
-		, _debugData(*application.stores().get_entry<core::model::SimulationDebugData>()) {
+		, _debugData(application.stores().get_entry<core::simulation::SimulationDebugData>()) {
 	}
 
 	MapElement::~MapElement() {
@@ -436,11 +435,11 @@ namespace tjs::visualization {
 		draw_diamond(renderer, position, circle_size, FColor::Red);
 	}
 
-	void render_network(IRenderer& renderer, const WorldSegment& segment, core::model::MapRendererData& render_data, core::model::SimulationDebugData& debug_data) {
+	void render_network(IRenderer& renderer, const WorldSegment& segment, core::model::MapRendererData& render_data, core::simulation::SimulationDebugData* debug_data) {
 		const bool render_nodes = static_cast<uint32_t>(render_data.visibleLayers & model::MapRendererLayer::Nodes) != 0;
 		auto& screen_center = render_data.screen_center;
 		double mpp = render_data.metersPerPixel;
-		core::Node* selected_node = debug_data.selectedNode;
+		core::Node* selected_node = debug_data != nullptr ? debug_data->selectedNode : nullptr;
 		const bool simplified = render_data.metersPerPixel > render_data.simplifiedViewThreshold;
 
 		enum class LaneType {
@@ -484,7 +483,7 @@ namespace tjs::visualization {
 		const Node* selected = selected_node;
 		const auto& ways = segment.sorted_ways;
 
-		const bool filter = render_data.networkOnlyForSelected && !debug_data.reachableNodes.empty();
+		const bool filter = render_data.networkOnlyForSelected && debug_data != nullptr && !debug_data->reachableNodes.empty();
 
 		std::unordered_set<const Lane*> outgoing_highlight;
 		std::unordered_set<const Lane*> incoming_highlight;
@@ -521,7 +520,7 @@ namespace tjs::visualization {
 					if (!node->hasTag(NodeTags::Way)) {
 						continue;
 					}
-					const bool is_filtered = filter && !debug_data.reachableNodes.contains(node->uid);
+					const bool is_filtered = filter && !debug_data->reachableNodes.contains(node->uid);
 					if (!is_filtered) {
 						draw_node(renderer, *node, node.get() == selected, screen_center, mpp);
 					}
@@ -632,7 +631,7 @@ namespace tjs::visualization {
 				if (!node->hasTag(NodeTags::Way)) {
 					continue;
 				}
-				const bool is_filtered = filter && !debug_data.reachableNodes.contains(node->uid);
+				const bool is_filtered = filter && !debug_data->reachableNodes.contains(node->uid);
 				if (!is_filtered) {
 					draw_node(renderer, *node, node.get() == selected, screen_center, mpp);
 				}
@@ -671,14 +670,14 @@ namespace tjs::visualization {
 		// Set color for network graph edges
 		renderer.set_draw_color({ 0.0f, 0.8f, 0.8f, 0.5f }); // Semi-transparent cyan
 
-		bool filter = _render_data.networkOnlyForSelected && !_debugData.reachableNodes.empty();
+		bool filter = _render_data.networkOnlyForSelected && _debugData != nullptr && !_debugData->reachableNodes.empty();
 		// Render edges from edge graph
 		for (const auto& [node, edges] : network.edge_graph) {
-			const bool is_node_filtered = filter && !_debugData.reachableNodes.contains(node->uid);
+			const bool is_node_filtered = filter && !_debugData->reachableNodes.contains(node->uid);
 			const FPoint start = convert_to_screen_f(node->coordinates, _render_data.screen_center, _render_data.metersPerPixel);
 			for (const Edge* edge : edges) {
 				Node* neighbor = edge->end_node;
-				const bool is_neighbor_filtered = filter && !_debugData.reachableNodes.contains(neighbor->uid);
+				const bool is_neighbor_filtered = filter && !_debugData->reachableNodes.contains(neighbor->uid);
 				const FPoint end = convert_to_screen_f(neighbor->coordinates, _render_data.screen_center, _render_data.metersPerPixel);
 				Position is_start { static_cast<int>(start.x), static_cast<int>(start.y) };
 				Position is_end { static_cast<int>(end.x), static_cast<int>(end.y) };

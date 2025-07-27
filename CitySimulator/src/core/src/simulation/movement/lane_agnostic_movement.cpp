@@ -2,11 +2,13 @@
 
 #include <core/simulation/movement/lane_agnostic_movement.h>
 #include <core/simulation/transport_management/vehicle_state.h>
+
 #include <core/data_layer/lane.h>
 #include <core/data_layer/edge.h>
 #include <core/data_layer/vehicle.h>
 
 #include <core/simulation/agent/agent_data.h>
+#include <core/simulation/simulation_system.h>
 
 namespace tjs::core::simulation {
 
@@ -131,11 +133,14 @@ namespace tjs::core::simulation {
 
 	} // namespace sim
 
-	void phase1_simd(const std::vector<AgentData>& agents,
+	void phase1_simd(
+		TrafficSimulationSystem& system,
 		VehicleBuffers& buf,
 		const std::vector<LaneRuntime>& lane_rt,
 		const double dt) {
 		TJS_TRACY_NAMED("VehicleMovement_Phase1");
+
+		const auto& agents = system.agents();
 
 		static constexpr float D_PREP_PER_LANE = 60.0f; // extra [m] per missing lane
 		static constexpr float D_PREP = 80.0f;          // distance to start lane‑prep [m]
@@ -423,12 +428,15 @@ namespace tjs::core::simulation {
 		return true;
 	}
 
-	void phase2_commit(std::vector<AgentData>& agents,
+	void phase2_commit(
+		TrafficSimulationSystem& system,
 		VehicleBuffers& buf,
 		std::vector<LaneRuntime>& lane_rt,
 		const double dt) // unchanged param list
 	{
 		TJS_TRACY_NAMED("VehicleMovement_Phase2");
+
+		auto& agents = system.agents();
 
 		buf.s_curr.swap(buf.s_next);
 		buf.v_curr.swap(buf.v_next);

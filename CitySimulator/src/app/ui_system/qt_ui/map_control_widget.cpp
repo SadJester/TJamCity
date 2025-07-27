@@ -276,7 +276,10 @@ namespace tjs {
 				return;
 			}
 			if (event.error) {
-				_populationLabel->setText("Population error");
+				_populationLabel->setText(
+					QString("Population error: %1/%2")
+						.arg(event.current)
+						.arg(event.total));
 				_populationLabel->setStyleSheet("color: red;");
 				return;
 			}

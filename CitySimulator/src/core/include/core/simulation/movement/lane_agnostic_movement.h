@@ -3,10 +3,10 @@
 namespace tjs::core {
 	struct Lane;
 	struct Edge;
-	struct AgentData;
 } // namespace tjs::core
 
 namespace tjs::core::simulation {
+	class TrafficSimulationSystem;
 
 	struct LaneRuntime {
 		Lane* static_lane = nullptr;
@@ -24,13 +24,13 @@ namespace tjs::core::simulation {
 	uint32_t build_goal_mask(const Edge& curr_edge, const Edge& next_edge);
 
 	void phase1_simd(
-		const std::vector<AgentData>& agents,
+		TrafficSimulationSystem& system,
 		VehicleBuffers& buf,
 		const std::vector<LaneRuntime>& lane_rt,
 		double dt);
 
 	void phase2_commit(
-		std::vector<AgentData>& agents,
+		TrafficSimulationSystem& system,
 		VehicleBuffers& buf,
 		std::vector<LaneRuntime>& lane_rt,
 		double dt);

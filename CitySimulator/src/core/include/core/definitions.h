@@ -11,3 +11,6 @@
 #define TJS_TRACY_NAMED(NAME)
 #define TJS_FRAME_MARK
 #endif
+
+// TODO[simulation]: should be configurable
+#define TJS_SIMULATION_DEBUG 1

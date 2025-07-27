@@ -23,6 +23,9 @@ namespace tjs::core::simulation {
 		, _tacticalModule(*this)
 		, _vehicle_system(*this)
 		, _vehicleMovementModule(*this) {
+#if TJS_SIMULATION_DEBUG
+		_store.create<SimulationDebugData>();
+#endif
 	}
 
 	TrafficSimulationSystem::~TrafficSimulationSystem() {

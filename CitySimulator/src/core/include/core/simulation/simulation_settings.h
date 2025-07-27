@@ -4,6 +4,18 @@
 
 namespace tjs::core {
 
+	ENUM(SimulationDebugPhase, char,
+		IDM_Phase1_Lane,
+		IDM_Phase1_Vehicle,
+		IDM_Phase2_Agent,
+		IDM_Phase2_ChooseLane);
+
+	struct SimulationDebugData {
+		std::vector<size_t> vehicle_indices; // indices of vehicles that should be in the lane
+		size_t lane_id;                      // Lane id to break
+		SimulationDebugPhase debug_phase;    // at what phase should break
+	};
+
 	struct SimulationSettings {
 		static constexpr const char* NAME = "simulation_settings";
 

@@ -23,7 +23,6 @@ namespace tjs::core::simulation {
 
 	void VehicleMovementModule::update() {
 		TJS_TRACY_NAMED("VehicleMovement_Update");
-		auto& agents = _system.agents();
 
 		auto& vs = _system.vehicle_system();
 		auto& buf = vs.vehicle_buffers();
@@ -31,8 +30,8 @@ namespace tjs::core::simulation {
 
 		double dt = _system.timeModule().state().fixed_dt();
 
-		phase1_simd(agents, buf, lane_rt, dt);
-		phase2_commit(agents, buf, lane_rt, dt);
+		phase1_simd(_system, buf, lane_rt, dt);
+		phase2_commit(_system, buf, lane_rt, dt);
 		_system.vehicle_system().commit();
 	}
 

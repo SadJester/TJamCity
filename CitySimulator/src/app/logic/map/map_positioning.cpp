@@ -2,7 +2,6 @@
 #include "logic/map/map_positioning.h"
 #include "Application.h"
 #include "data/persistent_render_data.h"
-#include "data/simulation_debug_data.h"
 #include "data/map_renderer_data.h"
 #include <events/map_events.h>
 
@@ -10,6 +9,7 @@
 
 #include <core/math_constants.h>
 #include <core/data_layer/world_data.h>
+#include <core/simulation/simulation_debug.h>
 
 #include <SDL3/SDL.h>
 
@@ -40,7 +40,7 @@ namespace tjs::app::logic {
 
 		_dragging = true;
 
-		auto* debug = _application.stores().get_entry<core::model::SimulationDebugData>();
+		auto* debug = _application.stores().get_entry<core::simulation::SimulationDebugData>();
 		auto* render = _application.stores().get_entry<core::model::MapRendererData>();
 		if (!debug || !render) {
 			return;
