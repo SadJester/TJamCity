@@ -57,6 +57,16 @@ namespace tjs::core::simulation {
 			RandomGenerator::set_seed(_settings.seedValue);
 		}
 
+		// clear lanes from vehicles
+		if (!_worldData.segments().empty()) {
+			auto& segment = _worldData.segments()[0];
+			for (auto& edge : segment->road_network->edges) {
+				for (auto& lane : edge.lanes) {
+					lane.vehicles.clear();
+				}
+			}
+		}
+
 		_vehicle_system.initialize();
 		_vehicle_system.populate();
 

@@ -139,7 +139,7 @@ namespace tjs::ui {
 
 		_agentIdSpin = new QSpinBox(_debugGroup);
 		_agentIdSpin->setRange(0, 1000000);
-		_agentIdSpin->setValue(_application.settings().simulationSettings.debug_data.lane_id);
+		_agentIdSpin->setValue(_application.settings().simulationSettings.debug_data.agent_id);
 		debugForm->addRow("Agent ID:", _agentIdSpin);
 
 		_vehicleList = new QListWidget(_debugGroup);
