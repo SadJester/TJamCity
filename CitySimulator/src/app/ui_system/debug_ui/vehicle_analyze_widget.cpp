@@ -11,6 +11,7 @@
 #include <core/store_models/vehicle_analyze_data.h>
 #include <core/simulation/agent/agent_data.h>
 #include <core/simulation/simulation_system.h>
+#include <core/simulation/simulation_debug.h>
 #include <events/vehicle_events.h>
 
 namespace tjs::ui {
@@ -87,6 +88,9 @@ namespace tjs::ui {
 
 		QVBoxLayout* mainLayout = new QVBoxLayout(this);
 
+		_debugGroup = new QGroupBox("Simulation Debug", this);
+		QVBoxLayout* debugLayout = new QVBoxLayout(_debugGroup);
+
 		// Agent selection combo box
 		QHBoxLayout* selectionLayout = new QHBoxLayout();
 		QLabel* agentLabel = new QLabel("Select Agent:", this);
@@ -95,7 +99,7 @@ namespace tjs::ui {
 
 		selectionLayout->addWidget(agentLabel);
 		selectionLayout->addWidget(_agentComboBox, 1);
-		mainLayout->addLayout(selectionLayout);
+		debugLayout->addLayout(selectionLayout);
 
 		// Agent details group
 		_detailsGroup = new QGroupBox("Agent Details", this);
@@ -122,12 +126,94 @@ namespace tjs::ui {
 		formLayout->addRow("", _pathTreeWidget);
 
 		_detailsGroup->setLayout(formLayout);
-		mainLayout->addWidget(_detailsGroup);
+		debugLayout->addWidget(_detailsGroup);
 		_detailsGroup->setVisible(false);
+
+		// Debug controls
+		QFormLayout* debugForm = new QFormLayout();
+
+		_laneIdSpin = new QSpinBox(_debugGroup);
+		_laneIdSpin->setRange(0, 1000000);
+		_laneIdSpin->setValue(_application.settings().simulationSettings.debug_data.lane_id);
+		debugForm->addRow("Lane ID:", _laneIdSpin);
+
+		_agentIdSpin = new QSpinBox(_debugGroup);
+		_agentIdSpin->setRange(0, 1000000);
+		_agentIdSpin->setValue(_application.settings().simulationSettings.debug_data.lane_id);
+		debugForm->addRow("Agent ID:", _agentIdSpin);
+
+		_vehicleList = new QListWidget(_debugGroup);
+		_vehicleList->setDragDropMode(QAbstractItemView::InternalMove);
+		_vehicleList->setSelectionMode(QAbstractItemView::SingleSelection);
+		_vehicleList->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
+		for (uint64_t id : _application.settings().simulationSettings.debug_data.vehicle_indices) {
+			_vehicleList->addItem(QString::number(id));
+		}
+		debugForm->addRow("Vehicles:", _vehicleList);
+
+		QHBoxLayout* vehicleControls = new QHBoxLayout();
+		_vehicleSpin = new QSpinBox(_debugGroup);
+		_vehicleSpin->setRange(0, 1000000);
+		_addVehicleButton = new QPushButton("Add", _debugGroup);
+		_removeVehicleButton = new QPushButton("Remove", _debugGroup);
+		vehicleControls->addWidget(_vehicleSpin);
+		vehicleControls->addWidget(_addVehicleButton);
+		vehicleControls->addWidget(_removeVehicleButton);
+		debugForm->addRow("", vehicleControls);
+
+		_breakPhaseCombo = new QComboBox(_debugGroup);
+		_breakPhaseCombo->addItem("None", static_cast<int>(core::simulation::SimulationMovementPhase::None));
+		_breakPhaseCombo->addItem("IDM_Phase1_Lane", static_cast<int>(core::simulation::SimulationMovementPhase::IDM_Phase1_Lane));
+		_breakPhaseCombo->addItem("IDM_Phase1_Vehicle", static_cast<int>(core::simulation::SimulationMovementPhase::IDM_Phase1_Vehicle));
+		_breakPhaseCombo->addItem("IDM_Phase2_Agent", static_cast<int>(core::simulation::SimulationMovementPhase::IDM_Phase2_Agent));
+		_breakPhaseCombo->addItem("IDM_Phase2_ChooseLane", static_cast<int>(core::simulation::SimulationMovementPhase::IDM_Phase2_ChooseLane));
+		_breakPhaseCombo->setCurrentIndex(static_cast<int>(_application.settings().simulationSettings.debug_data.movement_phase));
+		debugForm->addRow("Break movement phase:", _breakPhaseCombo);
+
+		debugLayout->addLayout(debugForm);
+
+		_debugGroup->setLayout(debugLayout);
+		mainLayout->addWidget(_debugGroup);
 
 		// Connect signals
 		connect(_agentComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
 			this, &VehicleAnalyzeWidget::handleAgentSelection);
+
+		auto updateVehicles = [this]() {
+			auto& vec = _application.settings().simulationSettings.debug_data.vehicle_indices;
+			vec.clear();
+			for (int i = 0; i < _vehicleList->count(); ++i) {
+				vec.push_back(_vehicleList->item(i)->text().toULongLong());
+			}
+		};
+
+		connect(_laneIdSpin, QOverload<int>::of(&QSpinBox::valueChanged), [this](int value) {
+			_application.settings().simulationSettings.debug_data.lane_id = value;
+		});
+
+		connect(_agentIdSpin, QOverload<int>::of(&QSpinBox::valueChanged), [this](int value) {
+			_application.settings().simulationSettings.debug_data.agent_id = value;
+		});
+
+		connect(_addVehicleButton, &QPushButton::clicked, [this, updateVehicles]() mutable {
+			_vehicleList->addItem(QString::number(_vehicleSpin->value()));
+			updateVehicles();
+		});
+
+		connect(_removeVehicleButton, &QPushButton::clicked, [this, updateVehicles]() mutable {
+			auto* item = _vehicleList->currentItem();
+			if (item) {
+				delete item;
+				updateVehicles();
+			}
+		});
+
+		connect(_vehicleList->model(), &QAbstractItemModel::rowsMoved, [updateVehicles](const QModelIndex&, int, int, const QModelIndex&, int) { updateVehicles(); });
+		connect(_vehicleList, &QListWidget::itemChanged, [updateVehicles](QListWidgetItem*) { updateVehicles(); });
+
+		connect(_breakPhaseCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), [this](int index) {
+			_application.settings().simulationSettings.debug_data.movement_phase = static_cast<core::simulation::SimulationMovementPhase>(index);
+		});
 
 		setLayout(mainLayout);
 	}

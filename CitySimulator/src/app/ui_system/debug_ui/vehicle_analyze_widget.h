@@ -40,6 +40,7 @@ namespace tjs {
 			// UI elements
 			QComboBox* _agentComboBox;
 			QGroupBox* _detailsGroup;
+			QGroupBox* _debugGroup;
 			QLabel* _agentIdValue;
 			QLabel* _vehicleIdValue;
 			QLabel* _behaviourValue;
@@ -47,6 +48,14 @@ namespace tjs {
 			QLabel* _currentStepGoalValue;
 			QLabel* _pathNodeCountValue;
 			QTreeWidget* _pathTreeWidget;
+
+			QSpinBox* _laneIdSpin;
+			QSpinBox* _agentIdSpin;
+			QListWidget* _vehicleList;
+			QSpinBox* _vehicleSpin;
+			QPushButton* _addVehicleButton;
+			QPushButton* _removeVehicleButton;
+			QComboBox* _breakPhaseCombo;
 		};
 	} // namespace ui
 } // namespace tjs

@@ -2,20 +2,9 @@
 
 #include <nlohmann/json.hpp>
 
+#include <core/simulation/simulation_debug.h>
+
 namespace tjs::core {
-
-	ENUM(SimulationDebugPhase, char,
-		IDM_Phase1_Lane,
-		IDM_Phase1_Vehicle,
-		IDM_Phase2_Agent,
-		IDM_Phase2_ChooseLane);
-
-	struct SimulationDebugData {
-		std::vector<size_t> vehicle_indices; // indices of vehicles that should be in the lane
-		size_t lane_id;                      // Lane id to break
-		SimulationDebugPhase debug_phase;    // at what phase should break
-	};
-
 	struct SimulationSettings {
 		static constexpr const char* NAME = "simulation_settings";
 
@@ -30,13 +19,16 @@ namespace tjs::core {
 		double step_delta_sec = DEFAULT_FIXED_STEP_SEC;
 		bool simulation_paused = true;
 
+		simulation::SimulationDebugData debug_data;
+
 		NLOHMANN_DEFINE_TYPE_INTRUSIVE(SimulationSettings,
 			randomSeed,
 			seedValue,
 			vehiclesCount,
 			steps_on_update,
 			step_delta_sec,
-			simulation_paused);
+			simulation_paused,
+			debug_data);
 	};
 
 } // namespace tjs::core

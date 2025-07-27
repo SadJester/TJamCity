@@ -6,6 +6,7 @@
 #include <core/data_layer/world_data.h>
 #include <core/store_models/idata_model.h>
 #include <core/store_models/vehicle_analyze_data.h>
+#include <core/random_generator.h>
 
 #include <core/events/simulation_events.h>
 
@@ -23,9 +24,6 @@ namespace tjs::core::simulation {
 		, _tacticalModule(*this)
 		, _vehicle_system(*this)
 		, _vehicleMovementModule(*this) {
-#if TJS_SIMULATION_DEBUG
-		_store.create<SimulationDebugData>();
-#endif
 	}
 
 	TrafficSimulationSystem::~TrafficSimulationSystem() {
@@ -54,6 +52,10 @@ namespace tjs::core::simulation {
 
 	void TrafficSimulationSystem::initialize() {
 		_timeModule.initialize();
+
+		if (!_settings.randomSeed) {
+			RandomGenerator::set_seed(_settings.seedValue);
+		}
 
 		_vehicle_system.initialize();
 		_vehicle_system.populate();

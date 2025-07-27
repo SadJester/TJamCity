@@ -138,13 +138,17 @@ namespace tjs::core::simulation {
 		VehicleBuffers& buf,
 		const std::vector<LaneRuntime>& lane_rt,
 		const double dt) {
-		TJS_TRACY_NAMED("VehicleMovement_Phase1");
+		TJS_TRACY_NAMED("VehicleMovement::IDM::Phase1");
 
 		const auto& agents = system.agents();
 
 		static constexpr float D_PREP_PER_LANE = 60.0f; // extra [m] per missing lane
 		static constexpr float D_PREP = 80.0f;          // distance to start lane‑prep [m]
 		static constexpr float T_MIN = 1.5f;            // cool‑down expiry threshold [s]
+
+#if TJS_SIMULATION_DEBUG
+		auto& debug = system.settings().debug_data;
+#endif
 
 		const sim::idm_params_t idm_def {}; // default calibrated parameters
 
@@ -155,11 +159,22 @@ namespace tjs::core::simulation {
 			const auto* idx = rt.idx.data(); // sorted rear→front indices
 			const std::size_t n = rt.idx.size();
 
+			TJS_BREAK_IF(
+				debug.movement_phase == SimulationMovementPhase::IDM_Phase1_Lane
+				&& debug.lane_id == rt.static_lane->get_id()
+				&& debug.vehicle_indices == rt.idx);
+
 			// ---------------------------------------------------------------------
 			// Scalar inner loop – one follower row at a time (will become gather/SIMD)
 			// ---------------------------------------------------------------------
 			for (std::size_t k = 0; k < n; ++k) {
 				const std::size_t i = idx[k]; // follower row id
+
+				TJS_BREAK_IF(
+					debug.movement_phase == SimulationMovementPhase::IDM_Phase1_Vehicle
+					&& debug.lane_id == rt.static_lane->get_id()
+					&& debug.vehicle_indices.size() == 1
+					&& k == debug.vehicle_indices[0]);
 
 				// Skip broken cars
 				if (buf.flags[i] & FL_ERROR) {
@@ -434,7 +449,11 @@ namespace tjs::core::simulation {
 		std::vector<LaneRuntime>& lane_rt,
 		const double dt) // unchanged param list
 	{
-		TJS_TRACY_NAMED("VehicleMovement_Phase2");
+		TJS_TRACY_NAMED("VehicleMovement::IDM::Phase2");
+
+#if TJS_SIMULATION_DEBUG
+		auto& debug = system.settings().debug_data;
+#endif
 
 		auto& agents = system.agents();
 
@@ -453,6 +472,12 @@ namespace tjs::core::simulation {
 			double remain = buf.s_curr[i];
 			Lane* lane = buf.lane[i];
 
+			TJS_BREAK_IF(
+				debug.movement_phase == SimulationMovementPhase::IDM_Phase2_Agent
+				&& i == debug.agent_id
+				&& debug.lane_id == lane->get_id()
+				&& debug.vehicle_indices == lane_rt[lane->index_in_buffer].idx);
+
 			while (remain >= lane->length - 1e-6) {
 				remain -= lane->length;
 
@@ -470,6 +495,13 @@ namespace tjs::core::simulation {
 
 				Edge* next_edge = ag.path[ag.path_offset];
 				MovementError err;
+
+				TJS_BREAK_IF(
+					debug.movement_phase == SimulationMovementPhase::IDM_Phase2_ChooseLane
+					&& i == debug.agent_id
+					&& debug.lane_id == lane->get_id()
+					&& debug.vehicle_indices == lane_rt[lane->index_in_buffer].idx);
+
 				Lane* entry = choose_entry_lane(lane, next_edge, err);
 				if (err != MovementError::None || !entry) {
 					ag.vehicle->error = err == MovementError::None ? MovementError::IncorrectEdge : err;
