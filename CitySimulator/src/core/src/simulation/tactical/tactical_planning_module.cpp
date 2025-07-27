@@ -86,6 +86,7 @@ namespace tjs::core::simulation {
 			auto& segment = world.segments().front();
 			auto& road_network = *segment->road_network;
 			auto& spatial_grid = segment->spatialGrid;
+			auto& buf = system.vehicle_system().vehicle_buffers();
 
 			// reach goal
 			if (vehicle.state == VehicleState::Stopped && vehicle.error == MovementError::NoPath) {
@@ -104,6 +105,7 @@ namespace tjs::core::simulation {
 			if (vehicle.state == VehicleState::Stopped && vehicle.error == MovementError::NoOutgoingConnections) {
 				reset_goals(agent, true);
 				agent.stucked = true;
+				buf.flags[i] |= FL_ERROR;
 				return;
 			}
 
@@ -120,14 +122,9 @@ namespace tjs::core::simulation {
 				Lane* start_lane = vehicle.current_lane;
 
 				Node* goal_node = agent.currentGoal;
-				auto& buf = system.vehicle_system().vehicle_buffers();
 				if (start_lane && goal_node) {
 					const bool find_adjacent = vehicle.s_on_lane < (vehicle.current_lane->length - 10.0);
-					agent.path = find_path(start_lane, goal_node, road_network, false);
-
-					if (agent.path.empty()) {
-						agent.path = find_path(start_lane, goal_node, road_network, find_adjacent);
-					}
+					agent.path = find_path(start_lane, goal_node, road_network, find_adjacent);
 
 					if (!agent.path.empty()) {
 						Edge* first_edge = agent.path.front();
