@@ -506,6 +506,10 @@ namespace tjs::core::simulation {
 				if (err != MovementError::None || !entry) {
 					ag.vehicle->error = err == MovementError::None ? MovementError::IncorrectEdge : err;
 					ag.vehicle->state = VehicleState::Stopped;
+					buf.s_curr[i] = lane->length - 0.01;
+					buf.s_next[i] = buf.s_curr[i];
+					buf.v_curr[i] = 0.0f;
+					buf.v_next[i] = 0.0f;
 					break;
 				}
 

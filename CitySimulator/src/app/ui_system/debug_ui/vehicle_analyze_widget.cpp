@@ -69,9 +69,10 @@ namespace tjs::ui {
 		auto setupAgentCombo = [this, &agents]() {
 			_agentComboBox->addItem("-- None --", QVariant::fromValue<uint64_t>(0));
 
-			for (const core::AgentData& agent : agents) {
+			for (size_t i = 0; i < agents.size(); ++i) {
+				const core::AgentData& agent = agents[i];
 				_agentComboBox->addItem(
-					"Agent " + QString::number(agent.id),
+					"[" + QString::number(i) + "] Agent " + QString::number(agent.id),
 					QVariant::fromValue(agent.id));
 			}
 
