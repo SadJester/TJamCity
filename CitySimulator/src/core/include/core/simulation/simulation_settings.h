@@ -3,6 +3,7 @@
 #include <nlohmann/json.hpp>
 
 #include <core/simulation/simulation_debug.h>
+#include <core/simulation/movement/movement_algorithm.h>
 
 namespace tjs::core {
 	struct SimulationSettings {
@@ -18,6 +19,7 @@ namespace tjs::core {
 		int steps_on_update = DEFAULT_STEPS_ON_UPDATE;
 		double step_delta_sec = DEFAULT_FIXED_STEP_SEC;
 		bool simulation_paused = true;
+		simulation::MovementAlgoType movement_algo = simulation::MovementAlgoType::IDM;
 
 		simulation::SimulationDebugData debug_data;
 
@@ -28,6 +30,7 @@ namespace tjs::core {
 			steps_on_update,
 			step_delta_sec,
 			simulation_paused,
+			movement_algo,
 			debug_data);
 	};
 
