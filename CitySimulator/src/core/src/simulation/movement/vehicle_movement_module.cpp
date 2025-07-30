@@ -79,7 +79,7 @@ namespace tjs::core::simulation {
 	namespace movement_details {
 
 		void check_move_beginning(AgentData& agent, TrafficSimulationSystem& system) {
-			Vehicle& vehicle = *agent.vehicle;
+			/*Vehicle& vehicle = *agent.vehicle;
 			if (vehicle.state == VehicleState::PendingMove) {
 				auto parent_edge = vehicle.current_lane->parent;
 				if (!agent.path.empty()) {
@@ -105,7 +105,7 @@ namespace tjs::core::simulation {
 					vehicle.s_on_lane = 0.f;
 					agent.path.erase(agent.path.begin());
 				}
-			}
+			}*/
 		}
 
 		void adjust_lane(AgentData& agent, TrafficSimulationSystem& system) {
@@ -150,7 +150,7 @@ namespace tjs::core::simulation {
 			double speed_mps = vehicle.currentSpeed * 1000.0 / 3600.0;
 			double remaining_move = speed_mps * delta_time;
 
-			while (remaining_move > 0 && vehicle.current_lane) {
+			/*while (remaining_move > 0 && vehicle.current_lane) {
 				Lane* lane = vehicle.current_lane;
 				double to_end = lane->length - vehicle.s_on_lane;
 				double move = std::min(remaining_move, to_end);
@@ -164,6 +164,8 @@ namespace tjs::core::simulation {
 				}
 
 				if (agent.path.empty()) {
+					VehicleStateBitsV::set_info(buf.flags[i], VehicleStateBits::ST_STOPPED, VehicleStateBitsDivision::STATE);
+					VehicleStateBitsV::set_info(buf.flags[i], VehicleStateBits::FL_ERROR, VehicleStateBitsDivision::FLAGS);
 					vehicle.state = VehicleState::Stopped;
 					vehicle.error = MovementError::NoPath;
 					break;
@@ -212,16 +214,17 @@ namespace tjs::core::simulation {
 					vehicle.error = outgoing.empty() ? MovementError::NoOutgoingConnections : MovementError::NoNextLane;
 					break;
 				}
-			}
+			}*/
 		}
 
 		void process_vehicle_state(AgentData& agent, TrafficSimulationSystem& system) {
 			auto& vehicle = *agent.vehicle;
-			switch (vehicle.state) {
+			/*switch (vehicle.state) {
 				case VehicleState::PendingMove: {
 					check_move_beginning(agent, system);
 					adjust_lane(agent, system);
-					vehicle.state = VehicleState::Moving;
+					VehicleStateBitsV::set_info(vehicle.state_, VehicleStateBits::ST_FOLLOW, )
+					vehicle.state_ = VehicleState::Moving;
 				} break;
 				case VehicleState::Moving: {
 					// TODO[simulation]: cycle for movement with different lanes
@@ -232,7 +235,7 @@ namespace tjs::core::simulation {
 				case VehicleState::Undefined:
 				case VehicleState::Count:
 					break;
-			}
+			}*/
 		}
 
 		void update_agent(AgentData& agent, TrafficSimulationSystem& system) {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <core/simulation/transport_management/vehicle_state.h>
+
 namespace tjs::core {
 
 	struct WayInfo;
@@ -16,16 +18,8 @@ namespace tjs::core {
 		Count
 	};
 
-	ENUM(MovementError, char,
-		None,
-		NoOutgoingConnections,
-		NoPath,
-		IncorrectEdge,
-		IncorrectLane,
-		NoNextLane);
-
 	ENUM(VehicleState, uint8_t,
-		Undefined, PendingMove, Moving, Stopped)
+		Undefined, PendingMove, Moving, Stopped);
 
 	struct Vehicle {
 		uint64_t uid;
@@ -41,8 +35,9 @@ namespace tjs::core {
 		Lane* current_lane;
 		double s_on_lane;
 		double lateral_offset;
-		VehicleState state;
-		MovementError error;
+		simulation::VehicleMovementErrors error;
+		uint16_t state_;
+		uint16_t previous_state;
 	};
 	static_assert(std::is_pod<Vehicle>::value, "Data object expect to be POD");
 

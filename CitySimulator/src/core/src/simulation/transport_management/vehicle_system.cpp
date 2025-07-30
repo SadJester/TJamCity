@@ -92,6 +92,9 @@ namespace tjs::core::simulation {
 			v.current_lane = _buffers.lane[i];
 			v.currentSpeed = _buffers.v_curr[i];
 			v.s_on_lane = _buffers.s_curr[i];
+			v.previous_state = v.state_;
+			v.state_ = _buffers.flags[i];
+
 			v.lateral_offset = _buffers.lateral_off[i];
 			if (v.current_lane) {
 				v.coordinates = lane_position(*v.current_lane, v.s_on_lane);
@@ -148,8 +151,9 @@ namespace tjs::core::simulation {
 			vehicle.current_lane = lane;
 			vehicle.s_on_lane = 0.0;
 			vehicle.lateral_offset = 0.0;
-			vehicle.state = VehicleState::Stopped;
-			vehicle.error = MovementError::None;
+			vehicle.state_ = 0;
+			vehicle.previous_state = 0;
+			vehicle.error = VehicleMovementErrors::ER_NO_ERROR;
 
 			_vehicles.push_back(vehicle);
 			insert_vehicle_sorted(*vehicle.current_lane, &_vehicles.back());

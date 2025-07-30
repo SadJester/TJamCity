@@ -88,35 +88,39 @@ namespace tjs::core::simulation {
 			auto& spatial_grid = segment->spatialGrid;
 			auto& buf = system.vehicle_system().vehicle_buffers();
 
-			// reach goal
-			if (vehicle.state == VehicleState::Stopped && vehicle.error == MovementError::NoPath) {
-				vehicle.error = MovementError::None;
-				if (agent.currentGoal != nullptr) {
-					const double distance_to_target = core::algo::euclidean_distance(vehicle.coordinates, agent.currentGoal->coordinates);
-					if (distance_to_target > SimulationConstants::ARRIVAL_THRESHOLD) {
-						// TODO[simulation]: handle agent not close enough to target
-						reset_goals(agent, true);
-					}
+			if (VehicleStateBitsV::has_info(buf.flags[i], VehicleStateBits::ST_STOPPED)) {
+				if (i == 18) {
+					std::cout << "";
 				}
-				reset_goals(agent, true);
-				return;
-			}
+				if (vehicle.error == VehicleMovementErrors::ER_NO_PATH) {
+					vehicle.error = VehicleMovementErrors::ER_NO_ERROR;
+					if (agent.currentGoal != nullptr) {
+						const double distance_to_target = core::algo::euclidean_distance(vehicle.coordinates, agent.currentGoal->coordinates);
+						if (distance_to_target > SimulationConstants::ARRIVAL_THRESHOLD) {
+							// TODO[simulation]: handle agent not close enough to target
+							reset_goals(agent, true);
+						}
+					}
+					reset_goals(agent, true);
+					return;
+				}
 
-			if (vehicle.state == VehicleState::Stopped && vehicle.error == MovementError::NoOutgoingConnections) {
-				reset_goals(agent, true);
-				agent.stucked = true;
-				buf.flags[i] |= FL_ERROR;
-				return;
-			}
+				if (vehicle.error == VehicleMovementErrors::ER_NO_OUTGOING_CONNECTION) {
+					reset_goals(agent, true);
+					agent.stucked = true;
+					return;
+				}
 
-			if (vehicle.state == VehicleState::Stopped && (vehicle.error == MovementError::IncorrectEdge || vehicle.error == MovementError::IncorrectLane)) {
-				// need rebuild path
-				agent.path.clear();
-				vehicle.error = MovementError::None;
+				// reach goal
+				if (vehicle.error == VehicleMovementErrors::ER_INCORRECT_EDGE || vehicle.error == VehicleMovementErrors::ER_INCORRECT_LANE) {
+					// need rebuild path
+					agent.path.clear();
+					VehicleStateBitsV::remove_info(buf.flags[i], VehicleStateBits::FL_ERROR, VehicleStateBitsDivision::FLAGS);
+				}
 			}
 
 			// new goal
-			if (agent.path.empty() && vehicle.state == VehicleState::Stopped) {
+			if (agent.path.empty() && (buf.flags[i] == 0 || VehicleStateBitsV::has_info(buf.flags[i], VehicleStateBits::ST_STOPPED))) {
 				Node* start_node = vehicle.current_lane->parent->start_node;
 
 				Lane* start_lane = vehicle.current_lane;
@@ -135,11 +139,13 @@ namespace tjs::core::simulation {
 
 						agent.distanceTraveled = 0.0; // Reset distance for new path
 						agent.goalFailCount = 0;
-						vehicle.state = VehicleState::PendingMove;
-						buf.flags[i] &= ~FL_ERROR;
+						VehicleStateBitsV::overwrite_info(buf.flags[i], VehicleStateBits::ST_FOLLOW, VehicleStateBitsDivision::STATE);
+						VehicleStateBitsV::remove_info(buf.flags[i], VehicleStateBits::FL_ERROR, VehicleStateBitsDivision::FLAGS);
+						vehicle.state_ = buf.flags[i];
 
 					} else {
-						buf.flags[i] |= FL_ERROR;
+						VehicleStateBitsV::set_info(buf.flags[i], VehicleStateBits::FL_ERROR, VehicleStateBitsDivision::FLAGS);
+						vehicle.state_ = buf.flags[i];
 						reset_goals(agent, false);
 					}
 				}

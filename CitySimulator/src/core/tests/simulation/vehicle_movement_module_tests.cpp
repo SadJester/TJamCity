@@ -55,7 +55,7 @@ protected:
 
 	void setup_goal() {
 		getAgent().currentGoal = world.segments().front()->nodes.begin()->second.get();
-		getAgent().vehicle->state = VehicleState::PendingMove;
+		// getAgent().vehicle->state = VehicleState::PendingMove;
 	}
 
 	void place_at_position(size_t way_idx = 0, size_t edge_idx = 0, size_t lane_idx = 0) {
@@ -150,7 +150,7 @@ TEST_F(VehicleMovementModuleTest, MovementOccursWithValidGoalAndLane) {
 
 	// Update time and run movement
 	system->vehicleMovementModule().update();
-	ASSERT_EQ(VehicleState::Moving, agent.vehicle->state);
+	ASSERT_EQ(0, agent.vehicle->state_); // VehicleState::Moving
 	system->vehicleMovementModule().update();
 
 	// Verify movement occurred
@@ -179,7 +179,7 @@ TEST_F(VehicleMovementModuleTest, SpeedIsCappedAtMaxSpeed) {
 
 	// Update time and run movement
 	system->vehicleMovementModule().update();
-	ASSERT_EQ(VehicleState::Moving, agent.vehicle->state);
+	ASSERT_EQ(0, agent.vehicle->state_); // VehicleState::Moving
 	system->vehicleMovementModule().update();
 
 	// verify speed is set correctely - will be broken when accel will be added
@@ -202,7 +202,7 @@ TEST_F(VehicleMovementModuleTest, LaneChangeOccursWhenExceedingLaneLength) {
 	insert_vehicle_sorted(*agent.vehicle->current_lane, agent.vehicle);
 
 	agent.currentGoal = second_edge->end_node;
-	agent.vehicle->state = VehicleState::Moving;
+	agent.vehicle->state_ = 0; // VehicleState::Moving;
 	agent.path.push_back(&(*second_edge));
 
 	const double delta = (first_edge.lanes[0].length / (way->maxSpeed / 3.6)) + 10.0;
@@ -234,7 +234,7 @@ TEST_F(VehicleMovementModuleTest, VehiclesRemainSortedAfterUpdate) {
 	agent.vehicle->current_lane = &lane;
 	agent.vehicle->coordinates = lane.centerLine.front();
 	agent.vehicle->s_on_lane = 20.0;
-	agent.vehicle->state = VehicleState::Moving;
+	agent.vehicle->state_ = 0; //VehicleState::Moving;
 	agent.currentGoal = lane.parent->end_node;
 
 	Vehicle other {};

@@ -177,7 +177,7 @@ namespace tjs::core::simulation {
 					&& k == debug.vehicle_indices[0]);
 
 				// Skip broken cars
-				if (buf.flags[i] & FL_ERROR) {
+				if (VehicleStateBitsV::has_info(buf.flags[i], VehicleStateBits::FL_ERROR)) {
 					continue;
 				}
 
@@ -224,7 +224,7 @@ namespace tjs::core::simulation {
 					}
 				}
 
-				if (goal_idx >= 0 && goal_idx != curr_idx && (buf.flags[i] & FL_COOLDOWN) == 0) {
+				if (goal_idx >= 0 && goal_idx != curr_idx && !VehicleStateBitsV::has_info(buf.flags[i], VehicleStateBits::FL_COOLDOWN)) {
 					const int lanes_delta = goal_idx - curr_idx; // +ve ⇒ need to go LEFT
 					const float prep = D_PREP + std::abs(lanes_delta) * D_PREP_PER_LANE;
 
@@ -235,17 +235,17 @@ namespace tjs::core::simulation {
 
 						if (neigh) {
 							buf.lane_target[i] = neigh; // step one lane toward goal
-							set_state(buf.flags[i], ST_EXECUTE);
+							VehicleStateBitsV::set_info(buf.flags[i], VehicleStateBits::ST_EXECUTE, VehicleStateBitsDivision::STATE);
 						}
 					}
 				}
 
 				// ─── 5. Cool‑down bookkeeping (unchanged) ────────────────────────
-				if (buf.flags[i] & FL_COOLDOWN) {
+				if (VehicleStateBitsV::has_info(buf.flags[i], VehicleStateBits::FL_COOLDOWN)) {
 					float t = buf.lateral_off[i];
 					t += static_cast<float>(dt);
 					if (t > T_MIN) {
-						buf.flags[i] &= ~FL_COOLDOWN;
+						VehicleStateBitsV::remove_info(buf.flags[i], VehicleStateBits::FL_COOLDOWN, VehicleStateBitsDivision::FLAGS);
 						t = 0.f;
 					}
 					buf.lateral_off[i] = t;
@@ -263,13 +263,13 @@ namespace tjs::core::simulation {
 	//                        2) shortest lateral hop (|id diff|)
 	//                        3) first found
 	//------------------------------------------------------------------
-	inline Lane* choose_entry_lane(const Lane* src_lane, const Edge* next_edge, MovementError& err) {
+	inline Lane* choose_entry_lane(const Lane* src_lane, const Edge* next_edge, VehicleMovementErrors& err) {
 		Lane* best = nullptr;
 		bool best_is_yield = true; // so non-yield wins
 		int best_shift = INT_MAX;  // minimise |Δlane|
 
 		const std::size_t src_idx = src_lane->index_in_edge; // local index in its edge
-		err = MovementError::None;
+		err = VehicleMovementErrors::ER_NO_ERROR;
 		for (const LaneLinkHandler& h : src_lane->outgoing_connections) {
 			const LaneLink& link = *h;
 			Lane* tgt = link.to;
@@ -289,7 +289,7 @@ namespace tjs::core::simulation {
 		}
 
 		if (src_lane->outgoing_connections.empty()) {
-			err = MovementError::NoOutgoingConnections;
+			err = VehicleMovementErrors::ER_NO_OUTGOING_CONNECTION;
 			return nullptr;
 		}
 		if (!best) {
@@ -310,13 +310,13 @@ namespace tjs::core::simulation {
 			}
 
 			// If has connection we are on the wrong lane, if not - totally wrong edge (how we get here?)
-			err = has_connection ? MovementError::IncorrectLane : MovementError::IncorrectEdge;
+			err = has_connection ? VehicleMovementErrors::ER_INCORRECT_LANE : VehicleMovementErrors::ER_INCORRECT_EDGE;
 			// TODO[simulation]: algo error handling
 			//throw std::runtime_error(
 			//	"Route impossible: no LaneLink from edge " + std::to_string(src_lane->parent->get_id()) + " to edge " + std::to_string(next_edge->get_id()) + '.');
 			return src_lane->outgoing_connections[0]->to;
 		}
-		err = MovementError::None;
+		err = VehicleMovementErrors::ER_NO_ERROR;
 		return best;
 	}
 
@@ -443,6 +443,9 @@ namespace tjs::core::simulation {
 		return true;
 	}
 
+	void make_stop() {
+	}
+
 	void phase2_commit(
 		TrafficSimulationSystem& system,
 		VehicleBuffers& buf,
@@ -483,18 +486,18 @@ namespace tjs::core::simulation {
 
 				++ag.path_offset;
 				if (ag.path_offset >= ag.path.size()) {
-					move_index(i, lane_rt, lane, lane, buf.s_curr);
-					set_state(buf.flags[i], ST_FOLLOW);
-					buf.flags[i] |= FL_ERROR;
-					ag.vehicle->state = VehicleState::Stopped;
-					ag.vehicle->error = MovementError::NoPath;
+					// move_index(i, lane_rt, lane, lane, buf.s_curr);
+					VehicleStateBitsV::set_info(buf.flags[i], VehicleStateBits::ST_STOPPED, VehicleStateBitsDivision::STATE);
+					VehicleStateBitsV::set_info(buf.flags[i], VehicleStateBits::FL_ERROR, VehicleStateBitsDivision::FLAGS);
+
+					ag.vehicle->error = VehicleMovementErrors::ER_NO_PATH;
 					buf.s_curr[i] = lane->length;
 					buf.s_next[i] = buf.s_curr[i];
 					break;
 				}
 
 				Edge* next_edge = ag.path[ag.path_offset];
-				MovementError err;
+				VehicleMovementErrors err;
 
 				TJS_BREAK_IF(
 					debug.movement_phase == SimulationMovementPhase::IDM_Phase2_ChooseLane
@@ -503,9 +506,11 @@ namespace tjs::core::simulation {
 					&& debug.vehicle_indices == lane_rt[lane->index_in_buffer].idx);
 
 				Lane* entry = choose_entry_lane(lane, next_edge, err);
-				if (err != MovementError::None || !entry) {
-					ag.vehicle->error = err == MovementError::None ? MovementError::IncorrectEdge : err;
-					ag.vehicle->state = VehicleState::Stopped;
+				if (err != VehicleMovementErrors::ER_NO_ERROR || !entry) {
+					VehicleStateBitsV::set_info(buf.flags[i], VehicleStateBits::ST_STOPPED, VehicleStateBitsDivision::STATE);
+					VehicleStateBitsV::set_info(buf.flags[i], VehicleStateBits::FL_ERROR, VehicleStateBitsDivision::FLAGS);
+
+					ag.vehicle->error = err;
 					buf.s_curr[i] = lane->length - 0.01;
 					buf.s_next[i] = buf.s_curr[i];
 					buf.v_curr[i] = 0.0f;
@@ -558,8 +563,8 @@ namespace tjs::core::simulation {
 					move_index(row, lane_rt, rt.static_lane, tgt, buf.s_curr);
 					buf.lane[row] = tgt;
 					buf.lane_target[row] = nullptr;
-					set_state(buf.flags[row], ST_FOLLOW);
-					buf.flags[row] |= FL_COOLDOWN;
+					VehicleStateBitsV::set_info(buf.flags[row], VehicleStateBits::ST_FOLLOW, VehicleStateBitsDivision::STATE);
+					VehicleStateBitsV::set_info(buf.flags[row], VehicleStateBits::FL_COOLDOWN, VehicleStateBitsDivision::FLAGS);
 
 					const auto& tgt_idx = lane_rt[tgt->index_in_buffer].idx;
 					if (!tgt_idx.empty() && tgt_idx.front() != row) {
