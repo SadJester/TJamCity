@@ -18,9 +18,12 @@ namespace tjs::core::simulation {
 
 	void AgentMovementAlgo::update() {
 		auto& agents = _system.agents();
+		auto& buf = _system.vehicle_system().vehicle_buffers();
 
 		for (size_t i = 0; i < agents.size(); ++i) {
-			movement_details::update_agent(agents[i], _system);
+			movement_details::update_agent(i, agents[i], _system);
+			agents[i].vehicle->previous_state = agents[i].vehicle->state;
+			agents[i].vehicle->state = buf.flags[i];
 		}
 	}
 
@@ -68,33 +71,31 @@ namespace tjs::core::simulation {
 	namespace movement_details {
 
 		void check_move_beginning(AgentData& agent, TrafficSimulationSystem& system) {
-			/*Vehicle& vehicle = *agent.vehicle;
-			if (vehicle.state == VehicleState::PendingMove) {
-				auto parent_edge = vehicle.current_lane->parent;
-				if (!agent.path.empty()) {
-					auto target_edge = agent.path.front();
-					if (
-						parent_edge != target_edge
-						&& parent_edge->start_node == target_edge->start_node) {
-						Lane* old_lane = vehicle.current_lane;
-						vehicle.current_lane = &target_edge->lanes[0];
-						if (old_lane) {
-							remove_vehicle(*old_lane, &vehicle);
-						}
-						insert_vehicle_sorted(*vehicle.current_lane, &vehicle);
-					} else {
-						// TODO[simulation]: error handling when cannot find out edge
-						Lane* old_lane = vehicle.current_lane;
-						vehicle.current_lane = &target_edge->lanes[0];
-						if (old_lane) {
-							remove_vehicle(*old_lane, &vehicle);
-						}
-						insert_vehicle_sorted(*vehicle.current_lane, &vehicle);
+			Vehicle& vehicle = *agent.vehicle;
+			auto parent_edge = vehicle.current_lane->parent;
+			if (!agent.path.empty()) {
+				auto target_edge = agent.path[agent.path_offset];
+				if (
+					parent_edge != target_edge
+					&& parent_edge->start_node == target_edge->start_node) {
+					Lane* old_lane = vehicle.current_lane;
+					vehicle.current_lane = &target_edge->lanes[0];
+					if (old_lane) {
+						remove_vehicle(*old_lane, &vehicle);
 					}
-					vehicle.s_on_lane = 0.f;
-					agent.path.erase(agent.path.begin());
+					insert_vehicle_sorted(*vehicle.current_lane, &vehicle);
+				} else {
+					// TODO[simulation]: error handling when cannot find out edge
+					Lane* old_lane = vehicle.current_lane;
+					vehicle.current_lane = &target_edge->lanes[0];
+					if (old_lane) {
+						remove_vehicle(*old_lane, &vehicle);
+					}
+					insert_vehicle_sorted(*vehicle.current_lane, &vehicle);
 				}
-			}*/
+				vehicle.s_on_lane = 0.f;
+				++agent.path_offset;
+			}
 		}
 
 		void adjust_lane(AgentData& agent, TrafficSimulationSystem& system) {
@@ -133,13 +134,14 @@ namespace tjs::core::simulation {
 			vehicle.rotationAngle = atan2(dir.y, dir.x);
 		}
 
-		void advance_vehicle(AgentData& agent, TrafficSimulationSystem& system) {
+		void advance_vehicle(size_t i, AgentData& agent, TrafficSimulationSystem& system) {
+			VehicleBuffers& buf = system.vehicle_system().vehicle_buffers();
 			Vehicle& vehicle = *agent.vehicle;
 			double delta_time = system.timeModule().state().fixed_dt();
 			double speed_mps = vehicle.currentSpeed * 1000.0 / 3600.0;
 			double remaining_move = speed_mps * delta_time;
 
-			/*while (remaining_move > 0 && vehicle.current_lane) {
+			while (remaining_move > 0 && vehicle.current_lane) {
 				Lane* lane = vehicle.current_lane;
 				double to_end = lane->length - vehicle.s_on_lane;
 				double move = std::min(remaining_move, to_end);
@@ -153,10 +155,7 @@ namespace tjs::core::simulation {
 				}
 
 				if (agent.path.empty()) {
-					VehicleStateBitsV::set_info(buf.flags[i], VehicleStateBits::ST_STOPPED, VehicleStateBitsDivision::STATE);
-					VehicleStateBitsV::set_info(buf.flags[i], VehicleStateBits::FL_ERROR, VehicleStateBitsDivision::FLAGS);
-					vehicle.state = VehicleState::Stopped;
-					vehicle.error = MovementError::NoPath;
+					stop_moving(i, agent, buf, lane, VehicleMovementError::ER_NO_PATH);
 					break;
 				}
 
@@ -199,15 +198,26 @@ namespace tjs::core::simulation {
 					agent.path.erase(agent.path.begin());
 					insert_vehicle_sorted(*vehicle.current_lane, &vehicle);
 				} else {
-					vehicle.state = VehicleState::Stopped;
-					vehicle.error = outgoing.empty() ? MovementError::NoOutgoingConnections : MovementError::NoNextLane;
+					stop_moving(i, agent, buf, lane,
+						outgoing.empty() ? VehicleMovementError::ER_NO_OUTGOING_CONNECTION : VehicleMovementError::ER_NO_NEXT_LANE);
 					break;
 				}
-			}*/
+			}
 		}
 
-		void process_vehicle_state(AgentData& agent, TrafficSimulationSystem& system) {
+		void process_vehicle_state(size_t i, AgentData& agent, TrafficSimulationSystem& system) {
 			auto& vehicle = *agent.vehicle;
+
+			if (VehicleStateBitsV::has_info(vehicle.previous_state, VehicleStateBits::ST_STOPPED)) {
+				if (VehicleStateBitsV::has_info(vehicle.state, VehicleStateBits::ST_FOLLOW)) {
+					check_move_beginning(agent, system);
+					adjust_lane(agent, system);
+				}
+			} else if (VehicleStateBitsV::has_info(vehicle.state, VehicleStateBits::ST_FOLLOW)) {
+				adjust_speed(vehicle);
+				advance_vehicle(i, agent, system);
+			}
+
 			/*switch (vehicle.state) {
 				case VehicleState::PendingMove: {
 					check_move_beginning(agent, system);
@@ -227,11 +237,11 @@ namespace tjs::core::simulation {
 			}*/
 		}
 
-		void update_agent(AgentData& agent, TrafficSimulationSystem& system) {
+		void update_agent(size_t i, AgentData& agent, TrafficSimulationSystem& system) {
 			if (agent.currentGoal == nullptr) {
 				return;
 			}
-			process_vehicle_state(agent, system);
+			process_vehicle_state(i, agent, system);
 		}
 	} // namespace movement_details
 

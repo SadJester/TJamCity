@@ -44,11 +44,7 @@ namespace tjs::core::simulation {
 		FL_RESERVED7 = 1 << 15
 	};
 
-	enum class VehicleMErrorsDivision : uint16_t {
-		ERROR = 0xFFFF // full 16 bits for independent error flags
-	};
-
-	enum class VehicleMovementErrors : uint16_t {
+	enum class VehicleMovementError : uint16_t {
 		ER_NO_ERROR = 1 << 0,
 		ER_NO_OUTGOING_CONNECTION = 1 << 1,
 		ER_NO_PATH = 1 << 2,
@@ -63,7 +59,6 @@ namespace tjs::core::simulation {
 	};
 
 	using VehicleStateBitsV = common::BitMaskValue<VehicleStateBits, VehicleStateBitsDivision>;
-	using MovementErrors = common::BitMaskValue<VehicleMovementErrors, VehicleMErrorsDivision>;
 
 	/*
 	enum VehicleStateBits : uint8_t {

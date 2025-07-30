@@ -46,7 +46,7 @@ namespace tjs::core::tests {
 		v.current_lane = nullptr;
 		v.s_on_lane = 0.0;
 		v.lateral_offset = 0.0;
-		v.state_ = 0;         //
+		v.state = 0;          // Stopped
 		v.previous_state = 0; //VehicleState::Stopped;
 
 		system->vehicle_system().vehicles().push_back(v);

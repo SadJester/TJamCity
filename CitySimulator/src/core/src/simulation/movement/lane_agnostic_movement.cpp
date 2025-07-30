@@ -263,13 +263,13 @@ namespace tjs::core::simulation {
 	//                        2) shortest lateral hop (|id diff|)
 	//                        3) first found
 	//------------------------------------------------------------------
-	inline Lane* choose_entry_lane(const Lane* src_lane, const Edge* next_edge, VehicleMovementErrors& err) {
+	inline Lane* choose_entry_lane(const Lane* src_lane, const Edge* next_edge, VehicleMovementError& err) {
 		Lane* best = nullptr;
 		bool best_is_yield = true; // so non-yield wins
 		int best_shift = INT_MAX;  // minimise |Δlane|
 
 		const std::size_t src_idx = src_lane->index_in_edge; // local index in its edge
-		err = VehicleMovementErrors::ER_NO_ERROR;
+		err = VehicleMovementError::ER_NO_ERROR;
 		for (const LaneLinkHandler& h : src_lane->outgoing_connections) {
 			const LaneLink& link = *h;
 			Lane* tgt = link.to;
@@ -289,7 +289,7 @@ namespace tjs::core::simulation {
 		}
 
 		if (src_lane->outgoing_connections.empty()) {
-			err = VehicleMovementErrors::ER_NO_OUTGOING_CONNECTION;
+			err = VehicleMovementError::ER_NO_OUTGOING_CONNECTION;
 			return nullptr;
 		}
 		if (!best) {
@@ -310,13 +310,13 @@ namespace tjs::core::simulation {
 			}
 
 			// If has connection we are on the wrong lane, if not - totally wrong edge (how we get here?)
-			err = has_connection ? VehicleMovementErrors::ER_INCORRECT_LANE : VehicleMovementErrors::ER_INCORRECT_EDGE;
+			err = has_connection ? VehicleMovementError::ER_INCORRECT_LANE : VehicleMovementError::ER_INCORRECT_EDGE;
 			// TODO[simulation]: algo error handling
 			//throw std::runtime_error(
 			//	"Route impossible: no LaneLink from edge " + std::to_string(src_lane->parent->get_id()) + " to edge " + std::to_string(next_edge->get_id()) + '.');
 			return src_lane->outgoing_connections[0]->to;
 		}
-		err = VehicleMovementErrors::ER_NO_ERROR;
+		err = VehicleMovementError::ER_NO_ERROR;
 		return best;
 	}
 
@@ -443,7 +443,21 @@ namespace tjs::core::simulation {
 		return true;
 	}
 
-	void make_stop() {
+	void stop_moving(size_t i, AgentData& ag, VehicleBuffers& buf, Lane* lane, VehicleMovementError error) {
+		VehicleStateBitsV::set_info(buf.flags[i], VehicleStateBits::ST_STOPPED, VehicleStateBitsDivision::STATE);
+		VehicleStateBitsV::set_info(buf.flags[i], VehicleStateBits::FL_ERROR, VehicleStateBitsDivision::FLAGS);
+
+		ag.vehicle->error = error;
+		buf.s_curr[i] = lane->length - 0.01;
+		buf.s_next[i] = buf.s_curr[i];
+		buf.v_next[i] = buf.v_curr[i];
+
+		// Stop vehicle at all, for other cases we need more sophisticated calculations
+		// But for now treat that it will be movement further with the same speed as before
+		if (lane->outgoing_connections.empty()) {
+			buf.v_curr[i] = 0.0f;
+			buf.v_next[i] = 0.0f;
+		}
 	}
 
 	void phase2_commit(
@@ -523,18 +537,12 @@ namespace tjs::core::simulation {
 
 				++ag.path_offset;
 				if (ag.path_offset >= ag.path.size()) {
-					//move_index(i, lane_rt, lane, lane, buf.s_curr);
-					VehicleStateBitsV::set_info(buf.flags[i], VehicleStateBits::ST_STOPPED, VehicleStateBitsDivision::STATE);
-					VehicleStateBitsV::set_info(buf.flags[i], VehicleStateBits::FL_ERROR, VehicleStateBitsDivision::FLAGS);
-
-					ag.vehicle->error = VehicleMovementErrors::ER_NO_PATH;
-					buf.s_curr[i] = lane->length;
-					buf.s_next[i] = buf.s_curr[i];
+					stop_moving(i, ag, buf, lane, VehicleMovementError::ER_NO_PATH);
 					break;
 				}
 
 				Edge* next_edge = ag.path[ag.path_offset];
-				VehicleMovementErrors err;
+				VehicleMovementError err;
 
 				TJS_BREAK_IF(
 					debug.movement_phase == SimulationMovementPhase::IDM_Phase2_ChooseLane
@@ -543,15 +551,8 @@ namespace tjs::core::simulation {
 					&& debug.vehicle_indices == lane_rt[lane->index_in_buffer].idx);
 
 				Lane* entry = choose_entry_lane(lane, next_edge, err);
-				if (err != VehicleMovementErrors::ER_NO_ERROR || !entry) {
-					VehicleStateBitsV::set_info(buf.flags[i], VehicleStateBits::ST_STOPPED, VehicleStateBitsDivision::STATE);
-					VehicleStateBitsV::set_info(buf.flags[i], VehicleStateBits::FL_ERROR, VehicleStateBitsDivision::FLAGS);
-
-					ag.vehicle->error = err;
-					buf.s_curr[i] = lane->length - 0.01;
-					buf.s_next[i] = buf.s_curr[i];
-					buf.v_curr[i] = 0.0f;
-					buf.v_next[i] = 0.0f;
+				if (err != VehicleMovementError::ER_NO_ERROR || !entry) {
+					stop_moving(i, ag, buf, lane, err);
 					break;
 				}
 

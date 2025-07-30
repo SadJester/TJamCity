@@ -44,7 +44,7 @@ namespace tjs::core::simulation {
 		lateral_off.push_back(vehicle.lateral_offset);
 		lane.push_back(vehicle.current_lane);
 		lane_target.push_back(nullptr);
-		flags.push_back(0);
+		flags.push_back(vehicle.state);
 		v_max_speed.push_back(vehicle.maxSpeed);
 		uids.push_back(vehicle.uid);
 	}

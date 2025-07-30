@@ -35,8 +35,8 @@ namespace tjs::core {
 		Lane* current_lane;
 		double s_on_lane;
 		double lateral_offset;
-		simulation::VehicleMovementErrors error;
-		uint16_t state_;
+		simulation::VehicleMovementError error;
+		uint16_t state;
 		uint16_t previous_state;
 	};
 	static_assert(std::is_pod<Vehicle>::value, "Data object expect to be POD");

@@ -1,8 +1,12 @@
 #pragma once
 
+#include <core/simulation/transport_management/vehicle_state.h>
+
 namespace tjs::core {
 	struct Lane;
 	struct Edge;
+	struct AgentData;
+
 } // namespace tjs::core
 
 namespace tjs::core::simulation {
@@ -50,5 +54,7 @@ namespace tjs::core::simulation {
 		const Lane* src,
 		const Lane* tgt,
 		const std::vector<double>& s_curr);
+
+	void stop_moving(size_t i, AgentData& ag, VehicleBuffers& buf, Lane* lane, VehicleMovementError error);
 
 } // namespace tjs::core::simulation
