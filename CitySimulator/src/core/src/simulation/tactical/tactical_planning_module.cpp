@@ -89,9 +89,7 @@ namespace tjs::core::simulation {
 			auto& buf = system.vehicle_system().vehicle_buffers();
 
 			if (VehicleStateBitsV::has_info(buf.flags[i], VehicleStateBits::ST_STOPPED)) {
-				if (i == 18) {
-					std::cout << "";
-				}
+				// reach goal
 				if (vehicle.error == VehicleMovementErrors::ER_NO_PATH) {
 					vehicle.error = VehicleMovementErrors::ER_NO_ERROR;
 					if (agent.currentGoal != nullptr) {
@@ -111,7 +109,6 @@ namespace tjs::core::simulation {
 					return;
 				}
 
-				// reach goal
 				if (vehicle.error == VehicleMovementErrors::ER_INCORRECT_EDGE || vehicle.error == VehicleMovementErrors::ER_INCORRECT_LANE) {
 					// need rebuild path
 					agent.path.clear();

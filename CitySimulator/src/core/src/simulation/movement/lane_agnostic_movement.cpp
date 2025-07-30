@@ -465,6 +465,43 @@ namespace tjs::core::simulation {
 
 		static const sim::idm_params_t p_idm {};
 
+		/* ---------------- lateral loop --------------------------------------- */
+		for (LaneRuntime& rt : lane_rt) {
+			auto idx_copy = rt.idx;
+			for (std::size_t row : idx_copy) {
+				Lane* tgt = buf.lane_target[row];
+				if (!tgt) {
+					continue;
+				}
+
+				if (VehicleStateBitsV::has_info(buf.flags[row], VehicleStateBits::ST_STOPPED)) {
+					buf.lane_target[row] = nullptr;
+					continue;
+				}
+
+				if (gap_ok(lane_rt[tgt->index_in_buffer],
+						buf.s_curr, buf.length, buf.v_curr,
+						buf.s_curr[row], buf.length[row],
+						p_idm, dt, row)) {
+					move_index(row, lane_rt, rt.static_lane, tgt, buf.s_curr);
+					buf.lane[row] = tgt;
+					buf.lane_target[row] = nullptr;
+					VehicleStateBitsV::set_info(buf.flags[row], VehicleStateBits::ST_FOLLOW, VehicleStateBitsDivision::STATE);
+					VehicleStateBitsV::set_info(buf.flags[row], VehicleStateBits::FL_COOLDOWN, VehicleStateBitsDivision::FLAGS);
+
+					const auto& tgt_idx = lane_rt[tgt->index_in_buffer].idx;
+					if (!tgt_idx.empty() && tgt_idx.front() != row) {
+						std::size_t j_lead = tgt_idx.front();
+						float gap_leader = sim::actual_gap(static_cast<float>(buf.s_curr[j_lead]),
+							static_cast<float>(buf.s_curr[row]),
+							buf.length[j_lead], buf.length[row]);
+						float v_safe = sim::safe_entry_speed(buf.v_curr[j_lead], gap_leader, dt);
+						buf.v_curr[row] = std::clamp(v_safe, 0.0f, buf.v_curr[row]);
+					}
+				}
+			}
+		}
+
 		/* ---------------- edge hop loop -------------------------------------- */
 		for (std::size_t i = 0; i < agents.size(); ++i) {
 			AgentData& ag = agents[i];
@@ -486,7 +523,7 @@ namespace tjs::core::simulation {
 
 				++ag.path_offset;
 				if (ag.path_offset >= ag.path.size()) {
-					// move_index(i, lane_rt, lane, lane, buf.s_curr);
+					//move_index(i, lane_rt, lane, lane, buf.s_curr);
 					VehicleStateBitsV::set_info(buf.flags[i], VehicleStateBits::ST_STOPPED, VehicleStateBitsDivision::STATE);
 					VehicleStateBitsV::set_info(buf.flags[i], VehicleStateBits::FL_ERROR, VehicleStateBitsDivision::FLAGS);
 
@@ -543,38 +580,6 @@ namespace tjs::core::simulation {
 						buf.length[j_lead], buf.length[i]);
 					float v_safe = sim::safe_entry_speed(buf.v_curr[j_lead], gap_leader, dt);
 					buf.v_curr[i] = std::clamp(v_safe, 0.0f, buf.v_curr[i]);
-				}
-			}
-		}
-
-		/* ---------------- lateral loop --------------------------------------- */
-		for (LaneRuntime& rt : lane_rt) {
-			auto idx_copy = rt.idx;
-			for (std::size_t row : idx_copy) {
-				Lane* tgt = buf.lane_target[row];
-				if (!tgt) {
-					continue;
-				}
-
-				if (gap_ok(lane_rt[tgt->index_in_buffer],
-						buf.s_curr, buf.length, buf.v_curr,
-						buf.s_curr[row], buf.length[row],
-						p_idm, dt, row)) {
-					move_index(row, lane_rt, rt.static_lane, tgt, buf.s_curr);
-					buf.lane[row] = tgt;
-					buf.lane_target[row] = nullptr;
-					VehicleStateBitsV::set_info(buf.flags[row], VehicleStateBits::ST_FOLLOW, VehicleStateBitsDivision::STATE);
-					VehicleStateBitsV::set_info(buf.flags[row], VehicleStateBits::FL_COOLDOWN, VehicleStateBitsDivision::FLAGS);
-
-					const auto& tgt_idx = lane_rt[tgt->index_in_buffer].idx;
-					if (!tgt_idx.empty() && tgt_idx.front() != row) {
-						std::size_t j_lead = tgt_idx.front();
-						float gap_leader = sim::actual_gap(static_cast<float>(buf.s_curr[j_lead]),
-							static_cast<float>(buf.s_curr[row]),
-							buf.length[j_lead], buf.length[row]);
-						float v_safe = sim::safe_entry_speed(buf.v_curr[j_lead], gap_leader, dt);
-						buf.v_curr[row] = std::clamp(v_safe, 0.0f, buf.v_curr[row]);
-					}
 				}
 			}
 		}
