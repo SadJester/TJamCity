@@ -111,6 +111,9 @@ namespace tjs::core::simulation {
 		}
 	}
 
+	void VehicleSystem::create_vehicle() {
+	}
+
 	size_t VehicleSystem::populate() {
 		if (_system.worldData().segments().empty()) {
 			return 0;

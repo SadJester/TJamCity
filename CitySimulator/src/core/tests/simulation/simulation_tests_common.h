@@ -17,6 +17,7 @@ namespace tjs::core::tests {
 
 		virtual bool prepare();
 		virtual bool load_map();
+		virtual void set_up_settings();
 
 		void create_basic_system();
 

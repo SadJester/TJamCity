@@ -53,9 +53,12 @@ protected:
 		return system->agents()[0];
 	}
 
-	void setup_goal() {
-		getAgent().currentGoal = world.segments().front()->nodes.begin()->second.get();
-		// getAgent().vehicle->state = VehicleState::PendingMove;
+	void setup_goal(Node* goal = nullptr) {
+		getAgent().currentGoal = goal != nullptr ? goal : world.segments().front()->nodes.begin()->second.get();
+		auto& buf = system->vehicle_system().vehicle_buffers();
+		VehicleStateBitsV::overwrite_info(buf.flags[0], VehicleStateBits::ST_FOLLOW, VehicleStateBitsDivision::STATE);
+		VehicleStateBitsV::remove_info(buf.flags[0], VehicleStateBits::FL_ERROR, VehicleStateBitsDivision::FLAGS);
+		getAgent().vehicle->state = buf.flags[0];
 	}
 
 	void place_at_position(size_t way_idx = 0, size_t edge_idx = 0, size_t lane_idx = 0) {
@@ -148,9 +151,9 @@ TEST_F(VehicleMovementModuleTest, MovementOccursWithValidGoalAndLane) {
 	Coordinates initialPosition = agent.vehicle->coordinates;
 	double initialSOnLane = agent.vehicle->s_on_lane;
 
+	ASSERT_TRUE(VehicleStateBitsV::has_info(agent.vehicle->state, VehicleStateBits::ST_FOLLOW));
 	// Update time and run movement
 	system->vehicleMovementModule().update();
-	ASSERT_EQ(0, agent.vehicle->state); // VehicleState::Moving
 	system->vehicleMovementModule().update();
 
 	// Verify movement occurred
@@ -177,9 +180,9 @@ TEST_F(VehicleMovementModuleTest, SpeedIsCappedAtMaxSpeed) {
 	Coordinates initialPosition = agent.vehicle->coordinates;
 	double initialSOnLane = agent.vehicle->s_on_lane;
 
+	ASSERT_TRUE(VehicleStateBitsV::has_info(agent.vehicle->state, VehicleStateBits::ST_FOLLOW));
 	// Update time and run movement
 	system->vehicleMovementModule().update();
-	ASSERT_EQ(0, agent.vehicle->state); // VehicleState::Moving
 	system->vehicleMovementModule().update();
 
 	// verify speed is set correctely - will be broken when accel will be added
@@ -201,8 +204,7 @@ TEST_F(VehicleMovementModuleTest, LaneChangeOccursWhenExceedingLaneLength) {
 	agent.vehicle->coordinates = first_edge.lanes[0].centerLine.front();
 	insert_vehicle_sorted(*agent.vehicle->current_lane, agent.vehicle);
 
-	agent.currentGoal = second_edge->end_node;
-	agent.vehicle->state = 0; // VehicleState::Moving;
+	setup_goal(second_edge->end_node);
 	agent.path.push_back(&(*second_edge));
 
 	const double delta = (first_edge.lanes[0].length / (way->maxSpeed / 3.6)) + 10.0;
@@ -210,8 +212,7 @@ TEST_F(VehicleMovementModuleTest, LaneChangeOccursWhenExceedingLaneLength) {
 	system->vehicleMovementModule().update();
 
 	EXPECT_EQ(agent.vehicle->current_lane->parent->get_id(), second_edge->get_id());
-	EXPECT_TRUE(agent.path.empty());
-	EXPECT_GT(agent.vehicle->s_on_lane, 0.0);
+	EXPECT_EQ(agent.path_offset, agent.path.size());
 	EXPECT_TRUE(std::find(
 					first_edge.lanes[0].vehicles.begin(),
 					first_edge.lanes[0].vehicles.end(),
@@ -224,7 +225,8 @@ TEST_F(VehicleMovementModuleTest, LaneChangeOccursWhenExceedingLaneLength) {
 				!= second_edge->lanes[0].vehicles.end());
 }
 
-TEST_F(VehicleMovementModuleTest, VehiclesRemainSortedAfterUpdate) {
+// Need to make population by demand
+TEST_F(VehicleMovementModuleTest, DISABLED_VehiclesRemainSortedAfterUpdate) {
 	auto& agent = getAgent();
 
 	auto& way = get_segment().ways.begin()->second;

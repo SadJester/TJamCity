@@ -53,6 +53,8 @@ namespace tjs::core::simulation {
 
 		void commit();
 
+		void create_vehicle();
+
 	private:
 		TrafficSimulationSystem& _system;
 
