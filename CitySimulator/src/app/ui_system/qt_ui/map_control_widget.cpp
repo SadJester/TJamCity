@@ -8,6 +8,7 @@
 
 #include <QLabel>
 #include <QFileDialog>
+#include <QComboBox>
 
 #include <project/project.h>
 
@@ -136,6 +137,16 @@ namespace tjs {
 			seedValue->setVisible(!_application.settings().simulationSettings.randomSeed);
 			mainLayout->addWidget(seedValue);
 
+			QHBoxLayout* algoLayout = new QHBoxLayout();
+			QLabel* algoLabel = new QLabel("Movement Algo:", this);
+			_movementAlgoCombo = new QComboBox(this);
+			_movementAlgoCombo->addItem("Agent", static_cast<int>(core::simulation::MovementAlgoType::Agent));
+			_movementAlgoCombo->addItem("IDM", static_cast<int>(core::simulation::MovementAlgoType::IDM));
+			_movementAlgoCombo->setCurrentIndex(static_cast<int>(_application.settings().simulationSettings.movement_algo));
+			algoLayout->addWidget(algoLabel);
+			algoLayout->addWidget(_movementAlgoCombo);
+			mainLayout->addLayout(algoLayout);
+
 			_regenerateVehiclesButton = new QPushButton("Regenerate vehicles", this);
 			mainLayout->addWidget(_regenerateVehiclesButton);
 
@@ -166,6 +177,13 @@ namespace tjs {
 			connect(seedValue, &QSpinBox::valueChanged, [this](int value) {
 				_application.settings().simulationSettings.seedValue = value;
 			});
+
+			connect(_movementAlgoCombo,
+				QOverload<int>::of(&QComboBox::currentIndexChanged),
+				[this](int index) {
+					_application.settings().simulationSettings.movement_algo =
+						static_cast<core::simulation::MovementAlgoType>(index);
+				});
 
 			connect(_regenerateVehiclesButton, &QPushButton::clicked, [this]() {
 				_application.simulationSystem().initialize();

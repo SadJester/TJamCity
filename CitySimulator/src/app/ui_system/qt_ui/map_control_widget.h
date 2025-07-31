@@ -7,6 +7,7 @@
 #include <QLabel>
 #include <QCheckBox>
 #include <QListWidget>
+#include <QComboBox>
 
 #include <events/map_events.h>
 #include <core/events/vehicle_population_events.h>
@@ -55,6 +56,7 @@ namespace tjs {
 			QDoubleSpinBox* simplifiedThreshold = nullptr;
 			QCheckBox* randomSeed = nullptr;
 			QSpinBox* seedValue = nullptr;
+			QComboBox* _movementAlgoCombo = nullptr;
 			QPushButton* _regenerateVehiclesButton = nullptr;
 
 			QLabel* _zoomLevel = nullptr;
