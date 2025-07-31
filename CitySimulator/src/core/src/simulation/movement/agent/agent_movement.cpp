@@ -154,16 +154,16 @@ namespace tjs::core::simulation {
 					break;
 				}
 
-				if (agent.path.empty()) {
+				if (agent.path_offset >= agent.path.size()) {
 					stop_moving(i, agent, buf, lane, VehicleMovementError::ER_NO_PATH);
 					break;
 				}
 
 				const auto& outgoing = lane->outgoing_connections;
 				Lane* next_lane = nullptr;
-				auto& next_edge = *agent.path.front();
+				Edge* next_edge = agent.path[agent.path_offset];
 				for (auto& link : outgoing) {
-					if (link->to->parent == &next_edge) {
+					if (link->to->parent == next_edge) {
 						next_lane = link->to;
 						break;
 					}
@@ -171,7 +171,7 @@ namespace tjs::core::simulation {
 
 				if (!next_lane) {
 					Lane* current_teleport = nullptr;
-					for (auto& l : next_edge.lanes) {
+					for (auto& l : next_edge->lanes) {
 						for (auto& link : l.incoming_connections) {
 							if (link->from->parent == vehicle.current_lane->parent) {
 								current_teleport = link->from;
@@ -195,7 +195,7 @@ namespace tjs::core::simulation {
 					vehicle.current_lane = next_lane;
 					vehicle.s_on_lane = 0;
 					move_vehicle(vehicle, *vehicle.current_lane, 0.0);
-					agent.path.erase(agent.path.begin());
+					++agent.path_offset;
 					insert_vehicle_sorted(*vehicle.current_lane, &vehicle);
 				} else {
 					stop_moving(i, agent, buf, lane,
