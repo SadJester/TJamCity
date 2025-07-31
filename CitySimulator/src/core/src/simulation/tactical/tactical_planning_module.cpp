@@ -2,6 +2,7 @@
 
 #include <core/simulation/tactical/tactical_planning_module.h>
 #include <core/simulation/simulation_system.h>
+#include <core/simulation/movement/movement_utils.h>
 
 #include <core/data_layer/data_types.h>
 #include <core/data_layer/world_data.h>

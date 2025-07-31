@@ -9,6 +9,8 @@
 #include <core/map_math/earth_math.h>
 #include <core/data_layer/road_network.h>
 #include <core/data_layer/lane_vehicle_utils.h>
+//#include <core/simulation/movement/idm/lane_agnostic_movement.h>
+#include <core/simulation/movement/movement_utils.h>
 
 namespace tjs::core::simulation {
 
@@ -217,24 +219,6 @@ namespace tjs::core::simulation {
 				adjust_speed(vehicle);
 				advance_vehicle(i, agent, system);
 			}
-
-			/*switch (vehicle.state) {
-				case VehicleState::PendingMove: {
-					check_move_beginning(agent, system);
-					adjust_lane(agent, system);
-					VehicleStateBitsV::set_info(vehicle.state_, VehicleStateBits::ST_FOLLOW, )
-					vehicle.state_ = VehicleState::Moving;
-				} break;
-				case VehicleState::Moving: {
-					// TODO[simulation]: cycle for movement with different lanes
-					adjust_speed(vehicle);
-					advance_vehicle(agent, system);
-				} break;
-				case VehicleState::Stopped:
-				case VehicleState::Undefined:
-				case VehicleState::Count:
-					break;
-			}*/
 		}
 
 		void update_agent(size_t i, AgentData& agent, TrafficSimulationSystem& system) {

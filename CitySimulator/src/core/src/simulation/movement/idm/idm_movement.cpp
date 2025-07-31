@@ -4,7 +4,7 @@
 
 #include <core/simulation/simulation_system.h>
 
-#include <core/simulation/movement/lane_agnostic_movement.h>
+#include <core/simulation/movement/idm/lane_agnostic_movement.h>
 
 namespace tjs::core::simulation {
 
@@ -19,8 +19,8 @@ namespace tjs::core::simulation {
 
 		double dt = _system.timeModule().state().fixed_dt();
 
-		phase1_simd(_system, buf, lane_rt, dt);
-		phase2_commit(_system, buf, lane_rt, dt);
+		idm::phase1_simd(_system, buf, lane_rt, dt);
+		idm::phase2_commit(_system, buf, lane_rt, dt);
 		_system.vehicle_system().commit();
 	}
 

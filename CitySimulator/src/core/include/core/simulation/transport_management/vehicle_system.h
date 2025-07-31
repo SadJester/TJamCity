@@ -4,7 +4,7 @@
 
 #include <core/data_layer/vehicle.h>
 
-#include <core/simulation/movement/lane_agnostic_movement.h>
+#include <core/simulation/movement/idm/lane_agnostic_movement.h>
 
 namespace tjs::core::simulation {
 	class TrafficSimulationSystem;
