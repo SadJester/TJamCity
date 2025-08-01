@@ -19,7 +19,6 @@
 #include <core/store_models/vehicle_analyze_data.h>
 #include <data/map_renderer_data.h>
 #include <data/persistent_render_data.h>
-#include <data/simulation_debug_data.h>
 #include <data/render_metrics_data.h>
 
 // TODO: Place somwhere to be more pretty
@@ -38,7 +37,6 @@ namespace tjs {
 		app.stores().create<core::model::VehicleAnalyzeData>();
 		app.stores().create<core::model::MapRendererData>();
 		app.stores().create<core::model::PersistentRenderData>();
-		app.stores().create<core::model::SimulationDebugData>();
 		app.stores().create<core::model::RenderMetricsData>();
 	}
 

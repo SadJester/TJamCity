@@ -8,6 +8,7 @@
 
 #include <QLabel>
 #include <QFileDialog>
+#include <QComboBox>
 
 #include <project/project.h>
 
@@ -31,6 +32,7 @@ namespace tjs {
 			QVBoxLayout* mainLayout = new QVBoxLayout(this);
 
 			_application.message_dispatcher().register_handler(*this, &MapControlWidget::handle_positioning_changed, "MapControlWidget");
+			_application.simulationSystem().message_dispatcher().register_handler(*this, &MapControlWidget::handle_population, "MapControlWidget");
 
 			// File button
 			_openFileButton = new QPushButton("Open OSMX File");
@@ -79,6 +81,7 @@ namespace tjs {
 
 		MapControlWidget::~MapControlWidget() {
 			_application.message_dispatcher().unregister_handler<events::MapPositioningChanged>("MapControlWidget");
+			_application.simulationSystem().message_dispatcher().unregister_handler<core::events::VehiclesPopulated>("MapControlWidget");
 		}
 
 		void MapControlWidget::createVehicleInformation(QVBoxLayout* layout) {
@@ -93,7 +96,7 @@ namespace tjs {
 			QHBoxLayout* intLayout = new QHBoxLayout();
 			QLabel* intLabel = new QLabel("Vehicles count:", this);
 			vehicleCount = new QSpinBox(this);
-			vehicleCount->setRange(1, 1000);
+			vehicleCount->setRange(1, 10000000);
 			vehicleCount->setValue(_application.settings().simulationSettings.vehiclesCount);
 			intLayout->addWidget(intLabel);
 			intLayout->addWidget(vehicleCount);
@@ -134,8 +137,22 @@ namespace tjs {
 			seedValue->setVisible(!_application.settings().simulationSettings.randomSeed);
 			mainLayout->addWidget(seedValue);
 
+			QHBoxLayout* algoLayout = new QHBoxLayout();
+			QLabel* algoLabel = new QLabel("Movement Algo:", this);
+			_movementAlgoCombo = new QComboBox(this);
+			_movementAlgoCombo->addItem("Agent", static_cast<int>(core::simulation::MovementAlgoType::Agent));
+			_movementAlgoCombo->addItem("IDM", static_cast<int>(core::simulation::MovementAlgoType::IDM));
+			_movementAlgoCombo->setCurrentIndex(static_cast<int>(_application.settings().simulationSettings.movement_algo));
+			algoLayout->addWidget(algoLabel);
+			algoLayout->addWidget(_movementAlgoCombo);
+			mainLayout->addLayout(algoLayout);
+
 			_regenerateVehiclesButton = new QPushButton("Regenerate vehicles", this);
 			mainLayout->addWidget(_regenerateVehiclesButton);
+
+			_populationLabel = new QLabel("", this);
+			_populationLabel->setStyleSheet("color: blue;");
+			mainLayout->addWidget(_populationLabel);
 
 			// Подключения сигналов
 			connect(vehicleCount, &QSpinBox::valueChanged, [this](int value) {
@@ -161,9 +178,18 @@ namespace tjs {
 				_application.settings().simulationSettings.seedValue = value;
 			});
 
+			connect(_movementAlgoCombo,
+				QOverload<int>::of(&QComboBox::currentIndexChanged),
+				[this](int index) {
+					_application.settings().simulationSettings.movement_algo =
+						static_cast<core::simulation::MovementAlgoType>(index);
+				});
+
 			connect(_regenerateVehiclesButton, &QPushButton::clicked, [this]() {
-				tjs::core::WorldCreator::createRandomVehicles(_application.worldData(), _application.settings().simulationSettings);
 				_application.simulationSystem().initialize();
+				if (_populationLabel) {
+					_populationLabel->clear();
+				}
 			});
 
 			layout->addWidget(infoFrame);
@@ -261,6 +287,33 @@ namespace tjs {
 
 		void MapControlWidget::handle_positioning_changed(const events::MapPositioningChanged& event) {
 			UpdateLabels();
+		}
+
+		void MapControlWidget::handle_population(const core::events::VehiclesPopulated& event) {
+			if (!_populationLabel) {
+				return;
+			}
+			if (event.error) {
+				_populationLabel->setText(
+					QString("Population error: %1/%2")
+						.arg(event.current)
+						.arg(event.total));
+				_populationLabel->setStyleSheet("color: red;");
+				return;
+			}
+			if (event.current >= event.total) {
+				_populationLabel->setText(
+					QString("Generated %1 for %2 ticks")
+						.arg(event.total)
+						.arg(event.creation_ticks));
+				_populationLabel->setStyleSheet("color: green;");
+			} else {
+				_populationLabel->setText(QString("Generation: %2/%3 (%1 in last step)")
+						.arg(event.generated)
+						.arg(event.current)
+						.arg(event.total));
+				_populationLabel->setStyleSheet("color: blue;");
+			}
 		}
 
 		void MapControlWidget::openOSMFile() {

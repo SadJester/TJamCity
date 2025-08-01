@@ -1,13 +1,9 @@
 #pragma once
 
-namespace tjs::core {
-	struct Coordinates;
-	struct AgentData;
-} // namespace tjs::core
-
 namespace tjs::core::simulation {
 
 	class TrafficSimulationSystem;
+	class IMovementAlgorithm;
 
 	class VehicleMovementModule {
 	public:
@@ -19,10 +15,8 @@ namespace tjs::core::simulation {
 
 	private:
 		TrafficSimulationSystem& _system;
-	};
 
-	namespace movement_details {
-		void update_agent(AgentData& agent, TrafficSimulationSystem& system);
-	} // namespace movement_details
+		std::unique_ptr<IMovementAlgorithm> _algorithm;
+	};
 
 } // namespace tjs::core::simulation

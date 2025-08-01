@@ -1,0 +1,51 @@
+#include <core/stdafx.h>
+
+#include <core/simulation/transport_management/vehicle_state.h>
+#include <core/data_layer/vehicle.h>
+
+namespace tjs::core::simulation {
+	void VehicleBuffers::clear() {
+		s_curr.clear();
+		s_next.clear();
+		v_curr.clear();
+		v_next.clear();
+		desired_v.clear();
+		length.clear();
+		lateral_off.clear();
+		lane.clear();
+		lane_target.clear();
+		flags.clear();
+		v_max_speed.clear();
+		uids.clear();
+	}
+
+	void VehicleBuffers::reserve(size_t count) {
+		s_curr.reserve(count);
+		s_next.reserve(count);
+		v_curr.reserve(count);
+		v_next.reserve(count);
+		desired_v.reserve(count);
+		length.reserve(count);
+		lateral_off.reserve(count);
+		lane.reserve(count);
+		lane_target.reserve(count);
+		flags.reserve(count);
+		v_max_speed.reserve(count);
+		uids.reserve(count);
+	}
+
+	void VehicleBuffers::add_vehicle(Vehicle& vehicle) {
+		s_curr.push_back(vehicle.s_on_lane);
+		s_next.push_back(vehicle.s_on_lane);
+		v_curr.push_back(vehicle.currentSpeed);
+		v_next.push_back(vehicle.currentSpeed);
+		desired_v.push_back(vehicle.maxSpeed);
+		length.push_back(vehicle.length);
+		lateral_off.push_back(vehicle.lateral_offset);
+		lane.push_back(vehicle.current_lane);
+		lane_target.push_back(nullptr);
+		flags.push_back(vehicle.state);
+		v_max_speed.push_back(vehicle.maxSpeed);
+		uids.push_back(vehicle.uid);
+	}
+} // namespace tjs::core::simulation

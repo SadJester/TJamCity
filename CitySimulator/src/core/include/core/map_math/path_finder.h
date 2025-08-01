@@ -5,6 +5,7 @@ namespace tjs::core {
 	struct Node;
 	struct Edge_Contract;
 	struct Edge;
+	struct Lane;
 } // namespace tjs::core
 
 namespace tjs::core::algo {
@@ -13,6 +14,21 @@ namespace tjs::core::algo {
 		static std::deque<Node*> find_path_a_star(const RoadNetwork& network, Node* source, Node* target);
 		static std::unordered_set<Node*> reachable_nodes(const RoadNetwork& network, Node* source);
 		static std::vector<const Edge*> find_edge_path_a_star(const RoadNetwork& network, Node* source, Node* target);
+
+		// ────────────────────────────────────────────────────────────────────
+		//  A* from *lane*            (multi-source front edges)
+		//  --------------------------------------------------
+		//  • start_lane  : the lane the vehicle is physically in **now**
+		//  • target      : destination node
+		//  • network     : unchanged RoadNetwork with edge_graph
+		//
+		//  Returns edge sequence   start_lane → … → target
+		//  or empty vector if no route exists.
+		// ────────────────────────────────────────────────────────────────────
+		static std::vector<const Edge*> find_edge_path_a_star_from_lane(const RoadNetwork& network,
+			const Lane* start_lane,
+			Node* target,
+			bool look_adjacent_lanes);
 
 	private:
 		// Вспомогательная функция для проверки возможности перехода через shortcut

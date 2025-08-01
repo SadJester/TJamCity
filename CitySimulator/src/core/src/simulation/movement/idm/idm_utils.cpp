@@ -1,0 +1,103 @@
+#include <core/stdafx.h>
+
+#include <core/simulation/movement/idm/idm_utils.h>
+
+namespace tjs::core::simulation::idm {
+	float safe_entry_speed(const float v_leader, const float gap, const double dt) noexcept {
+		// Prevent division by zero when dt≈0
+		if (dt <= 1e-6) {
+			return v_leader;
+		}
+		// Allow the follower to close the entire gap within the next tick
+		return v_leader + gap / static_cast<float>(dt);
+	}
+
+	float actual_gap(const float s_leader_ctr,
+		const float s_follower_ctr,
+		const float len_leader,
+		const float len_follower) noexcept {
+		const float bumper_dist =
+			(s_leader_ctr - s_follower_ctr) - 0.5f * (len_leader + len_follower);
+		return std::max(0.0f, bumper_dist);
+	}
+
+	float desired_gap(const float v_follower,
+		const float delta_v,
+		const idm_params_t& p) noexcept {
+		const float braking_term = (v_follower * delta_v) / (2.0f * std::sqrt(p.a_max * p.b_comf));
+		const float dyn = v_follower * p.t_headway + braking_term;
+		return p.s0 + std::max(0.0f, dyn);
+	}
+
+	bool gap_ok(const LaneRuntime& tgt_rt,
+		const std::vector<double>& s_curr,
+		const std::vector<float>& length,
+		const std::vector<float>& v_curr,
+		const double s_new, // tentative bumper pos
+		const float len_new,
+		const idm::idm_params_t& p,
+		const double dt,
+		const std::size_t row_newcomer) {
+		const auto& idx = tgt_rt.idx; // descending s_curr
+
+		// Find insertion point (same as before)
+		auto it = std::lower_bound(idx.begin(), idx.end(), s_new,
+			[&](std::size_t j, double pos) {
+				return s_curr[j] > pos;
+			});
+
+		auto enough_gap_and_brake = [&](float gap,
+										float v_follow,
+										float v_lead) -> bool {
+			if (gap < p.s0) {
+				return false; // hard minimum jam distance
+			}
+
+			float delta_v = v_follow - v_lead; // +ve when closing
+			if (delta_v <= 0.0f) {
+				return true; // diverging – fine
+			}
+
+			// (i) Brake needed to **stop** before leader using constant decel
+			float req_brake = (delta_v * delta_v) / (2.0f * std::max(1e-3f, gap - p.s0));
+			if (req_brake > p.b_hard + 1e-4f) {
+				return false;
+			}
+
+			// (ii) Per‑tick decel limit (so we don't exceed −b_comf in this step)
+			float per_tick = delta_v / static_cast<float>(dt);
+			if (per_tick > p.b_hard + 1e-4f) {
+				// return false;
+			}
+
+			return true;
+		};
+
+		/* ---------- leader gap ------------------------------------------------- */
+		if (it != idx.begin()) {
+			std::size_t j_lead = *(it - 1);
+			float gap = idm::actual_gap(static_cast<float>(s_curr[j_lead]),
+				static_cast<float>(s_new),
+				length[j_lead], len_new);
+			if (!enough_gap_and_brake(gap, /* follower = newcomer */
+					v_curr[row_newcomer], v_curr[j_lead])) {
+				return false;
+			}
+		}
+
+		/* ---------- follower (vehicle behind newcomer) ------------------------- */
+		if (it != idx.end()) {
+			std::size_t j_follow = *it;
+			float gap = idm::actual_gap(static_cast<float>(s_new),
+				static_cast<float>(s_curr[j_follow]),
+				len_new, length[j_follow]);
+			if (!enough_gap_and_brake(gap, /* follower behind */
+					v_curr[j_follow], v_curr[row_newcomer])) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+} // namespace tjs::core::simulation::idm

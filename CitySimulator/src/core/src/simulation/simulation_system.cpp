@@ -6,6 +6,7 @@
 #include <core/data_layer/world_data.h>
 #include <core/store_models/idata_model.h>
 #include <core/store_models/vehicle_analyze_data.h>
+#include <core/random_generator.h>
 
 #include <core/events/simulation_events.h>
 
@@ -21,30 +22,58 @@ namespace tjs::core::simulation {
 		, _timeModule(*this)
 		, _strategicModule(*this)
 		, _tacticalModule(*this)
+		, _vehicle_system(*this)
 		, _vehicleMovementModule(*this) {
 	}
 
 	TrafficSimulationSystem::~TrafficSimulationSystem() {
 	}
 
-	void TrafficSimulationSystem::initialize() {
-		auto& vehicles = _worldData.vehicles();
+	void sync_agents(TrafficSimulationSystem::Agents& agents, VehicleSystem::Vehicles& vehicles) {
+		// Update pointers
+		for (size_t i = 0; i < agents.size(); ++i) {
+			agents[i].vehicle = &vehicles[i];
+		}
 
-		_agents.clear();
-		_agents.shrink_to_fit();
-		_agents.reserve(vehicles.size());
-		for (size_t i = 0; i < vehicles.size(); ++i) {
-			_agents.push_back({ vehicles[i].uid,
+		// Add new vehicles
+		for (size_t i = agents.size(); i < vehicles.size(); ++i) {
+			agents.push_back({ vehicles[i].uid,
 				TacticalBehaviour::Normal,
 				nullptr,
 				&vehicles[i],
 				{},
-				0.0,
+				0,
+				0,
+				0.0f,
 				false,
 				0 });
 		}
+	}
 
+	void TrafficSimulationSystem::initialize() {
 		_timeModule.initialize();
+
+		if (!_settings.randomSeed) {
+			RandomGenerator::set_seed(_settings.seedValue);
+		}
+
+		// clear lanes from vehicles
+		if (!_worldData.segments().empty()) {
+			auto& segment = _worldData.segments()[0];
+			for (auto& edge : segment->road_network->edges) {
+				for (auto& lane : edge.lanes) {
+					lane.vehicles.clear();
+				}
+			}
+		}
+
+		_vehicle_system.initialize();
+		_vehicle_system.populate();
+
+		_agents.clear();
+		_agents.reserve(_settings.vehiclesCount);
+		sync_agents(_agents, _vehicle_system.vehicles());
+
 		_strategicModule.initialize();
 		_tacticalModule.initialize();
 		_vehicleMovementModule.initialize();
@@ -58,6 +87,13 @@ namespace tjs::core::simulation {
 		}
 
 		_message_dispatcher.handle_message(events::SimulationInitialized {}, "simulation");
+	}
+
+	void TrafficSimulationSystem::release() {
+		_vehicle_system.release();
+		_strategicModule.release();
+		_tacticalModule.release();
+		_vehicleMovementModule.release();
 	}
 
 	void TrafficSimulationSystem::update(double realTimeDelta) {
@@ -74,6 +110,11 @@ namespace tjs::core::simulation {
 
 	void TrafficSimulationSystem::step() {
 		_timeModule.tick();
+
+		size_t created = _vehicle_system.update();
+		if (created > 0) {
+			sync_agents(_agents, _vehicle_system.vehicles());
+		}
 
 		_strategicModule.update();
 		_tacticalModule.update();

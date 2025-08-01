@@ -7,8 +7,10 @@
 #include <QLabel>
 #include <QCheckBox>
 #include <QListWidget>
+#include <QComboBox>
 
 #include <events/map_events.h>
+#include <core/events/vehicle_population_events.h>
 
 namespace tjs {
 	class Application;
@@ -34,6 +36,7 @@ namespace tjs {
 
 			void createVehicleInformation(QVBoxLayout* layout);
 			void createLayerSelection(QVBoxLayout* layout);
+			void handle_population(const core::events::VehiclesPopulated& event);
 
 		private slots:
 			void onUpdate();
@@ -53,12 +56,15 @@ namespace tjs {
 			QDoubleSpinBox* simplifiedThreshold = nullptr;
 			QCheckBox* randomSeed = nullptr;
 			QSpinBox* seedValue = nullptr;
+			QComboBox* _movementAlgoCombo = nullptr;
 			QPushButton* _regenerateVehiclesButton = nullptr;
 
 			QLabel* _zoomLevel = nullptr;
 			QLabel* _screenCenter = nullptr;
 			QLabel* _longtitude = nullptr;
 			QListWidget* _layerList = nullptr;
+
+			QLabel* _populationLabel = nullptr;
 		};
 	} // namespace ui
 } // namespace tjs

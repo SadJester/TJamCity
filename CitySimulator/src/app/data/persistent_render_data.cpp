@@ -2,15 +2,15 @@
 #include "data/persistent_render_data.h"
 #include "visualization/elements/map_element.h"
 #include "Application.h"
-#include "data/simulation_debug_data.h"
 
+#include <core/simulation/simulation_debug.h>
 #include <core/data_layer/world_data.h>
 #include <core/map_math/path_finder.h>
 
 namespace tjs::visualization {
 
 	void recalculate_map_data(Application& app) {
-		auto* debug = app.stores().get_entry<core::model::SimulationDebugData>();
+		auto* debug = app.stores().get_entry<core::simulation::SimulationDebugData>();
 		auto* render = app.stores().get_entry<core::model::MapRendererData>();
 		if (!render || !debug) {
 			return;

@@ -19,6 +19,8 @@ namespace tjs::core {
 		core::Node* currentGoal;
 		tjs::core::Vehicle* vehicle;
 		std::vector<core::Edge*> path; // Path to follow
+		size_t path_offset;
+		uint32_t goal_lane_mask;       // bitmask for current edge exit
 		double distanceTraveled = 0.0; // Total distance traveled
 		bool stucked = false;
 		int goalFailCount = 0;

@@ -2,7 +2,7 @@
 #include "Application.h"
 #include "data/persistent_render_data.h"
 #include "data/map_renderer_data.h"
-#include "data/simulation_debug_data.h"
+#include <core/simulation/simulation_debug.h>
 
 #include <QVBoxLayout>
 #include <QTimer>
@@ -28,7 +28,7 @@ namespace tjs::ui {
 	}
 
 	void MapAnalyzerWidget::updateInfo() {
-		auto* debug = _application.stores().get_entry<core::model::SimulationDebugData>();
+		auto* debug = _application.stores().get_entry<core::simulation::SimulationDebugData>();
 		if (!debug || !debug->selectedNode) {
 			_nodeId->setText("Node: none");
 			_coords->setText("Coords: -");

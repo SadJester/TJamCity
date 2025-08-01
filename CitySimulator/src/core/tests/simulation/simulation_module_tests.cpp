@@ -47,7 +47,7 @@ TEST_F(SimulationModuleTest, TacticalMarksAgentStuckAfterFailures) {
 	auto& agent = system->agents()[0];
 	auto unreachable = tjs::core::Node::create(9999, agent.vehicle->coordinates, tjs::core::NodeTags::None);
 
-	agent.vehicle->state = VehicleState::Stopped;
+	agent.vehicle->state = 0; //VehicleState::Stopped;
 	for (int i = 0; i < 5; ++i) {
 		agent.currentGoal = unreachable.get();
 		agent.path.clear();

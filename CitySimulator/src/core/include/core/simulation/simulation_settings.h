@@ -2,8 +2,10 @@
 
 #include <nlohmann/json.hpp>
 
-namespace tjs::core {
+#include <core/simulation/simulation_debug.h>
+#include <core/simulation/movement/movement_algorithm.h>
 
+namespace tjs::core {
 	struct SimulationSettings {
 		static constexpr const char* NAME = "simulation_settings";
 
@@ -17,6 +19,9 @@ namespace tjs::core {
 		int steps_on_update = DEFAULT_STEPS_ON_UPDATE;
 		double step_delta_sec = DEFAULT_FIXED_STEP_SEC;
 		bool simulation_paused = true;
+		simulation::MovementAlgoType movement_algo = simulation::MovementAlgoType::IDM;
+
+		simulation::SimulationDebugData debug_data;
 
 		NLOHMANN_DEFINE_TYPE_INTRUSIVE(SimulationSettings,
 			randomSeed,
@@ -24,7 +29,9 @@ namespace tjs::core {
 			vehiclesCount,
 			steps_on_update,
 			step_delta_sec,
-			simulation_paused);
+			simulation_paused,
+			movement_algo,
+			debug_data);
 	};
 
 } // namespace tjs::core

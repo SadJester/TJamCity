@@ -10,12 +10,12 @@ namespace tjs::core {
 		bool loadOSMXmlData(WorldData& data, std::string_view osmFileName);
 		void preprocess_segment(WorldSegment& segment);
 		void create_road_network(WorldSegment& segment);
-	}
+	} // namespace details
 
 	class WorldCreator final {
 	public:
 		static bool loadOSMData(WorldData& data, std::string_view osmFilename);
-		static bool createRandomVehicles(WorldData& data, const SimulationSettings& settings);
+
 	private:
 		WorldCreator() = delete;
 	};

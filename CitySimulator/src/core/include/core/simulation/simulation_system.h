@@ -4,6 +4,7 @@
 #include <core/simulation/tactical/tactical_planning_module.h>
 #include <core/simulation/movement/vehicle_movement_module.h>
 #include <core/simulation/simulation_settings.h>
+#include <core/simulation/transport_management/vehicle_system.h>
 
 #include <common/message_dispatcher/message_dispatcher.h>
 
@@ -51,6 +52,10 @@ namespace tjs::core::simulation {
 			return _vehicleMovementModule;
 		}
 
+		VehicleSystem& vehicle_system() {
+			return _vehicle_system;
+		}
+
 		core::model::DataModelStore& store() {
 			return _store;
 		}
@@ -70,6 +75,9 @@ namespace tjs::core::simulation {
 		StrategicPlanningModule _strategicModule;
 		TacticalPlanningModule _tacticalModule;
 		VehicleMovementModule _vehicleMovementModule;
+
+		VehicleSystem _vehicle_system;
+
 		core::model::DataModelStore& _store;
 		SimulationSettings& _settings;
 

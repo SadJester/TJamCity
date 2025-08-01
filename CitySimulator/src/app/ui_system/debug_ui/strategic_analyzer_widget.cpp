@@ -24,9 +24,10 @@ namespace tjs::ui {
 	void StrategicAnalyzerWidget::updateInfo() {
 		_list->clear();
 		const auto& agents = _application.simulationSystem().agents();
-		for (const auto& agent : agents) {
+		for (size_t i = 0; i < agents.size(); ++i) {
+			const auto& agent = agents[i];
 			if (agent.stucked) {
-				_list->addItem(QString("Agent %1").arg(agent.id));
+				_list->addItem(QString("[%1] Agent %2").arg(i).arg(agent.id));
 			}
 		}
 	}

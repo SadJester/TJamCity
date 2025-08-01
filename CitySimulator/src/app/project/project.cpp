@@ -14,7 +14,6 @@
 namespace tjs {
 	bool open_map_simulation_reinit(std::string_view fileName, Application& application) {
 		if (tjs::core::WorldCreator::loadOSMData(application.worldData(), fileName)) {
-			tjs::core::WorldCreator::createRandomVehicles(application.worldData(), application.settings().simulationSettings);
 			application.settings().general.selectedFile = fileName;
 
 			application.simulationSystem().initialize();

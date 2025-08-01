@@ -18,7 +18,7 @@ namespace tjs::core::simulation {
 	};
 
 	namespace simulation_details {
-		void update_agent(AgentData& agent, TrafficSimulationSystem& system);
+		void update_agent(size_t i, AgentData& agent, TrafficSimulationSystem& system);
 	} // namespace simulation_details
 
 } // namespace tjs::core::simulation

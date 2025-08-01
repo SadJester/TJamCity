@@ -10,7 +10,6 @@ using namespace tjs::common;
 
 // Test event types
 
-
 // Test handler class
 class TestHandler {
 public:
