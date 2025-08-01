@@ -10,7 +10,7 @@ namespace tjs::core {
 namespace tjs::core::simulation {
 	class AgentMovementAlgo : public IMovementAlgorithm {
 	public:
-		AgentMovementAlgo(TrafficSimulationSystem& system);
+		explicit AgentMovementAlgo(TrafficSimulationSystem& system);
 
 		void update() override;
 	};

@@ -26,12 +26,12 @@ namespace tjs::core::simulation {
 		};
 
 	public:
-		VehicleSystem(TrafficSimulationSystem& system);
+		explicit VehicleSystem(TrafficSimulationSystem& system);
 
 		void initialize();
 		void release();
 
-		// TODO: here must be some profile
+		// TODO[simulation]: here must be some profile
 		size_t populate();
 		size_t update();
 

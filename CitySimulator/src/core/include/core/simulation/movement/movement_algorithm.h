@@ -12,7 +12,7 @@ namespace tjs::core::simulation {
 		IMovementAlgorithm(MovementAlgoType algo_type, TrafficSimulationSystem& system)
 			: _system(system)
 			, _algo_type(algo_type) {}
-		virtual ~IMovementAlgorithm() {}
+		virtual ~IMovementAlgorithm() = default;
 
 		MovementAlgoType get_algo_type() const {
 			return _algo_type;

@@ -60,24 +60,6 @@ namespace tjs::core::simulation {
 
 	using VehicleStateBitsV = common::BitMaskValue<VehicleStateBits, VehicleStateBitsDivision>;
 
-	/*
-	enum VehicleStateBits : uint8_t {
-		ST_FOLLOW = 0b00, // lower 2 bits = finite-state machine
-		ST_PREPARE = 0b01,
-		ST_EXECUTE = 0b10,
-		ST_YIELD = 0b11,
-		FL_COOLDOWN = 0b100, // bit-2  : “cool-down running”
-		FL_ERROR = 0b1000,   // bit-3  : any movement error
-	};
-
-	inline void set_state(uint8_t& f, uint8_t st) noexcept {
-		f = uint8_t((f & ~0b11) | (st & 0b11));
-	}
-
-	inline uint8_t get_state(uint8_t f) noexcept {
-		return f & 0b11;
-	}*/
-
 	struct VehicleBuffers {
 		std::vector<double> s_curr;     // position at start of tick
 		std::vector<float> v_curr;      // speed at start of tick

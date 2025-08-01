@@ -17,10 +17,7 @@ namespace tjs::core::simulation {
 				_algorithm = std::make_unique<AgentMovementAlgo>(_system);
 				break;
 			case MovementAlgoType::IDM:
-				_algorithm = std::make_unique<IDMMovementAlgo>(_system);
-				break;
 			default:
-				// Default is IDM
 				_algorithm = std::make_unique<IDMMovementAlgo>(_system);
 				break;
 		}

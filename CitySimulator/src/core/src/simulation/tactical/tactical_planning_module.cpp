@@ -125,7 +125,7 @@ namespace tjs::core::simulation {
 
 				Node* goal_node = agent.currentGoal;
 				if (start_lane && goal_node) {
-					const bool find_adjacent = vehicle.s_on_lane < (vehicle.current_lane->length - 10.0);
+					const bool find_adjacent = vehicle.s_on_lane < (vehicle.current_lane->length - 2.0);
 					agent.path = find_path(start_lane, goal_node, road_network, find_adjacent);
 
 					if (!agent.path.empty()) {
