@@ -64,14 +64,16 @@ namespace tjs::core::simulation {
 			{
 				const auto it = std::find(v_src.begin(), v_src.end(), row);
 				if (it != v_src.end()) {
-					// Swap‑and‑pop for O(1) physical erase …
-					std::size_t moved = v_src.back();
+    				std::size_t moved = v_src.back();
+					// it's not the last element
+					const bool need_reinsert = !v_src.empty() && (it != v_src.end() - 1);
+
 					*it = moved;
 					v_src.pop_back();
 
 					// … but now the element that was at the tail sits at *it* and may
 					// violate descending order.  Re‑insert it where it belongs.
-					if (!v_src.empty()) {
+					if (!v_src.empty() && need_reinsert) {
 						auto correct = std::upper_bound(
 							v_src.begin(), v_src.end(), moved,
 							[&](std::size_t lhs, std::size_t rhs) {
@@ -290,15 +292,25 @@ namespace tjs::core::simulation {
 
 			auto& agents = system.agents();
 
-			buf.s_curr.swap(buf.s_next);
-			buf.v_curr.swap(buf.v_next);
+			std::swap_ranges(buf.s_curr.begin(), buf.s_curr.end(), buf.s_next.begin());
+			std::swap_ranges(buf.v_curr.begin(), buf.v_curr.end(), buf.v_next.begin());
 
 			static const idm::idm_params_t p_idm {};
 
+			// Extra structure so first cycle could be constant with indices
+			struct PendingMove {
+				std::size_t row;
+				Lane* src;
+				Lane* tgt;
+			};
+
+			std::vector<PendingMove> pending_moves;
+			// Suppose that 10% will be moved in one tick
+			pending_moves.reserve(agents.size() / 10);
+
 			/* ---------------- lateral loop --------------------------------------- */
-			for (LaneRuntime& rt : lane_rt) {
-				auto idx_copy = rt.idx;
-				for (std::size_t row : idx_copy) {
+			for (const LaneRuntime& rt : lane_rt) {
+				for (std::size_t row : rt.idx) {
 					Lane* tgt = buf.lane_target[row];
 					if (!tgt) {
 						continue;
@@ -313,7 +325,7 @@ namespace tjs::core::simulation {
 							buf.s_curr, buf.length, buf.v_curr,
 							buf.s_curr[row], buf.length[row],
 							p_idm, dt, row)) {
-						idm::move_index(row, lane_rt, rt.static_lane, tgt, buf.s_curr);
+						pending_moves.push_back(PendingMove{row, rt.static_lane, tgt});
 						buf.lane[row] = tgt;
 						buf.lane_target[row] = nullptr;
 						VehicleStateBitsV::set_info(buf.flags[row], VehicleStateBits::ST_FOLLOW, VehicleStateBitsDivision::STATE);
@@ -330,6 +342,11 @@ namespace tjs::core::simulation {
 						}
 					}
 				}
+			}
+
+			/* ----------------  Do all moves after scanning--------------------------------------- */
+			for (const auto& m : pending_moves) {
+				idm::move_index(m.row, lane_rt, m.src, m.tgt, buf.s_curr);
 			}
 
 			/* ---------------- edge hop loop -------------------------------------- */
@@ -386,8 +403,13 @@ namespace tjs::core::simulation {
 					idm::move_index(i, lane_rt, lane, entry, buf.s_curr);
 					lane = entry;
 					buf.lane[i] = entry;
-					ag.goal_lane_mask = build_goal_mask(*entry->parent, *ag.path[ag.path_offset + 1]);
 
+					if (ag.path_offset < ag.path.size() - 1) {
+						ag.goal_lane_mask = build_goal_mask(*entry->parent, *ag.path[ag.path_offset + 1]);
+					}
+					else {
+						ag.goal_lane_mask = 0xFFFF;
+					}
 					/* ----- SUMO‑style speed clamp ------------------------------ */
 					const auto& tgt_idx = lane_rt[entry->index_in_buffer].idx;
 					if (!tgt_idx.empty() && tgt_idx.front() != i) {
