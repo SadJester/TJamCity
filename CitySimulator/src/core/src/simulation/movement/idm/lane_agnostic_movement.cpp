@@ -65,7 +65,8 @@ namespace tjs::core::simulation {
 				const auto it = std::find(v_src.begin(), v_src.end(), row);
 				if (it != v_src.end()) {
     				std::size_t moved = v_src.back();
-					bool need_reinsert = (it != v_src.end() - 1); // it's not the last element
+					// it's not the last element
+					const bool need_reinsert = !v_src.empty() && (it != v_src.end() - 1);
 
 					*it = moved;
 					v_src.pop_back();
@@ -277,25 +278,6 @@ namespace tjs::core::simulation {
 			}
 		}
 
-
-		template <typename _Ty>
-		inline void swap_buffer_values(std::vector<_Ty>& a, std::vector<_Ty>& b) {
-			std::swap_ranges(a.begin(), a.end(), b.begin());
-		}
-
-		void swap_buffers(VehicleBuffers& buf) {
-			double* s_curr = buf.s_curr.data();
-			double* s_next = buf.s_next.data();
-			float* v_curr = buf.v_curr.data();
-			float* v_next = buf.v_next.data();
-
-			#pragma omp simd
-			for (size_t i = 0; i < buf.s_curr.size(); ++i) {
-				std::swap(s_curr[i], s_next[i]);
-				std::swap(v_curr[i], v_next[i]);
-			}
-		}
-
 		void phase2_commit(
 			TrafficSimulationSystem& system,
 			VehicleBuffers& buf,
@@ -310,8 +292,8 @@ namespace tjs::core::simulation {
 
 			auto& agents = system.agents();
 
-			swap_buffer_values(buf.s_curr, buf.s_next);
-			swap_buffer_values(buf.v_curr, buf.v_next);
+			std::swap_ranges(buf.s_curr.begin(), buf.s_curr.end(), buf.s_next.begin());
+			std::swap_ranges(buf.v_curr.begin(), buf.v_curr.end(), buf.v_next.begin());
 
 			static const idm::idm_params_t p_idm {};
 

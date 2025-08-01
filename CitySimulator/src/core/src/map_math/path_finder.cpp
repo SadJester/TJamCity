@@ -173,22 +173,22 @@ namespace tjs::core::algo {
 		TJS_TRACY_NAMED("PathFinder::find_edge_path_a_star_from_lane");
 
 		using NodeEntry = std::pair<double, Node*>;
-
-
-		static thread_local std::unordered_map<Node*, NodeRecord> records;
-		static thread_local std::unordered_set<Node*> closed_set;
-		static thread_local std::priority_queue<
+		using OpenSetQueue = std::priority_queue<
 			std::pair<double, Node*>,
 			std::vector<std::pair<double, Node*>>,
 			std::greater<>
-		> open_set;
+		>;
+
+		static thread_local std::unordered_map<Node*, NodeRecord> records;
+		static thread_local std::unordered_set<Node*> closed_set;
+		static thread_local OpenSetQueue open_set;
 
 		records.reserve(128); // reasonable default
 		closed_set.reserve(128);
 
 		records.clear();
 		closed_set.clear();
-		open_set = decltype(open_set){};
+		open_set = {};
 
 		auto seed_successors = [&](const Lane* ln) {
 			for (LaneLinkHandler h : ln->outgoing_connections) {
@@ -264,12 +264,13 @@ namespace tjs::core::algo {
 
 				double tentative_g = records[current].g_score + edge->length;
 
-				auto& rec = records[neighbor];
-				if (!records.contains(neighbor) || tentative_g < rec.g_score) {
-					rec.g_score = tentative_g;
-					rec.parent = current;
-					rec.via = edge;
-
+				auto it = records.find(neighbor);
+				if (it == records.end()) {
+					records[neighbor] = NodeRecord{current, edge, tentative_g};
+					double h = core::algo::euclidean_distance(neighbor->coordinates, target->coordinates);
+					open_set.emplace(tentative_g + h, neighbor);
+				} else if (tentative_g < it->second.g_score) {
+					it->second = NodeRecord{current, edge, tentative_g};
 					double h = core::algo::euclidean_distance(neighbor->coordinates, target->coordinates);
 					open_set.emplace(tentative_g + h, neighbor);
 				}
