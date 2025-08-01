@@ -64,14 +64,15 @@ namespace tjs::core::simulation {
 			{
 				const auto it = std::find(v_src.begin(), v_src.end(), row);
 				if (it != v_src.end()) {
-					// Swap‑and‑pop for O(1) physical erase …
-					std::size_t moved = v_src.back();
+    				std::size_t moved = v_src.back();
+					bool need_reinsert = (it != v_src.end() - 1); // it's not the last element
+
 					*it = moved;
 					v_src.pop_back();
 
 					// … but now the element that was at the tail sits at *it* and may
 					// violate descending order.  Re‑insert it where it belongs.
-					if (!v_src.empty()) {
+					if (!v_src.empty() && need_reinsert) {
 						auto correct = std::upper_bound(
 							v_src.begin(), v_src.end(), moved,
 							[&](std::size_t lhs, std::size_t rhs) {
@@ -276,6 +277,25 @@ namespace tjs::core::simulation {
 			}
 		}
 
+
+		template <typename _Ty>
+		inline void swap_buffer_values(std::vector<_Ty>& a, std::vector<_Ty>& b) {
+			std::swap_ranges(a.begin(), a.end(), b.begin());
+		}
+
+		void swap_buffers(VehicleBuffers& buf) {
+			double* s_curr = buf.s_curr.data();
+			double* s_next = buf.s_next.data();
+			float* v_curr = buf.v_curr.data();
+			float* v_next = buf.v_next.data();
+
+			#pragma omp simd
+			for (size_t i = 0; i < buf.s_curr.size(); ++i) {
+				std::swap(s_curr[i], s_next[i]);
+				std::swap(v_curr[i], v_next[i]);
+			}
+		}
+
 		void phase2_commit(
 			TrafficSimulationSystem& system,
 			VehicleBuffers& buf,
@@ -290,15 +310,25 @@ namespace tjs::core::simulation {
 
 			auto& agents = system.agents();
 
-			buf.s_curr.swap(buf.s_next);
-			buf.v_curr.swap(buf.v_next);
+			swap_buffer_values(buf.s_curr, buf.s_next);
+			swap_buffer_values(buf.v_curr, buf.v_next);
 
 			static const idm::idm_params_t p_idm {};
 
+			// Extra structure so first cycle could be constant with indices
+			struct PendingMove {
+				std::size_t row;
+				Lane* src;
+				Lane* tgt;
+			};
+
+			std::vector<PendingMove> pending_moves;
+			// Suppose that 10% will be moved in one tick
+			pending_moves.reserve(agents.size() / 10);
+
 			/* ---------------- lateral loop --------------------------------------- */
-			for (LaneRuntime& rt : lane_rt) {
-				auto idx_copy = rt.idx;
-				for (std::size_t row : idx_copy) {
+			for (const LaneRuntime& rt : lane_rt) {
+				for (std::size_t row : rt.idx) {
 					Lane* tgt = buf.lane_target[row];
 					if (!tgt) {
 						continue;
@@ -313,7 +343,7 @@ namespace tjs::core::simulation {
 							buf.s_curr, buf.length, buf.v_curr,
 							buf.s_curr[row], buf.length[row],
 							p_idm, dt, row)) {
-						idm::move_index(row, lane_rt, rt.static_lane, tgt, buf.s_curr);
+						pending_moves.push_back(PendingMove{row, rt.static_lane, tgt});
 						buf.lane[row] = tgt;
 						buf.lane_target[row] = nullptr;
 						VehicleStateBitsV::set_info(buf.flags[row], VehicleStateBits::ST_FOLLOW, VehicleStateBitsDivision::STATE);
@@ -330,6 +360,11 @@ namespace tjs::core::simulation {
 						}
 					}
 				}
+			}
+
+			/* ----------------  Do all moves after scanning--------------------------------------- */
+			for (const auto& m : pending_moves) {
+				idm::move_index(m.row, lane_rt, m.src, m.tgt, buf.s_curr);
 			}
 
 			/* ---------------- edge hop loop -------------------------------------- */
@@ -386,8 +421,13 @@ namespace tjs::core::simulation {
 					idm::move_index(i, lane_rt, lane, entry, buf.s_curr);
 					lane = entry;
 					buf.lane[i] = entry;
-					ag.goal_lane_mask = build_goal_mask(*entry->parent, *ag.path[ag.path_offset + 1]);
 
+					if (ag.path_offset < ag.path.size() - 1) {
+						ag.goal_lane_mask = build_goal_mask(*entry->parent, *ag.path[ag.path_offset + 1]);
+					}
+					else {
+						ag.goal_lane_mask = 0xFFFF;
+					}
 					/* ----- SUMO‑style speed clamp ------------------------------ */
 					const auto& tgt_idx = lane_rt[entry->index_in_buffer].idx;
 					if (!tgt_idx.empty() && tgt_idx.front() != i) {

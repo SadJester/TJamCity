@@ -89,24 +89,31 @@ namespace tjs::core::simulation {
 	void VehicleSystem::commit() {
 		for (size_t i = 0; i < _vehicles.size(); ++i) {
 			Vehicle& v = _vehicles[i];
+
+			const bool has_changes = 
+				v.current_lane != _buffers.lane[i] 
+				|| v.s_on_lane != _buffers.s_curr[i]
+				|| v.lateral_offset != _buffers.lateral_off[i];
+
 			v.current_lane = _buffers.lane[i];
 			v.currentSpeed = _buffers.v_curr[i];
 			v.s_on_lane = _buffers.s_curr[i];
+			v.lateral_offset = _buffers.lateral_off[i];
 			v.previous_state = v.state;
 			v.state = _buffers.flags[i];
-
-			v.lateral_offset = _buffers.lateral_off[i];
-			if (v.current_lane) {
+			
+			if (has_changes && v.current_lane) {
 				v.coordinates = lane_position(*v.current_lane, v.s_on_lane);
 				v.rotationAngle = lane_rotation(*v.current_lane);
 			}
 		}
 
 		for (LaneRuntime& rt : _lane_runtime) {
-			rt.static_lane->vehicles.clear();
-			rt.static_lane->vehicles.reserve(rt.idx.size());
-			for (std::size_t idx : rt.idx) {
-				rt.static_lane->vehicles.push_back(&_vehicles[idx]);
+			Lane& lane = *rt.static_lane;
+			auto& idx = rt.idx;
+			lane.vehicles.resize(idx.size());
+			for (std::size_t i = 0; i < idx.size(); ++i) {
+				lane.vehicles[i] = &_vehicles[idx[i]];
 			}
 		}
 	}
