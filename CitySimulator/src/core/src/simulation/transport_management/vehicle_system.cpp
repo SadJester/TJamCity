@@ -77,21 +77,12 @@ namespace tjs::core::simulation {
 		return result;
 	}
 
-	static float lane_rotation(const Lane& lane) {
-		if (lane.centerLine.empty()) {
-			return 0.0f;
-		}
-		const auto& start = lane.centerLine.front();
-		const auto& end = lane.centerLine.back();
-		return static_cast<float>(atan2(end.y - start.y, end.x - start.x));
-	}
-
 	void VehicleSystem::commit() {
 		for (size_t i = 0; i < _vehicles.size(); ++i) {
 			Vehicle& v = _vehicles[i];
 
-			const bool has_changes = 
-				v.current_lane != _buffers.lane[i] 
+			const bool has_changes =
+				v.current_lane != _buffers.lane[i]
 				|| v.s_on_lane != _buffers.s_curr[i]
 				|| v.lateral_offset != _buffers.lateral_off[i];
 
@@ -101,10 +92,10 @@ namespace tjs::core::simulation {
 			v.lateral_offset = _buffers.lateral_off[i];
 			v.previous_state = v.state;
 			v.state = _buffers.flags[i];
-			
+
 			if (has_changes && v.current_lane) {
 				v.coordinates = lane_position(*v.current_lane, v.s_on_lane);
-				v.rotationAngle = lane_rotation(*v.current_lane);
+				v.rotationAngle = v.current_lane->rotation_angle;
 			}
 		}
 

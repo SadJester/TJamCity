@@ -21,6 +21,7 @@ namespace tjs::core {
 		LaneOrientation orientation = LaneOrientation::Forward;
 		double width = 0.0;
 		double length = 0.0;
+		float rotation_angle = 0.0f;
 		std::vector<Coordinates> centerLine;
 		TurnDirection turn = TurnDirection::None;
 		std::vector<LaneLinkHandler> outgoing_connections;
