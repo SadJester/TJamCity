@@ -72,6 +72,7 @@ namespace tjs::core::simulation {
 		std::vector<Lane*> lane_target;      // ≡ nullptr when FOLLOW
 		std::vector<float> lane_change_time; // generic timer for lane-change FSM
 		std::vector<int8_t> lane_change_dir; // +1 leftwards, -1 rightwards
+		std::vector<Lane*> lane_after;       // changine lanes in phase2
 		std::vector<uint16_t> flags;         // packed bits
 
 		std::vector<size_t> uids;

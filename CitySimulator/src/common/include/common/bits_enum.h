@@ -28,6 +28,12 @@ namespace tjs::common {
 		static bool has_info(const bit_size& container, _Enum flag) {
 			return (container & static_cast<bit_size>(flag)) == static_cast<bit_size>(flag);
 		}
+
+		static bool has_any(const bit_size& container,
+			const bit_size& flags,
+			_EnumDivision division_mask) {
+			return ((container & static_cast<bit_size>(division_mask)) & static_cast<bit_size>(flags)) != 0;
+		}
 	};
 
 } // namespace tjs::common

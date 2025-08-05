@@ -16,9 +16,9 @@
 #include <core/simulation/simulation_system.h>
 
 namespace {
-	constexpr float T_PREPARE = 1.0f;
+	constexpr float T_PREPARE = 0.1f;
 	constexpr float T_CROSS = 2.0f;
-	constexpr float T_ALIGN = 1.0f;
+	constexpr float T_ALIGN = 0.1f;
 	constexpr float POLITENESS_THRESHOLD = 0.2f;
 	constexpr float TAU = 1.0f;
 	constexpr float DELTA = 1.0f;
@@ -249,27 +249,39 @@ namespace tjs::core::simulation {
 					const float dist_to_node = rt.length - s_f;
 					const AgentData& ag = agents[i];
 
-					// Current and (first) desired lane indices on this edge
-					const int curr_idx = rt.static_lane->index_in_edge; // 0 = right-most
-					int goal_idx = -1;
-					for (int b = 0; b < 32; ++b) { // first set bit in goal mask
-						if ((ag.goal_lane_mask >> b) & 1) {
-							goal_idx = b;
-							break;
+					const uint16_t change_state = static_cast<int>(VehicleStateBits::ST_PREPARE) | static_cast<int>(VehicleStateBits::ST_CROSS) | static_cast<int>(VehicleStateBits::ST_ALIGN);
+					if (!VehicleStateBitsV::has_any(buf.flags[i], change_state, VehicleStateBitsDivision::STATE)) {
+						if (i == 445) {
+							std::cout << "";
 						}
-					}
 
-					if (goal_idx >= 0 && goal_idx != curr_idx && !VehicleStateBitsV::has_info(buf.flags[i], VehicleStateBits::FL_COOLDOWN)) {
-						const int lanes_delta = goal_idx - curr_idx; // +ve ⇒ need to go LEFT
-						const float prep = D_PREP + std::abs(lanes_delta) * D_PREP_PER_LANE;
+						// Current and (first) desired lane indices on this edge
+						const int curr_idx = rt.static_lane->index_in_edge; // 0 = right-most
+						int goal_idx = -1;
+						// continue with the current lane if we could
+						if (((ag.goal_lane_mask >> curr_idx) & 1) == 0) {
+							for (int b = 0; b < 32; ++b) { // first set bit in goal mask
+								if ((ag.goal_lane_mask >> b) & 1) {
+									goal_idx = b;
+									break;
+								}
+							}
+						} else {
+							goal_idx = curr_idx;
+						}
 
-						if (dist_to_node < prep) {
-							Lane* neigh = (lanes_delta > 0) ? rt.static_lane->left() : rt.static_lane->right();
+						if (goal_idx >= 0 && goal_idx != curr_idx && !VehicleStateBitsV::has_info(buf.flags[i], VehicleStateBits::FL_COOLDOWN)) {
+							const int lanes_delta = goal_idx - curr_idx; // +ve ⇒ need to go LEFT
+							const float prep = D_PREP + std::abs(lanes_delta) * D_PREP_PER_LANE;
 
-							if (neigh) {
-								buf.lane_target[i] = neigh; // step one lane toward goal
-								VehicleStateBitsV::set_info(buf.flags[i], VehicleStateBits::ST_PREPARE, VehicleStateBitsDivision::STATE);
-								buf.lane_change_time[i] = 0.0f;
+							if (dist_to_node < prep) {
+								Lane* neigh = (lanes_delta > 0) ? rt.static_lane->left() : rt.static_lane->right();
+
+								if (neigh) {
+									buf.lane_target[i] = neigh; // step one lane toward goal
+									VehicleStateBitsV::set_info(buf.flags[i], VehicleStateBits::ST_PREPARE, VehicleStateBitsDivision::STATE);
+									buf.lane_change_time[i] = 0.0f;
+								}
 							}
 						}
 					}
@@ -328,11 +340,20 @@ namespace tjs::core::simulation {
 
 					Lane* tgt = buf.lane_target[row];
 
+					if (row == 445) {
+						std::cout << "";
+					}
+
 					if (VehicleStateBitsV::has_info(buf.flags[row], VehicleStateBits::ST_PREPARE) && tgt) {
+						if (row == 445) {
+							std::cout << "";
+						}
+
 						buf.lane_change_time[row] += static_cast<float>(dt);
 						bool ready = buf.lane_change_time[row] >= T_PREPARE;
 						bool gap_ok_simple = false;
 						bool politeness = false;
+
 						if (ready) {
 							/* ---- leader on target lane ----------------------------------- */
 							const LaneRuntime& tgt_rt = lane_rt[tgt->index_in_buffer];
@@ -365,7 +386,7 @@ namespace tjs::core::simulation {
 							float a_old = idm::idm_scalar(buf.v_curr[row], v_lead_curr, gap_curr, p_idm);
 							float a_new = idm::idm_scalar(buf.v_curr[row], v_lead, gap_lead, p_idm);
 							const float benefit = a_new - a_old;
-							
+
 							bool mandatory = true;
 							politeness = mandatory ? true : benefit > POLITENESS_THRESHOLD;
 
@@ -377,10 +398,14 @@ namespace tjs::core::simulation {
 							pending_moves.push_back(PendingMove { row, rt.static_lane, tgt });
 							buf.lane[row] = tgt;
 							buf.lane_target[row] = nullptr;
-							buf.lane_change_dir[row] = static_cast<int8_t>((tgt->index_in_edge > rt.static_lane->index_in_edge) ? 1 : -1);
+							buf.lane_change_dir[row] = static_cast<int8_t>((tgt->index_in_edge > rt.static_lane->index_in_edge) ? -1 : 1);
 							buf.lateral_off[row] = static_cast<float>(buf.lane_change_dir[row]) * static_cast<float>(tgt->width);
 							buf.lane_change_time[row] = 0.0f;
 							VehicleStateBitsV::overwrite_info(buf.flags[row], VehicleStateBits::ST_CROSS, VehicleStateBitsDivision::STATE);
+
+							if (row == 445) {
+								std::cout << "";
+							}
 							continue;
 						}
 					} else if (VehicleStateBitsV::has_info(buf.flags[row], VehicleStateBits::ST_CROSS)) {
@@ -394,6 +419,9 @@ namespace tjs::core::simulation {
 							VehicleStateBitsV::overwrite_info(buf.flags[row], VehicleStateBits::ST_ALIGN, VehicleStateBitsDivision::STATE);
 						}
 					} else if (VehicleStateBitsV::has_info(buf.flags[row], VehicleStateBits::ST_ALIGN)) {
+						if (row == 445) {
+							std::cout << "";
+						}
 						buf.lane_change_time[row] += static_cast<float>(dt);
 						if (buf.lane_change_time[row] >= T_ALIGN) {
 							VehicleStateBitsV::overwrite_info(buf.flags[row], VehicleStateBits::ST_FOLLOW, VehicleStateBitsDivision::STATE);
@@ -408,6 +436,15 @@ namespace tjs::core::simulation {
 			for (const auto& m : pending_moves) {
 				idm::move_index(m.row, lane_rt, m.src, m.tgt, buf.s_curr);
 			}
+
+			using VSB = VehicleStateBits;
+			using DIV = VehicleStateBitsDivision;
+			using bit_t = uint16_t;
+
+			/* A small helper to test whether a car is still measurably off‑centre. */
+			const auto off_centre = [&buf](std::size_t row) noexcept {
+				return std::fabs(buf.lateral_off[row]) > 0.5f; // 50 cm tolerance
+			};
 
 			/* ---------------- edge hop loop -------------------------------------- */
 			for (std::size_t i = 0; i < agents.size(); ++i) {
@@ -424,6 +461,23 @@ namespace tjs::core::simulation {
 					&& i == debug.agent_id
 					&& debug.lane_id == lane->get_id()
 					&& debug.vehicle_indices == lane_rt[lane->index_in_buffer].idx);
+
+				if (i == 445) {
+					std::cout << "";
+				}
+
+				/* -----------------------------------------------
+				* Avoid node transitions while a lateral
+				* manoeuvre (prepare / cross / align) is active.
+				* --------------------------------------------- */
+				bit_t change_mask = (bit_t)VSB::ST_PREPARE | (bit_t)VSB::ST_CROSS;
+				bool busy = VehicleStateBitsV::has_any(buf.flags[i], change_mask, DIV::STATE) || (VehicleStateBitsV::has_info(buf.flags[i], VSB::ST_ALIGN) && off_centre(i));
+				if (busy) {
+					if (remain >= lane->length - 1e-3) {
+						buf.s_curr[i] = buf.s_next[i] = lane->length - 1e-3;
+					}
+					continue;
+				}
 
 				while (remain >= lane->length - 1e-6) {
 					remain -= lane->length;
