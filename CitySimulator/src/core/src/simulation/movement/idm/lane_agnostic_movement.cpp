@@ -23,6 +23,8 @@ namespace {
 	constexpr float TAU = 1.0f;
 	constexpr float DELTA = 1.0f;
 	constexpr float MIN_GAP = 2.0f;
+
+	static int VEHICLE_ID = 59;
 } // namespace
 
 namespace tjs::core::simulation {
@@ -251,7 +253,7 @@ namespace tjs::core::simulation {
 
 					const uint16_t change_state = static_cast<int>(VehicleStateBits::ST_PREPARE) | static_cast<int>(VehicleStateBits::ST_CROSS) | static_cast<int>(VehicleStateBits::ST_ALIGN);
 					if (!VehicleStateBitsV::has_any(buf.flags[i], change_state, VehicleStateBitsDivision::STATE)) {
-						if (i == 445) {
+						if (i == VEHICLE_ID) {
 							std::cout << "";
 						}
 
@@ -340,12 +342,12 @@ namespace tjs::core::simulation {
 
 					Lane* tgt = buf.lane_target[row];
 
-					if (row == 445) {
+					if (row == VEHICLE_ID) {
 						std::cout << "";
 					}
 
 					if (VehicleStateBitsV::has_info(buf.flags[row], VehicleStateBits::ST_PREPARE) && tgt) {
-						if (row == 445) {
+						if (row == VEHICLE_ID) {
 							std::cout << "";
 						}
 
@@ -398,12 +400,22 @@ namespace tjs::core::simulation {
 							pending_moves.push_back(PendingMove { row, rt.static_lane, tgt });
 							buf.lane[row] = tgt;
 							buf.lane_target[row] = nullptr;
-							buf.lane_change_dir[row] = static_cast<int8_t>((tgt->index_in_edge > rt.static_lane->index_in_edge) ? -1 : 1);
+
+							// hack for lane orientation; if it directed to right lane_change_dir should be -1:1, if right vice verse
+							const auto& end_node = tgt->parent->end_node;
+							const auto& start_node = tgt->parent->start_node;
+							const double x_delta = std::fabs(end_node->coordinates.x - start_node->coordinates.x);
+							const double y_delta = std::fabs(end_node->coordinates.y - start_node->coordinates.y);
+							const bool decision_by_y = x_delta < y_delta;
+							bool dir_right = decision_by_y ? start_node->coordinates.y < end_node->coordinates.y : start_node->coordinates.x > end_node->coordinates.x;
+							const int edge_dir = dir_right ? -1 : 1;
+
+							buf.lane_change_dir[row] = static_cast<int8_t>((tgt->index_in_edge > rt.static_lane->index_in_edge) ? -1 : 1) * edge_dir;
 							buf.lateral_off[row] = static_cast<float>(buf.lane_change_dir[row]) * static_cast<float>(tgt->width);
 							buf.lane_change_time[row] = 0.0f;
 							VehicleStateBitsV::overwrite_info(buf.flags[row], VehicleStateBits::ST_CROSS, VehicleStateBitsDivision::STATE);
 
-							if (row == 445) {
+							if (row == VEHICLE_ID) {
 								std::cout << "";
 							}
 							continue;
@@ -419,7 +431,7 @@ namespace tjs::core::simulation {
 							VehicleStateBitsV::overwrite_info(buf.flags[row], VehicleStateBits::ST_ALIGN, VehicleStateBitsDivision::STATE);
 						}
 					} else if (VehicleStateBitsV::has_info(buf.flags[row], VehicleStateBits::ST_ALIGN)) {
-						if (row == 445) {
+						if (row == VEHICLE_ID) {
 							std::cout << "";
 						}
 						buf.lane_change_time[row] += static_cast<float>(dt);
@@ -462,24 +474,10 @@ namespace tjs::core::simulation {
 					&& debug.lane_id == lane->get_id()
 					&& debug.vehicle_indices == lane_rt[lane->index_in_buffer].idx);
 
-				if (i == 445) {
-					std::cout << "";
-				}
-
-				/* -----------------------------------------------
-				* Avoid node transitions while a lateral
-				* manoeuvre (prepare / cross / align) is active.
-				* --------------------------------------------- */
-				bit_t change_mask = (bit_t)VSB::ST_PREPARE | (bit_t)VSB::ST_CROSS;
-				bool busy = VehicleStateBitsV::has_any(buf.flags[i], change_mask, DIV::STATE) || (VehicleStateBitsV::has_info(buf.flags[i], VSB::ST_ALIGN) && off_centre(i));
-				if (busy) {
-					if (remain >= lane->length - 1e-3) {
-						buf.s_curr[i] = buf.s_next[i] = lane->length - 1e-3;
-					}
-					continue;
-				}
-
 				while (remain >= lane->length - 1e-6) {
+					if (i == VEHICLE_ID) {
+						std::cout << "";
+					}
 					remain -= lane->length;
 
 					++ag.path_offset;
@@ -509,6 +507,20 @@ namespace tjs::core::simulation {
 							p_idm, dt, i)) {
 						buf.s_curr[i] = lane->length - 0.01;
 						buf.s_next[i] = buf.s_curr[i];
+						break;
+					}
+
+					/* -----------------------------------------------
+					* Avoid node transitions while a lateral
+					* manoeuvre (prepare / cross / align) is active.
+					* --------------------------------------------- */
+					// Changing lane in this cycle has more priority over changing lane in lateral movement because
+					bit_t change_mask = (bit_t)VSB::ST_PREPARE | (bit_t)VSB::ST_CROSS;
+					bool busy = VehicleStateBitsV::has_any(buf.flags[i], change_mask, DIV::STATE) || (VehicleStateBitsV::has_info(buf.flags[i], VSB::ST_ALIGN) && off_centre(i));
+					if (busy) {
+						if (remain >= lane->length - 1e-3) {
+							buf.s_curr[i] = buf.s_next[i] = lane->length - 1e-3;
+						}
 						break;
 					}
 
