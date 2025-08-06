@@ -8,6 +8,8 @@
 
 #include <core/simulation/transport_management/transport_generator.h>
 
+#include <core/simulation/time_module.h>
+
 //TODO[simulation]: Probably must move from here while moving further
 #include <core/data_layer/data_types.h>
 #include <core/data_layer/world_data.h>
@@ -17,11 +19,39 @@
 
 namespace tjs::core::simulation {
 
-	VehicleSystem::VehicleSystem(TrafficSimulationSystem& system)
-		: _system(system) {
+	void create_vehicle(Vehicles& vehicles, VehicleBuffers& buffers, Lane& lane, std::vector<LaneRuntime>& lane_rt, const VehicleSystem::VehicleConfigs& configs) {
+		Vehicle vehicle {};
+		vehicle.uid = RandomGenerator::get().next_int(1, 10000000);
+		vehicle.type = RandomGenerator::get().next_enum<VehicleType>();
+		auto it_config = configs.find(vehicle.type);
+		if (it_config == configs.end()) {
+			it_config = configs.begin();
+		}
+
+		vehicle.length = it_config->second.length;
+		vehicle.width = it_config->second.width;
+		vehicle.currentSpeed = 0;
+		vehicle.maxSpeed = RandomGenerator::get().next_float(40, 100.0f);
+		vehicle.coordinates = lane.parent->start_node->coordinates;
+		vehicle.currentSegmentIndex = 0;
+		vehicle.current_lane = &lane;
+		vehicle.s_on_lane = 0.0;
+		vehicle.lateral_offset = 0.0;
+		VehicleStateBitsV::set_info(vehicle.state, VehicleStateBits::ST_STOPPED, VehicleStateBitsDivision::STATE);
+		vehicle.previous_state = vehicle.state;
+		vehicle.error = VehicleMovementError::ER_NO_ERROR;
+
+		vehicles.push_back(vehicle);
+		insert_vehicle_sorted(*vehicle.current_lane, &vehicles.back());
+
+		lane_rt[lane.index_in_buffer].idx.push_back(vehicles.size() - 1);
+
+		buffers.add_vehicle(vehicle);
 	}
 
-	VehicleSystem::~VehicleSystem() {
+	bool allowed_on_lane(const Lane& lane) {
+		// 2 meters from bumper
+		return lane.vehicles.empty() || lane.vehicles.back()->s_on_lane > (2.0f + lane.vehicles.back()->length / 2.0f);
 	}
 
 	// Generate till count that was set
@@ -46,7 +76,6 @@ namespace tjs::core::simulation {
 
 			++_creation_ticks;
 
-			size_t before = _vehicles.size();
 			const auto& configs = system().vehicle_system().vehicle_configs();
 			auto& lane_rt = system().vehicle_system().lane_runtime();
 			size_t created = 0;
@@ -54,46 +83,19 @@ namespace tjs::core::simulation {
 
 			const size_t max_attempts = 100;
 			size_t attempts = 0;
+			auto& edges = segment->road_network->edges;
 
 			while (_vehicles.size() < _expected_vehicles && attempts < max_attempts) {
-				auto& edges = segment->road_network->edges;
 				auto& edge = edges[RandomGenerator::get().next_int(0, edges.size() - 1)];
 				Lane* lane = &edge.lanes[0];
 
-				bool allowed = lane->vehicles.empty() || lane->vehicles.back()->s_on_lane > 20.0;
+				bool allowed = allowed_on_lane(*lane);
 				if (!allowed) {
 					++attempts;
 					continue;
 				}
 
-				Vehicle vehicle {};
-				vehicle.uid = RandomGenerator::get().next_int(1, 10000000);
-				vehicle.type = RandomGenerator::get().next_enum<VehicleType>();
-
-				auto it_config = configs.find(vehicle.type);
-				if (it_config == configs.end()) {
-					it_config = configs.begin();
-				}
-
-				vehicle.length = it_config->second.length;
-				vehicle.width = it_config->second.width;
-				vehicle.currentSpeed = 0;
-				vehicle.maxSpeed = RandomGenerator::get().next_float(40, 100.0f);
-				vehicle.coordinates = edge.start_node->coordinates;
-				vehicle.currentSegmentIndex = 0;
-				vehicle.current_lane = lane;
-				vehicle.s_on_lane = 0.0;
-				vehicle.lateral_offset = 0.0;
-				VehicleStateBitsV::set_info(vehicle.state, VehicleStateBits::ST_STOPPED, VehicleStateBitsDivision::STATE);
-				vehicle.previous_state = vehicle.state;
-				vehicle.error = VehicleMovementError::ER_NO_ERROR;
-
-				_vehicles.push_back(vehicle);
-				insert_vehicle_sorted(*vehicle.current_lane, &_vehicles.back());
-
-				lane_rt[lane->index_in_buffer].idx.push_back(_vehicles.size() - 1);
-
-				_buffers.add_vehicle(vehicle);
+				create_vehicle(_vehicles, _buffers, *lane, lane_rt, configs);
 				++created;
 			}
 
@@ -121,8 +123,92 @@ namespace tjs::core::simulation {
 		size_t _creation_ticks = 0;
 	};
 
+	struct FlowSpawnPoint {
+		Lane* lane;
+		double vehicles_per_hour;
+		double accumulator = 0.0;
+
+		FlowSpawnPoint(Lane* lane_, double vh_per_hour)
+			: lane(lane_)
+			, vehicles_per_hour(vh_per_hour) {
+		}
+	};
+
+	class FlowVehicleGenerator : public ITransportGenerator {
+	public:
+		FlowVehicleGenerator(VehicleBuffers& buffers, Vehicles& vehicles, TrafficSimulationSystem& system)
+			: ITransportGenerator(system)
+			, _vehicles(vehicles)
+			, _buffers(buffers) {
+		}
+
+		void start_populating() override {
+			_state = State::InProgress;
+
+			for (auto& p : _spawn_points) {
+				p.accumulator = 0.0;
+			}
+
+			if (!system().worldData().segments().empty()) {
+				_spawn_points.clear();
+
+				auto& segment = system().worldData().segments().front();
+				auto& edges = segment->road_network->edges;
+
+				for (size_t i = 0; i < 10; ++i) {
+					auto& edge = edges[RandomGenerator::get().next_int(0, edges.size() - 1)];
+
+					_spawn_points.emplace_back(&edge.lanes[0], 1000);
+				}
+			}
+		}
+
+		size_t populate() override {
+			if (is_done() || system().worldData().segments().empty()) {
+				return 0;
+			}
+
+			size_t created = 0;
+
+			const auto& configs = system().vehicle_system().vehicle_configs();
+			auto& lane_rt = system().vehicle_system().lane_runtime();
+
+			const double dt = _system.timeModule().state().fixed_dt();
+			for (auto& point : _spawn_points) {
+				point.accumulator += point.vehicles_per_hour * (dt / 3600.0); // dt in seconds
+				while (point.accumulator >= 1.0) {
+					if (allowed_on_lane(*point.lane)) {
+						create_vehicle(_vehicles, _buffers, *point.lane, lane_rt, configs);
+						point.accumulator -= 1.0;
+						++created;
+					} else {
+						break; // no space
+					}
+				}
+			}
+
+			return created;
+		}
+
+		bool is_done() const override {
+			return _state == State::Completed || _state == State::Error;
+		}
+
+	private:
+		Vehicles& _vehicles;
+		VehicleBuffers& _buffers;
+		std::vector<FlowSpawnPoint> _spawn_points;
+	};
+
+	VehicleSystem::VehicleSystem(TrafficSimulationSystem& system)
+		: _system(system) {
+	}
+
+	VehicleSystem::~VehicleSystem() {
+	}
+
 	void VehicleSystem::initialize() {
-		_generator = std::make_unique<BulkGenerator>(_buffers, _vehicles, _system);
+		_generator = std::make_unique<FlowVehicleGenerator>(_buffers, _vehicles, _system);
 
 		if (_system.worldData().segments().empty()) {
 			return;
@@ -229,7 +315,7 @@ namespace tjs::core::simulation {
 	}
 
 	size_t VehicleSystem::update() {
-		if (!_generator->is_done()) {
+		if (_generator->is_done()) {
 			return 0;
 		}
 
