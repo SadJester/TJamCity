@@ -8,13 +8,13 @@
 namespace tjs::core::simulation {
 	ENUM(GeneratorType, char, Bulk, Flow);
 
-	struct VehicleSpawnRequest {
+	struct AgentTask {
 		int lane_id = 0;
 		int vehicles_per_hour = 0;
 		uint64_t goal_node_id = 0;
 
 		NLOHMANN_DEFINE_TYPE_INTRUSIVE(
-			VehicleSpawnRequest,
+			AgentTask,
 			lane_id,
 			vehicles_per_hour,
 			goal_node_id);
@@ -37,7 +37,7 @@ namespace tjs::core {
 		bool simulation_paused = true;
 		simulation::MovementAlgoType movement_algo = simulation::MovementAlgoType::IDM;
 		simulation::GeneratorType generator_type = simulation::GeneratorType::Bulk;
-		std::vector<simulation::VehicleSpawnRequest> spawn_requests;
+		std::vector<simulation::AgentTask> spawn_requests;
 
 		simulation::SimulationDebugData debug_data;
 

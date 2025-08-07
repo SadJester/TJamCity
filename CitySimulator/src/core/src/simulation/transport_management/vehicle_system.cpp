@@ -123,13 +123,13 @@ namespace tjs::core::simulation {
 		size_t _creation_ticks = 0;
 	};
 
-	struct VehicleSpawnRequestData {
+	struct VehicleSpawnRequest {
 		Lane* lane;
 		Node* goal;
 		double vehicles_per_hour;
 		double accumulator = 0.0;
 
-		VehicleSpawnRequestData(Lane* lane_, double vh_per_hour, Node* goal_)
+		VehicleSpawnRequest(Lane* lane_, double vh_per_hour, Node* goal_)
 			: lane(lane_)
 			, goal(goal_)
 			, vehicles_per_hour(vh_per_hour) {
@@ -224,7 +224,7 @@ namespace tjs::core::simulation {
 	private:
 		Vehicles& _vehicles;
 		VehicleBuffers& _buffers;
-		std::vector<VehicleSpawnRequestData> _spawn_requests;
+		std::vector<VehicleSpawnRequest> _spawn_requests;
 	};
 
 	VehicleSystem::VehicleSystem(TrafficSimulationSystem& system)

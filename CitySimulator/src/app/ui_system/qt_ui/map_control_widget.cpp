@@ -93,7 +93,18 @@ namespace tjs {
 
 			QVBoxLayout* mainLayout = new QVBoxLayout(infoFrame);
 
-			QHBoxLayout* generatorLayout = new QHBoxLayout();
+			// Create generator algorithm frame
+			QFrame* generatorFrame = new QFrame();
+			generatorFrame->setFrameStyle(QFrame::Box | QFrame::Sunken);
+			generatorFrame->setLineWidth(1);
+			generatorFrame->setMidLineWidth(1);
+
+			QVBoxLayout* generatorLayout = new QVBoxLayout(generatorFrame);
+			QLabel* generatorTitleLabel = new QLabel("Generator Algorithm", this);
+			generatorTitleLabel->setStyleSheet("font-weight: bold; font-size: 14px;");
+			generatorLayout->addWidget(generatorTitleLabel);
+
+			QHBoxLayout* generatorTypeLayout = new QHBoxLayout();
 			QLabel* generatorLabel = new QLabel("Generator:", this);
 			_generatorTypeCombo = new QComboBox(this);
 			_generatorTypeCombo->addItem(
@@ -104,9 +115,9 @@ namespace tjs {
 				static_cast<int>(core::simulation::GeneratorType::Flow));
 			_generatorTypeCombo->setCurrentIndex(
 				static_cast<int>(_application.settings().simulationSettings.generator_type));
-			generatorLayout->addWidget(generatorLabel);
-			generatorLayout->addWidget(_generatorTypeCombo);
-			mainLayout->addLayout(generatorLayout);
+			generatorTypeLayout->addWidget(generatorLabel);
+			generatorTypeLayout->addWidget(_generatorTypeCombo);
+			generatorLayout->addLayout(generatorTypeLayout);
 
 			_vehicleCountWidget = new QWidget(this);
 			QHBoxLayout* intLayout = new QHBoxLayout(_vehicleCountWidget);
@@ -116,7 +127,7 @@ namespace tjs {
 			vehicleCount->setValue(_application.settings().simulationSettings.vehiclesCount);
 			intLayout->addWidget(intLabel);
 			intLayout->addWidget(vehicleCount);
-			mainLayout->addWidget(_vehicleCountWidget);
+			generatorLayout->addWidget(_vehicleCountWidget);
 
 			_flowWidget = new QWidget(this);
 			QHBoxLayout* flowLayout = new QHBoxLayout(_flowWidget);
@@ -142,7 +153,10 @@ namespace tjs {
 			flowLayout->addWidget(_vehiclesPerHour);
 			flowLayout->addWidget(goalLabel);
 			flowLayout->addWidget(_goalNodeId);
-			mainLayout->addWidget(_flowWidget);
+			generatorLayout->addWidget(_flowWidget);
+
+			// Add generator frame to main layout
+			mainLayout->addWidget(generatorFrame);
 
 			// Float value
 			QHBoxLayout* floatLayout = new QHBoxLayout();
