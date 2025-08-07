@@ -5,6 +5,22 @@
 #include <core/simulation/simulation_debug.h>
 #include <core/simulation/movement/movement_algorithm.h>
 
+namespace tjs::core::simulation {
+	ENUM(GeneratorType, char, Bulk, Flow);
+
+	struct VehicleSpawnRequest {
+		int lane_id = 0;
+		int vehicles_per_hour = 0;
+		uint64_t goal_node_id = 0;
+
+		NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+			VehicleSpawnRequest,
+			lane_id,
+			vehicles_per_hour,
+			goal_node_id);
+	};
+} // namespace tjs::core::simulation
+
 namespace tjs::core {
 	struct SimulationSettings {
 		static constexpr const char* NAME = "simulation_settings";
@@ -20,10 +36,13 @@ namespace tjs::core {
 		double step_delta_sec = DEFAULT_FIXED_STEP_SEC;
 		bool simulation_paused = true;
 		simulation::MovementAlgoType movement_algo = simulation::MovementAlgoType::IDM;
+		simulation::GeneratorType generator_type = simulation::GeneratorType::Bulk;
+		std::vector<simulation::VehicleSpawnRequest> spawn_requests;
 
 		simulation::SimulationDebugData debug_data;
 
-		NLOHMANN_DEFINE_TYPE_INTRUSIVE(SimulationSettings,
+		NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+			SimulationSettings,
 			randomSeed,
 			seedValue,
 			vehiclesCount,
@@ -31,7 +50,9 @@ namespace tjs::core {
 			step_delta_sec,
 			simulation_paused,
 			movement_algo,
-			debug_data);
+			debug_data,
+			generator_type,
+			spawn_requests);
 	};
 
 } // namespace tjs::core

@@ -51,7 +51,13 @@ namespace tjs {
 
 			QPushButton* _openFileButton = nullptr;
 
+			QComboBox* _generatorTypeCombo = nullptr;
+			QWidget* _vehicleCountWidget = nullptr;
+			QWidget* _flowWidget = nullptr;
 			QSpinBox* vehicleCount = nullptr;
+			QSpinBox* _laneNumber = nullptr;
+			QSpinBox* _vehiclesPerHour = nullptr;
+			QSpinBox* _goalNodeId = nullptr;
 			QDoubleSpinBox* vehicleSizeMultipler = nullptr;
 			QDoubleSpinBox* simplifiedThreshold = nullptr;
 			QCheckBox* randomSeed = nullptr;

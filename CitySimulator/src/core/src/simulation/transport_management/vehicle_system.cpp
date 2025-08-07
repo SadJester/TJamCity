@@ -123,13 +123,15 @@ namespace tjs::core::simulation {
 		size_t _creation_ticks = 0;
 	};
 
-	struct FlowSpawnPoint {
+	struct VehicleSpawnRequestData {
 		Lane* lane;
+		Node* goal;
 		double vehicles_per_hour;
 		double accumulator = 0.0;
 
-		FlowSpawnPoint(Lane* lane_, double vh_per_hour)
+		VehicleSpawnRequestData(Lane* lane_, double vh_per_hour, Node* goal_)
 			: lane(lane_)
+			, goal(goal_)
 			, vehicles_per_hour(vh_per_hour) {
 		}
 	};
@@ -145,20 +147,45 @@ namespace tjs::core::simulation {
 		void start_populating() override {
 			_state = State::InProgress;
 
-			for (auto& p : _spawn_points) {
+			for (auto& p : _spawn_requests) {
 				p.accumulator = 0.0;
 			}
 
-			if (!system().worldData().segments().empty()) {
-				_spawn_points.clear();
+			if (system().worldData().segments().empty()) {
+				return;
+			}
 
-				auto& segment = system().worldData().segments().front();
-				auto& edges = segment->road_network->edges;
+			_spawn_requests.clear();
 
-				for (size_t i = 0; i < 10; ++i) {
-					auto& edge = edges[RandomGenerator::get().next_int(0, edges.size() - 1)];
+			auto& segment = system().worldData().segments().front();
+			auto& edges = segment->road_network->edges;
 
-					_spawn_points.emplace_back(&edge.lanes[0], 1000);
+			auto& settings = system().settings();
+			for (const auto& req : settings.spawn_requests) {
+				Lane* lane = nullptr;
+				for (auto& edge : edges) {
+					for (auto& l : edge.lanes) {
+						if (l.get_id() == req.lane_id) {
+							lane = &l;
+							break;
+						}
+					}
+					if (lane) {
+						break;
+					}
+				}
+
+				Node* goal = nullptr;
+				auto it = segment->nodes.find(req.goal_node_id);
+				if (it != segment->nodes.end()) {
+					goal = it->second.get();
+				}
+
+				if (lane) {
+					_spawn_requests.emplace_back(
+						lane,
+						static_cast<double>(req.vehicles_per_hour),
+						goal);
 				}
 			}
 		}
@@ -174,7 +201,7 @@ namespace tjs::core::simulation {
 			auto& lane_rt = system().vehicle_system().lane_runtime();
 
 			const double dt = _system.timeModule().state().fixed_dt();
-			for (auto& point : _spawn_points) {
+			for (auto& point : _spawn_requests) {
 				point.accumulator += point.vehicles_per_hour * (dt / 3600.0); // dt in seconds
 				while (point.accumulator >= 1.0) {
 					if (allowed_on_lane(*point.lane)) {
@@ -197,7 +224,7 @@ namespace tjs::core::simulation {
 	private:
 		Vehicles& _vehicles;
 		VehicleBuffers& _buffers;
-		std::vector<FlowSpawnPoint> _spawn_points;
+		std::vector<VehicleSpawnRequestData> _spawn_requests;
 	};
 
 	VehicleSystem::VehicleSystem(TrafficSimulationSystem& system)
@@ -208,7 +235,15 @@ namespace tjs::core::simulation {
 	}
 
 	void VehicleSystem::initialize() {
-		_generator = std::make_unique<FlowVehicleGenerator>(_buffers, _vehicles, _system);
+		switch (_system.settings().generator_type) {
+			case simulation::GeneratorType::Bulk:
+				_generator = std::make_unique<BulkGenerator>(_buffers, _vehicles, _system);
+				break;
+			case simulation::GeneratorType::Flow:
+			default:
+				_generator = std::make_unique<FlowVehicleGenerator>(_buffers, _vehicles, _system);
+				break;
+		}
 
 		if (_system.worldData().segments().empty()) {
 			return;

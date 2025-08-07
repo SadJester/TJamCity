@@ -1,10 +1,10 @@
-#include "stdafx.h"
+#include <stdafx.h>
 
-#include "ui_system/qt_ui/map_control_widget.h"
+#include <ui_system/qt_ui/map_control_widget.h>
 
-#include "Application.h"
-#include "settings/general_settings.h"
-#include "data/map_renderer_data.h"
+#include <Application.h>
+#include <settings/general_settings.h>
+#include <data/map_renderer_data.h>
 
 #include <QLabel>
 #include <QFileDialog>
@@ -14,13 +14,14 @@
 
 /// TODO: Place somwhere to be more pretty
 
-#include "visualization/Scene.h"
-#include "visualization/scene_system.h"
-#include "visualization/elements/map_element.h"
-#include "data/persistent_render_data.h"
+#include <visualization/Scene.h>
+#include <visualization/scene_system.h>
+#include <visualization/elements/map_element.h>
+#include <data/persistent_render_data.h>
 
 #include <core/data_layer/world_creator.h>
 #include <core/simulation/simulation_system.h>
+#include <core/simulation/simulation_settings.h>
 #include <core/store_models/vehicle_analyze_data.h>
 
 namespace tjs {
@@ -92,15 +93,56 @@ namespace tjs {
 
 			QVBoxLayout* mainLayout = new QVBoxLayout(infoFrame);
 
-			// Vehicles count
-			QHBoxLayout* intLayout = new QHBoxLayout();
+			QHBoxLayout* generatorLayout = new QHBoxLayout();
+			QLabel* generatorLabel = new QLabel("Generator:", this);
+			_generatorTypeCombo = new QComboBox(this);
+			_generatorTypeCombo->addItem(
+				"Bulk",
+				static_cast<int>(core::simulation::GeneratorType::Bulk));
+			_generatorTypeCombo->addItem(
+				"Flow",
+				static_cast<int>(core::simulation::GeneratorType::Flow));
+			_generatorTypeCombo->setCurrentIndex(
+				static_cast<int>(_application.settings().simulationSettings.generator_type));
+			generatorLayout->addWidget(generatorLabel);
+			generatorLayout->addWidget(_generatorTypeCombo);
+			mainLayout->addLayout(generatorLayout);
+
+			_vehicleCountWidget = new QWidget(this);
+			QHBoxLayout* intLayout = new QHBoxLayout(_vehicleCountWidget);
 			QLabel* intLabel = new QLabel("Vehicles count:", this);
 			vehicleCount = new QSpinBox(this);
 			vehicleCount->setRange(1, 10000000);
 			vehicleCount->setValue(_application.settings().simulationSettings.vehiclesCount);
 			intLayout->addWidget(intLabel);
 			intLayout->addWidget(vehicleCount);
-			mainLayout->addLayout(intLayout);
+			mainLayout->addWidget(_vehicleCountWidget);
+
+			_flowWidget = new QWidget(this);
+			QHBoxLayout* flowLayout = new QHBoxLayout(_flowWidget);
+			auto& spawns = _application.settings().simulationSettings.spawn_requests;
+			if (spawns.empty()) {
+				spawns.push_back({});
+			}
+			QLabel* laneLabel = new QLabel("Lane:", this);
+			_laneNumber = new QSpinBox(this);
+			_laneNumber->setRange(0, 100000);
+			_laneNumber->setValue(spawns[0].lane_id);
+			QLabel* vhLabel = new QLabel("Vehicles/hour:", this);
+			_vehiclesPerHour = new QSpinBox(this);
+			_vehiclesPerHour->setRange(0, 100000);
+			_vehiclesPerHour->setValue(spawns[0].vehicles_per_hour);
+			QLabel* goalLabel = new QLabel("Goal node:", this);
+			_goalNodeId = new QSpinBox(this);
+			_goalNodeId->setRange(0, std::numeric_limits<int>::max());
+			_goalNodeId->setValue(static_cast<int>(spawns[0].goal_node_id));
+			flowLayout->addWidget(laneLabel);
+			flowLayout->addWidget(_laneNumber);
+			flowLayout->addWidget(vhLabel);
+			flowLayout->addWidget(_vehiclesPerHour);
+			flowLayout->addWidget(goalLabel);
+			flowLayout->addWidget(_goalNodeId);
+			mainLayout->addWidget(_flowWidget);
 
 			// Float value
 			QHBoxLayout* floatLayout = new QHBoxLayout();
@@ -154,9 +196,48 @@ namespace tjs {
 			_populationLabel->setStyleSheet("color: blue;");
 			mainLayout->addWidget(_populationLabel);
 
+			auto type = _application.settings().simulationSettings.generator_type;
+			_vehicleCountWidget->setVisible(type == core::simulation::GeneratorType::Bulk);
+			_flowWidget->setVisible(type == core::simulation::GeneratorType::Flow);
+
 			// Подключения сигналов
+			connect(_generatorTypeCombo,
+				QOverload<int>::of(&QComboBox::currentIndexChanged),
+				[this](int index) {
+					auto t = static_cast<core::simulation::GeneratorType>(index);
+					_application.settings().simulationSettings.generator_type = t;
+					_vehicleCountWidget->setVisible(
+						t == core::simulation::GeneratorType::Bulk);
+					_flowWidget->setVisible(
+						t == core::simulation::GeneratorType::Flow);
+				});
+
 			connect(vehicleCount, &QSpinBox::valueChanged, [this](int value) {
 				_application.settings().simulationSettings.vehiclesCount = value;
+			});
+
+			connect(_laneNumber, &QSpinBox::valueChanged, [this](int value) {
+				auto& spawns = _application.settings().simulationSettings.spawn_requests;
+				if (spawns.empty()) {
+					spawns.push_back({});
+				}
+				spawns[0].lane_id = value;
+			});
+
+			connect(_vehiclesPerHour, &QSpinBox::valueChanged, [this](int value) {
+				auto& spawns = _application.settings().simulationSettings.spawn_requests;
+				if (spawns.empty()) {
+					spawns.push_back({});
+				}
+				spawns[0].vehicles_per_hour = value;
+			});
+
+			connect(_goalNodeId, &QSpinBox::valueChanged, [this](int value) {
+				auto& spawns = _application.settings().simulationSettings.spawn_requests;
+				if (spawns.empty()) {
+					spawns.push_back({});
+				}
+				spawns[0].goal_node_id = static_cast<uint64_t>(value);
 			});
 
 			connect(vehicleSizeMultipler, &QDoubleSpinBox::valueChanged, [this](double value) {
