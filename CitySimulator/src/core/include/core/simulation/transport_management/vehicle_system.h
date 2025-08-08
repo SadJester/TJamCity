@@ -40,6 +40,11 @@ namespace tjs::core::simulation {
 			return _creation_state;
 		}
 
+		// TODO: temporary for transition. Shouldn`t be skipped on review!
+		void set_state(CreationState state) {
+			_creation_state = state;
+		}
+
 		VehicleBuffers& vehicle_buffers() {
 			return _buffers;
 		}
@@ -54,10 +59,8 @@ namespace tjs::core::simulation {
 
 		void commit();
 
-		void create_vehicle();
-
-		void add_listener();
-		void remove_listener();
+		// return handle to vehicle
+		std::optional<size_t> create_vehicle(Lane& lane, VehicleType type);
 
 	private:
 		TrafficSimulationSystem& _system;
@@ -65,8 +68,6 @@ namespace tjs::core::simulation {
 		VehicleConfigs _vehicle_configs;
 		VehicleBuffers _buffers;
 		Vehicles _vehicles;
-
-		std::unique_ptr<ITransportGenerator> _generator;
 
 		std::vector<LaneRuntime> _lane_runtime;
 

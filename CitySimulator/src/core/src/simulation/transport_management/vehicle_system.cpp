@@ -19,10 +19,10 @@
 
 namespace tjs::core::simulation {
 
-	void create_vehicle(Vehicles& vehicles, VehicleBuffers& buffers, Lane& lane, std::vector<LaneRuntime>& lane_rt, const VehicleSystem::VehicleConfigs& configs) {
+	void create_vehicle_impl(Vehicles& vehicles, VehicleBuffers& buffers, Lane& lane, std::vector<LaneRuntime>& lane_rt, const VehicleSystem::VehicleConfigs& configs, VehicleType type) {
 		Vehicle vehicle {};
 		vehicle.uid = RandomGenerator::get().next_int(1, 10000000);
-		vehicle.type = RandomGenerator::get().next_enum<VehicleType>();
+		vehicle.type = type;
 		auto it_config = configs.find(vehicle.type);
 		if (it_config == configs.end()) {
 			it_config = configs.begin();
@@ -54,179 +54,6 @@ namespace tjs::core::simulation {
 		return lane.vehicles.empty() || lane.vehicles.back()->s_on_lane > (2.0f + lane.vehicles.back()->length / 2.0f);
 	}
 
-	// Generate till count that was set
-	class BulkGenerator : public ITransportGenerator {
-	public:
-		BulkGenerator(VehicleBuffers& buffers, Vehicles& vehicles, TrafficSimulationSystem& system)
-			: ITransportGenerator(system)
-			, _vehicles(vehicles)
-			, _buffers(buffers) {
-		}
-
-		void start_populating() override {
-			_expected_vehicles = system().settings().vehiclesCount;
-			_creation_ticks = 0;
-			_state = State::InProgress;
-		}
-
-		size_t populate() override {
-			if (is_done() || system().worldData().segments().empty()) {
-				return 0;
-			}
-
-			++_creation_ticks;
-
-			const auto& configs = system().vehicle_system().vehicle_configs();
-			auto& lane_rt = system().vehicle_system().lane_runtime();
-			size_t created = 0;
-			auto& segment = system().worldData().segments()[0];
-
-			const size_t max_attempts = 100;
-			size_t attempts = 0;
-			auto& edges = segment->road_network->edges;
-
-			while (_vehicles.size() < _expected_vehicles && attempts < max_attempts) {
-				auto& edge = edges[RandomGenerator::get().next_int(0, edges.size() - 1)];
-				Lane* lane = &edge.lanes[0];
-
-				bool allowed = allowed_on_lane(*lane);
-				if (!allowed) {
-					++attempts;
-					continue;
-				}
-
-				create_vehicle(_vehicles, _buffers, *lane, lane_rt, configs);
-				++created;
-			}
-
-			// listener -> created(vehicles, from, to);
-
-			if (_creation_ticks > 1000 && _state != State::Completed) {
-				_state = State::Error;
-			}
-
-			if (_vehicles.size() >= _expected_vehicles) {
-				_state = State::Completed;
-			}
-
-			return created;
-		}
-
-		bool is_done() const override {
-			return _state == State::Completed || _state == State::Error;
-		}
-
-	private:
-		Vehicles& _vehicles;
-		VehicleBuffers& _buffers;
-		size_t _expected_vehicles = 0;
-		size_t _creation_ticks = 0;
-	};
-
-	struct VehicleSpawnRequest {
-		Lane* lane;
-		Node* goal;
-		double vehicles_per_hour;
-		double accumulator = 0.0;
-
-		VehicleSpawnRequest(Lane* lane_, double vh_per_hour, Node* goal_)
-			: lane(lane_)
-			, goal(goal_)
-			, vehicles_per_hour(vh_per_hour) {
-		}
-	};
-
-	class FlowVehicleGenerator : public ITransportGenerator {
-	public:
-		FlowVehicleGenerator(VehicleBuffers& buffers, Vehicles& vehicles, TrafficSimulationSystem& system)
-			: ITransportGenerator(system)
-			, _vehicles(vehicles)
-			, _buffers(buffers) {
-		}
-
-		void start_populating() override {
-			_state = State::InProgress;
-
-			for (auto& p : _spawn_requests) {
-				p.accumulator = 0.0;
-			}
-
-			if (system().worldData().segments().empty()) {
-				return;
-			}
-
-			_spawn_requests.clear();
-
-			auto& segment = system().worldData().segments().front();
-			auto& edges = segment->road_network->edges;
-
-			auto& settings = system().settings();
-			for (const auto& req : settings.spawn_requests) {
-				Lane* lane = nullptr;
-				for (auto& edge : edges) {
-					for (auto& l : edge.lanes) {
-						if (l.get_id() == req.lane_id) {
-							lane = &l;
-							break;
-						}
-					}
-					if (lane) {
-						break;
-					}
-				}
-
-				Node* goal = nullptr;
-				auto it = segment->nodes.find(req.goal_node_id);
-				if (it != segment->nodes.end()) {
-					goal = it->second.get();
-				}
-
-				if (lane) {
-					_spawn_requests.emplace_back(
-						lane,
-						static_cast<double>(req.vehicles_per_hour),
-						goal);
-				}
-			}
-		}
-
-		size_t populate() override {
-			if (is_done() || system().worldData().segments().empty()) {
-				return 0;
-			}
-
-			size_t created = 0;
-
-			const auto& configs = system().vehicle_system().vehicle_configs();
-			auto& lane_rt = system().vehicle_system().lane_runtime();
-
-			const double dt = _system.timeModule().state().fixed_dt();
-			for (auto& point : _spawn_requests) {
-				point.accumulator += point.vehicles_per_hour * (dt / 3600.0); // dt in seconds
-				while (point.accumulator >= 1.0) {
-					if (allowed_on_lane(*point.lane)) {
-						create_vehicle(_vehicles, _buffers, *point.lane, lane_rt, configs);
-						point.accumulator -= 1.0;
-						++created;
-					} else {
-						break; // no space
-					}
-				}
-			}
-
-			return created;
-		}
-
-		bool is_done() const override {
-			return _state == State::Completed || _state == State::Error;
-		}
-
-	private:
-		Vehicles& _vehicles;
-		VehicleBuffers& _buffers;
-		std::vector<VehicleSpawnRequest> _spawn_requests;
-	};
-
 	VehicleSystem::VehicleSystem(TrafficSimulationSystem& system)
 		: _system(system) {
 	}
@@ -235,16 +62,6 @@ namespace tjs::core::simulation {
 	}
 
 	void VehicleSystem::initialize() {
-		switch (_system.settings().generator_type) {
-			case simulation::GeneratorType::Bulk:
-				_generator = std::make_unique<BulkGenerator>(_buffers, _vehicles, _system);
-				break;
-			case simulation::GeneratorType::Flow:
-			default:
-				_generator = std::make_unique<FlowVehicleGenerator>(_buffers, _vehicles, _system);
-				break;
-		}
-
 		if (_system.worldData().segments().empty()) {
 			return;
 		}
@@ -278,8 +95,6 @@ namespace tjs::core::simulation {
 		_vehicles.clear();
 		_vehicles.reserve(_system.settings().vehiclesCount);
 		_buffers.reserve(_system.settings().vehiclesCount);
-
-		_generator->start_populating();
 	}
 
 	void VehicleSystem::release() {
@@ -336,39 +151,22 @@ namespace tjs::core::simulation {
 		}
 	}
 
-	void VehicleSystem::create_vehicle() {
+	std::optional<size_t> VehicleSystem::create_vehicle(Lane& lane, VehicleType type) {
+		if (!allowed_on_lane(lane)) {
+			return {};
+		}
+
+		create_vehicle_impl(_vehicles, _buffers, lane, _lane_runtime, _vehicle_configs, type);
+
+		return _vehicles.size() - 1;
 	}
 
 	size_t VehicleSystem::populate() {
-		size_t created = _generator->populate();
-
-		if (_generator->is_done()) {
-			_creation_state = _generator->get_state() == ITransportGenerator::State::Error ? CreationState::Error : CreationState::Completed;
-		}
-
-		return created;
+		return 0;
 	}
 
 	size_t VehicleSystem::update() {
-		if (_generator->is_done()) {
-			return 0;
-		}
-
-		size_t created = populate();
-
-		bool need_send = created > 0 || _creation_state == CreationState::Error || _creation_state == CreationState::Completed;
-		if (need_send) {
-			_system.message_dispatcher().handle_message(
-				core::events::VehiclesPopulated {
-					created,
-					_vehicles.size(),
-					_system.settings().vehiclesCount,
-					_creation_ticks,
-					_creation_state == CreationState::Error },
-				"vehicle_system");
-		}
-
-		return created;
+		return 0;
 	}
 
 } // namespace tjs::core::simulation

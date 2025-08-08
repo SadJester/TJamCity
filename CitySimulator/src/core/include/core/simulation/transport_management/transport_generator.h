@@ -15,6 +15,7 @@ namespace tjs::core::simulation {
 		virtual void populating_done(Vehicles& vehicles) = 0;
 	};
 
+	// TODO: Rename to IAgentsGenerator
 	class ITransportGenerator {
 	public:
 		enum class State {
