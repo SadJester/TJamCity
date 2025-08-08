@@ -79,7 +79,9 @@ namespace tjs::core::simulation {
 				}
 
 				// TEMPORARY
-				sync_agents(agents, vehicles);
+				if (created != 0) {
+					sync_agents(agents, vehicles);
+				}
 
 				return created;
 			}
@@ -188,7 +190,9 @@ namespace tjs::core::simulation {
 				}
 
 				// TEMPORARY
-				sync_agents(agents, vehicles);
+				if (created != 0) {
+					sync_agents(agents, vehicles);
+				}
 
 				return created;
 			}

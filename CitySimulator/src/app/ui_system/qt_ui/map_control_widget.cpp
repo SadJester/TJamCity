@@ -396,7 +396,9 @@ namespace tjs {
 				_populationLabel->setStyleSheet("color: red;");
 				return;
 			}
-			if (event.current >= event.total) {
+
+			const auto generator_type = _application.simulationSystem().settings().generator_type;
+			if (generator_type == core::simulation::GeneratorType::Bulk && event.current >= event.total) {
 				_populationLabel->setText(
 					QString("Generated %1 for %2 ticks")
 						.arg(event.total)
@@ -406,7 +408,7 @@ namespace tjs {
 				_populationLabel->setText(QString("Generation: %2/%3 (%1 in last step)")
 						.arg(event.generated)
 						.arg(event.current)
-						.arg(event.total));
+						.arg(generator_type == core::simulation::GeneratorType::Bulk ? event.total : 0));
 				_populationLabel->setStyleSheet("color: blue;");
 			}
 		}
