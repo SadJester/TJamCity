@@ -43,14 +43,30 @@ namespace tjs::core::simulation {
 		const double min_radius = segment->spatialGrid.cellSize * 4;
 		const double max_radius = segment->spatialGrid.cellSize * 2000;
 
-		auto node = find_random_goal(
-			segment->spatialGrid,
-			agent.vehicle->coordinates,
-			min_radius,
-			max_radius);
+		Node* goal = nullptr;
+		switch (agent.profile.goal_selection) {
+			case AgentGoalSelectionType::GoalNodeId: {
+				if (auto current_lane = agent.vehicle->current_lane; current_lane && current_lane->parent->end_node == agent.profile.goal) {
+					// TODO: Remove
+					// _system.agent_manager().remove_agent(agent);
+					agent.stucked = true;
+				} else {
+					goal = agent.profile.goal;
+				}
+			} break;
+			case AgentGoalSelectionType::Profile:
+			case AgentGoalSelectionType::RandomSelection:
+			default: {
+				goal = find_random_goal(
+					segment->spatialGrid,
+					agent.vehicle->coordinates,
+					min_radius,
+					max_radius);
+			} break;
+		}
 
-		if (node != nullptr) {
-			agent.currentGoal = node;
+		if (goal != nullptr) {
+			agent.currentGoal = goal;
 		}
 	}
 

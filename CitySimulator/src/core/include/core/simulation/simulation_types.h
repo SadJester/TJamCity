@@ -9,7 +9,6 @@ namespace tjs::core {
 		Emergency);
 
 	ENUM(AgentGoalSelectionType, char,
-		RemoveAgent,
 		RandomSelection,
 		GoalNodeId,
 		Profile);

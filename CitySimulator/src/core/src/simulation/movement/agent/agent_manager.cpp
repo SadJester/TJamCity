@@ -99,16 +99,18 @@ namespace tjs::core::simulation {
 		struct VehicleSpawnRequest {
 			Lane* lane;
 			Node* goal;
+			AgentGoalSelectionType goal_selection_type;
 			double vehicles_per_hour;
 			int max_vehicles;
 			double accumulator = 0.0;
 			int generated = 0;
 
-			VehicleSpawnRequest(Lane* lane_, double vh_per_hour, Node* goal_, int max)
+			VehicleSpawnRequest(Lane* lane_, double vh_per_hour, Node* goal_, int max, AgentGoalSelectionType goal_type_)
 				: lane(lane_)
 				, goal(goal_)
 				, vehicles_per_hour(vh_per_hour)
-				, max_vehicles(max) {
+				, max_vehicles(max)
+				, goal_selection_type(goal_type_) {
 			}
 		};
 
@@ -163,7 +165,8 @@ namespace tjs::core::simulation {
 							lane,
 							static_cast<double>(req.vehicles_per_hour),
 							goal,
-							req.max_vehicles);
+							req.max_vehicles,
+							req.goal_selection_type);
 					}
 				}
 			}
@@ -191,9 +194,14 @@ namespace tjs::core::simulation {
 						auto type = RandomGenerator::get().next_enum<VehicleType>();
 						auto result = _vehicle_system.create_vehicle(*point.lane, type);
 						if (result.has_value()) {
-							agents.push_back({ vehicles[result.value()].uid, &vehicles[result.value()] });
+							AgentData agent { vehicles[result.value()].uid, &vehicles[result.value()] };
+							agent.profile.goal_selection = point.goal_selection_type;
+							agent.profile.goal = point.goal;
+
+							agents.push_back(agent);
 							++created;
 							++point.generated;
+							point.accumulator = 0.0;
 						} else {
 							break; // no space
 						}

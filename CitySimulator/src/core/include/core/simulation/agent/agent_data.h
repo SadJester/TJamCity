@@ -12,6 +12,7 @@ namespace tjs::core {
 
 	struct AgentProfile {
 		AgentGoalSelectionType goal_selection = AgentGoalSelectionType::RandomSelection;
+		Node* goal = nullptr;
 		// profile -> school, work, shopping
 	};
 

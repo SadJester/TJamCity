@@ -5,6 +5,7 @@
 #include <core/events/simulation_events.h>
 #include <events/vehicle_events.h>
 #include <events/project_events.h>
+#include <core/events/vehicle_population_events.h>
 
 namespace tjs::model {
 	struct VehicleAnalyzeData;
@@ -31,6 +32,7 @@ namespace tjs {
 			void updateAgentDetails(const tjs::core::AgentData* agent);
 
 			void handle_simulation_initialized(const core::events::SimulationInitialized& event);
+			void handle_population(const core::events::VehiclesPopulated& event);
 			void handle_agent_selected(const events::AgentSelected& event);
 			void handle_open_map(const events::OpenMapEvent& event);
 
