@@ -100,12 +100,15 @@ namespace tjs::core::simulation {
 			Lane* lane;
 			Node* goal;
 			double vehicles_per_hour;
+			int max_vehicles;
 			double accumulator = 0.0;
+			int generated = 0;
 
-			VehicleSpawnRequest(Lane* lane_, double vh_per_hour, Node* goal_)
+			VehicleSpawnRequest(Lane* lane_, double vh_per_hour, Node* goal_, int max)
 				: lane(lane_)
 				, goal(goal_)
-				, vehicles_per_hour(vh_per_hour) {
+				, vehicles_per_hour(vh_per_hour)
+				, max_vehicles(max) {
 			}
 		};
 
@@ -148,16 +151,19 @@ namespace tjs::core::simulation {
 					}
 
 					Node* goal = nullptr;
-					auto it = segment->nodes.find(req.goal_node_id);
-					if (it != segment->nodes.end()) {
-						goal = it->second.get();
+					if (req.goal_selection_type == AgentGoalSelectionType::GoalNodeId) {
+						auto it = segment->nodes.find(req.goal_node_id);
+						if (it != segment->nodes.end()) {
+							goal = it->second.get();
+						}
 					}
 
 					if (lane) {
 						_spawn_requests.emplace_back(
 							lane,
 							static_cast<double>(req.vehicles_per_hour),
-							goal);
+							goal,
+							req.max_vehicles);
 					}
 				}
 			}
@@ -176,13 +182,18 @@ namespace tjs::core::simulation {
 
 				const double dt = _system.timeModule().state().fixed_dt();
 				for (auto& point : _spawn_requests) {
+					if (point.max_vehicles > 0 && point.generated >= point.max_vehicles) {
+						continue;
+					}
 					point.accumulator += point.vehicles_per_hour * (dt / 3600.0); // dt in seconds
-					while (point.accumulator >= 1.0) {
+					while (point.accumulator >= 1.0
+						   && (point.max_vehicles == 0 || point.generated < point.max_vehicles)) {
 						auto type = RandomGenerator::get().next_enum<VehicleType>();
 						auto result = _vehicle_system.create_vehicle(*point.lane, type);
 						if (result.has_value()) {
 							agents.push_back({ vehicles[result.value()].uid, &vehicles[result.value()] });
 							++created;
+							++point.generated;
 						} else {
 							break; // no space
 						}

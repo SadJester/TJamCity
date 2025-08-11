@@ -9,6 +9,7 @@
 #include <QLabel>
 #include <QFileDialog>
 #include <QComboBox>
+#include <QScrollArea>
 
 #include <project/project.h>
 
@@ -22,6 +23,7 @@
 #include <core/data_layer/world_creator.h>
 #include <core/simulation/simulation_system.h>
 #include <core/simulation/simulation_settings.h>
+#include <core/simulation/agent/agent_data.h>
 #include <core/store_models/vehicle_analyze_data.h>
 
 namespace tjs {
@@ -130,29 +132,26 @@ namespace tjs {
 			generatorLayout->addWidget(_vehicleCountWidget);
 
 			_flowWidget = new QWidget(this);
-			QHBoxLayout* flowLayout = new QHBoxLayout(_flowWidget);
+			QVBoxLayout* flowLayout = new QVBoxLayout(_flowWidget);
 			auto& spawns = _application.settings().simulationSettings.spawn_requests;
 			if (spawns.empty()) {
 				spawns.push_back({});
 			}
-			QLabel* laneLabel = new QLabel("Lane:", this);
-			_laneNumber = new QSpinBox(this);
-			_laneNumber->setRange(0, 100000);
-			_laneNumber->setValue(spawns[0].lane_id);
-			QLabel* vhLabel = new QLabel("Vehicles/hour:", this);
-			_vehiclesPerHour = new QSpinBox(this);
-			_vehiclesPerHour->setRange(0, 100000);
-			_vehiclesPerHour->setValue(spawns[0].vehicles_per_hour);
-			QLabel* goalLabel = new QLabel("Goal node:", this);
-			_goalNodeId = new QSpinBox(this);
-			_goalNodeId->setRange(0, std::numeric_limits<int>::max());
-			_goalNodeId->setValue(static_cast<int>(spawns[0].goal_node_id));
-			flowLayout->addWidget(laneLabel);
-			flowLayout->addWidget(_laneNumber);
-			flowLayout->addWidget(vhLabel);
-			flowLayout->addWidget(_vehiclesPerHour);
-			flowLayout->addWidget(goalLabel);
-			flowLayout->addWidget(_goalNodeId);
+			_spawn_scroll = new QScrollArea(this);
+			_spawn_scroll->setWidgetResizable(true);
+			_spawn_scroll->setFixedHeight(150);
+			_spawn_widget = new QWidget();
+			_spawn_layout = new QVBoxLayout(_spawn_widget);
+			_spawn_layout->setAlignment(Qt::AlignTop);
+			_spawn_scroll->setWidget(_spawn_widget);
+			flowLayout->addWidget(_spawn_scroll);
+
+			for (const auto& task : spawns) {
+				add_spawn_row(task);
+			}
+
+			_add_spawn_button = new QPushButton("+", this);
+			flowLayout->addWidget(_add_spawn_button);
 			generatorLayout->addWidget(_flowWidget);
 
 			// Add generator frame to main layout
@@ -230,28 +229,10 @@ namespace tjs {
 				_application.settings().simulationSettings.vehiclesCount = value;
 			});
 
-			connect(_laneNumber, &QSpinBox::valueChanged, [this](int value) {
+			connect(_add_spawn_button, &QPushButton::clicked, [this]() {
 				auto& spawns = _application.settings().simulationSettings.spawn_requests;
-				if (spawns.empty()) {
-					spawns.push_back({});
-				}
-				spawns[0].lane_id = value;
-			});
-
-			connect(_vehiclesPerHour, &QSpinBox::valueChanged, [this](int value) {
-				auto& spawns = _application.settings().simulationSettings.spawn_requests;
-				if (spawns.empty()) {
-					spawns.push_back({});
-				}
-				spawns[0].vehicles_per_hour = value;
-			});
-
-			connect(_goalNodeId, &QSpinBox::valueChanged, [this](int value) {
-				auto& spawns = _application.settings().simulationSettings.spawn_requests;
-				if (spawns.empty()) {
-					spawns.push_back({});
-				}
-				spawns[0].goal_node_id = static_cast<uint64_t>(value);
+				spawns.push_back({});
+				add_spawn_row(spawns.back());
 			});
 
 			connect(vehicleSizeMultipler, &QDoubleSpinBox::valueChanged, [this](double value) {
@@ -288,6 +269,139 @@ namespace tjs {
 			});
 
 			layout->addWidget(infoFrame);
+		}
+
+		void MapControlWidget::add_spawn_row(const core::simulation::AgentTask& task) {
+			SpawnRow row;
+			row.container = new QWidget(_spawn_widget);
+			QHBoxLayout* layout = new QHBoxLayout(row.container);
+
+			QLabel* lane_label = new QLabel("Lane:", this);
+			row.lane = new QSpinBox(this);
+			row.lane->setRange(0, 100000);
+			row.lane->setValue(task.lane_id);
+
+			QLabel* vh_label = new QLabel("Vehicles/hour:", this);
+			row.vehicles_per_hour = new QSpinBox(this);
+			row.vehicles_per_hour->setRange(0, 100000);
+			row.vehicles_per_hour->setValue(task.vehicles_per_hour);
+
+			QLabel* goal_type_label = new QLabel("Goal:", this);
+			row.goal_selection = new QComboBox(this);
+			row.goal_selection->addItem(
+				"Random",
+				static_cast<int>(core::AgentGoalSelectionType::RandomSelection));
+			row.goal_selection->addItem(
+				"Goal node",
+				static_cast<int>(core::AgentGoalSelectionType::GoalNodeId));
+			row.goal_selection->setCurrentIndex(
+				task.goal_selection_type == core::AgentGoalSelectionType::GoalNodeId ? 1 : 0);
+
+			QLabel* goal_id_label = new QLabel("Id:", this);
+			row.goal_node_id = new QSpinBox(this);
+			row.goal_node_id->setRange(0, std::numeric_limits<int>::max());
+			row.goal_node_id->setValue(static_cast<int>(task.goal_node_id));
+
+			QLabel* max_label = new QLabel("Max:", this);
+			row.max_vehicles = new QSpinBox(this);
+			row.max_vehicles->setRange(0, 1000000);
+			row.max_vehicles->setValue(task.max_vehicles);
+
+			QPushButton* remove_button = new QPushButton("-", this);
+
+			layout->addWidget(lane_label);
+			layout->addWidget(row.lane);
+			layout->addWidget(vh_label);
+			layout->addWidget(row.vehicles_per_hour);
+			layout->addWidget(goal_type_label);
+			layout->addWidget(row.goal_selection);
+			layout->addWidget(goal_id_label);
+			layout->addWidget(row.goal_node_id);
+			layout->addWidget(max_label);
+			layout->addWidget(row.max_vehicles);
+			layout->addWidget(remove_button);
+
+			if (task.goal_selection_type != core::AgentGoalSelectionType::GoalNodeId) {
+				goal_id_label->setVisible(false);
+				row.goal_node_id->setVisible(false);
+			}
+
+			_spawn_layout->addWidget(row.container);
+			_spawn_rows.push_back(row);
+
+			connect(row.lane, &QSpinBox::valueChanged, [this, sp = row.lane](int value) {
+				auto& spawns = _application.settings().simulationSettings.spawn_requests;
+				for (size_t i = 0; i < _spawn_rows.size(); ++i) {
+					if (_spawn_rows[i].lane == sp) {
+						spawns[i].lane_id = value;
+						break;
+					}
+				}
+			});
+
+			connect(row.vehicles_per_hour, &QSpinBox::valueChanged, [this, sp = row.vehicles_per_hour](int value) {
+				auto& spawns = _application.settings().simulationSettings.spawn_requests;
+				for (size_t i = 0; i < _spawn_rows.size(); ++i) {
+					if (_spawn_rows[i].vehicles_per_hour == sp) {
+						spawns[i].vehicles_per_hour = value;
+						break;
+					}
+				}
+			});
+
+			connect(row.goal_node_id, &QSpinBox::valueChanged, [this, sp = row.goal_node_id](int value) {
+				auto& spawns = _application.settings().simulationSettings.spawn_requests;
+				for (size_t i = 0; i < _spawn_rows.size(); ++i) {
+					if (_spawn_rows[i].goal_node_id == sp) {
+						spawns[i].goal_node_id = static_cast<uint64_t>(value);
+						break;
+					}
+				}
+			});
+
+			connect(row.max_vehicles, &QSpinBox::valueChanged, [this, sp = row.max_vehicles](int value) {
+				auto& spawns = _application.settings().simulationSettings.spawn_requests;
+				for (size_t i = 0; i < _spawn_rows.size(); ++i) {
+					if (_spawn_rows[i].max_vehicles == sp) {
+						spawns[i].max_vehicles = value;
+						break;
+					}
+				}
+			});
+
+			connect(row.goal_selection,
+				QOverload<int>::of(&QComboBox::currentIndexChanged),
+				[this, combo = row.goal_selection, goal_id_label, goal_spin = row.goal_node_id](int index) {
+					bool random = index == 0;
+					goal_id_label->setVisible(!random);
+					goal_spin->setVisible(!random);
+					auto& spawns = _application.settings().simulationSettings.spawn_requests;
+					for (size_t i = 0; i < _spawn_rows.size(); ++i) {
+						if (_spawn_rows[i].goal_selection == combo) {
+							spawns[i].goal_selection_type =
+								random ? core::AgentGoalSelectionType::RandomSelection : core::AgentGoalSelectionType::GoalNodeId;
+							if (random) {
+								spawns[i].goal_node_id = 0;
+							}
+							break;
+						}
+					}
+				});
+
+			connect(remove_button, &QPushButton::clicked, [this, container = row.container]() {
+				auto& spawns = _application.settings().simulationSettings.spawn_requests;
+				for (size_t i = 0; i < _spawn_rows.size(); ++i) {
+					if (_spawn_rows[i].container == container) {
+						_spawn_layout->removeWidget(container);
+						container->deleteLater();
+						_spawn_rows.erase(_spawn_rows.begin() + static_cast<long>(i));
+						if (i < spawns.size()) {
+							spawns.erase(spawns.begin() + static_cast<long>(i));
+						}
+						break;
+					}
+				}
+			});
 		}
 
 		void MapControlWidget::createLayerSelection(QVBoxLayout* layout) {

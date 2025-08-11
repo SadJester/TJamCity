@@ -3,21 +3,30 @@
 #include <nlohmann/json.hpp>
 
 #include <core/simulation/simulation_debug.h>
+#include <core/simulation/simulation_types.h>
 #include <core/simulation/movement/movement_algorithm.h>
+
+namespace tjs::core {
+	enum class AgentGoalSelectionType : char;
+} // namespace tjs::core
 
 namespace tjs::core::simulation {
 	ENUM(GeneratorType, char, Bulk, Flow);
 
 	struct AgentTask {
 		int lane_id = 0;
-		int vehicles_per_hour = 0;
+		int vehicles_per_hour = 100;
 		uint64_t goal_node_id = 0;
+		int max_vehicles = 0;
+		AgentGoalSelectionType goal_selection_type = AgentGoalSelectionType::RandomSelection;
 
 		NLOHMANN_DEFINE_TYPE_INTRUSIVE(
 			AgentTask,
 			lane_id,
 			vehicles_per_hour,
-			goal_node_id);
+			goal_node_id,
+			max_vehicles,
+			goal_selection_type);
 	};
 } // namespace tjs::core::simulation
 

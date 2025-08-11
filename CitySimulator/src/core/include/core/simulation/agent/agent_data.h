@@ -1,22 +1,14 @@
 #pragma once
 
-#include "core/data_layer/data_types.h"
+#include <core/data_layer/data_types.h>
+
+#include <core/simulation/simulation_types.h>
 
 namespace tjs::core {
 	struct Node;
 } // namespace tjs::core
 
 namespace tjs::core {
-	ENUM_FLAG(TacticalBehaviour, char,
-		Normal,
-		Aggressive,
-		Defensive,
-		Emergency);
-
-	ENUM(AgentGoalSelectionType, char,
-		RemoveAgent,
-		RandomSelection,
-		Profile);
 
 	struct AgentProfile {
 		AgentGoalSelectionType goal_selection = AgentGoalSelectionType::RandomSelection;

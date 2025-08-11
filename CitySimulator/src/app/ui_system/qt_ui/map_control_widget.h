@@ -8,6 +8,7 @@
 #include <QCheckBox>
 #include <QListWidget>
 #include <QComboBox>
+#include <QScrollArea>
 
 #include <events/map_events.h>
 #include <core/events/vehicle_population_events.h>
@@ -18,6 +19,10 @@ namespace tjs {
 	namespace visualization {
 		class MapElement;
 	} // namespace visualization
+
+	namespace core::simulation {
+		struct AgentTask;
+	} // namespace core::simulation
 
 	namespace ui {
 		class VehicleAnalyzeWidget;
@@ -55,9 +60,10 @@ namespace tjs {
 			QWidget* _vehicleCountWidget = nullptr;
 			QWidget* _flowWidget = nullptr;
 			QSpinBox* vehicleCount = nullptr;
-			QSpinBox* _laneNumber = nullptr;
-			QSpinBox* _vehiclesPerHour = nullptr;
-			QSpinBox* _goalNodeId = nullptr;
+			QScrollArea* _spawn_scroll = nullptr;
+			QWidget* _spawn_widget = nullptr;
+			QVBoxLayout* _spawn_layout = nullptr;
+			QPushButton* _add_spawn_button = nullptr;
 			QDoubleSpinBox* vehicleSizeMultipler = nullptr;
 			QDoubleSpinBox* simplifiedThreshold = nullptr;
 			QCheckBox* randomSeed = nullptr;
@@ -71,6 +77,18 @@ namespace tjs {
 			QListWidget* _layerList = nullptr;
 
 			QLabel* _populationLabel = nullptr;
+
+			struct SpawnRow {
+				QWidget* container = nullptr;
+				QSpinBox* lane = nullptr;
+				QSpinBox* vehicles_per_hour = nullptr;
+				QComboBox* goal_selection = nullptr;
+				QSpinBox* goal_node_id = nullptr;
+				QSpinBox* max_vehicles = nullptr;
+			};
+			std::vector<SpawnRow> _spawn_rows;
+
+			void add_spawn_row(const core::simulation::AgentTask& task);
 		};
 	} // namespace ui
 } // namespace tjs
