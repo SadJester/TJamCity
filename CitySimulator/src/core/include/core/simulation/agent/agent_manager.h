@@ -17,9 +17,15 @@ namespace tjs::core::simulation {
 		void release();
 		void update();
 
+		void remove_agent(AgentData& agent);
+
 		Agents& agents() {
 			return _agents;
 		}
+
+	private:
+		void remove_agents();
+		void populate_agents();
 
 	private:
 		TrafficSimulationSystem& _system;

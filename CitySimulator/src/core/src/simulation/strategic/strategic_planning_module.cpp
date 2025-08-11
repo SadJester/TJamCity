@@ -47,9 +47,7 @@ namespace tjs::core::simulation {
 		switch (agent.profile.goal_selection) {
 			case AgentGoalSelectionType::GoalNodeId: {
 				if (auto current_lane = agent.vehicle->current_lane; current_lane && current_lane->parent->end_node == agent.profile.goal) {
-					// TODO: Remove
-					// _system.agent_manager().remove_agent(agent);
-					agent.stucked = true;
+					_system.agent_manager().remove_agent(agent);
 				} else {
 					goal = agent.profile.goal;
 				}

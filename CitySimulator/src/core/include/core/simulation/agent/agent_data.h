@@ -27,6 +27,7 @@ namespace tjs::core {
 		uint32_t goal_lane_mask = 0;   // bitmask for current edge exit
 		double distanceTraveled = 0.0; // Total distance traveled
 		bool stucked = false;
+		bool to_remove = false;
 		int goalFailCount = 0;
 
 		AgentData(uint64_t uid, Vehicle* vehicle_ = nullptr)

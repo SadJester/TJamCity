@@ -261,6 +261,11 @@ namespace tjs::core::simulation {
 	}
 
 	void AgentManager::update() {
+		remove_agents();
+		populate_agents();
+	}
+
+	void AgentManager::populate_agents() {
 		if (_generator->is_done()) {
 			return;
 		}
@@ -289,6 +294,14 @@ namespace tjs::core::simulation {
 					has_errors },
 				"vehicle_system");
 		}
+	}
+
+	void AgentManager::remove_agents() {
+	}
+
+	void AgentManager::remove_agent(AgentData& agent) {
+		agent.stucked = true;
+		agent.to_remove = true;
 	}
 
 } // namespace tjs::core::simulation

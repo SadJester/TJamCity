@@ -31,10 +31,7 @@ namespace tjs::core::simulation {
 
 		void initialize();
 		void release();
-
-		// TODO[simulation]: here must be some profile
-		size_t populate();
-		size_t update();
+		void update();
 
 		CreationState creation_state() const noexcept {
 			return _creation_state;
@@ -61,6 +58,7 @@ namespace tjs::core::simulation {
 
 		// return handle to vehicle
 		std::optional<size_t> create_vehicle(Lane& lane, VehicleType type);
+		void remove_vehicle(Vehicle& vehicle);
 
 	private:
 		TrafficSimulationSystem& _system;

@@ -161,12 +161,10 @@ namespace tjs::core::simulation {
 		return _vehicles.size() - 1;
 	}
 
-	size_t VehicleSystem::populate() {
-		return 0;
+	void VehicleSystem::update() {
 	}
 
-	size_t VehicleSystem::update() {
-		return 0;
+	void VehicleSystem::remove_vehicle(Vehicle& vehicle) {
 	}
 
 } // namespace tjs::core::simulation
