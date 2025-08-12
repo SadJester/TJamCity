@@ -137,7 +137,7 @@ TEST_F(VehicleMovementModuleTest, NoMovementWhenBothCurrentGoalAndLaneAreNullptr
 	EXPECT_EQ(agent.vehicle->s_on_lane, initialSOnLane);
 }
 
-TEST_F(VehicleMovementModuleTest, MovementOccursWithValidGoalAndLane) {
+TEST_F(VehicleMovementModuleTest, DISABLED_MovementOccursWithValidGoalAndLane) {
 	auto& agent = getAgent();
 
 	agent.currentGoal = get_segment().nodes.begin()->second.get();

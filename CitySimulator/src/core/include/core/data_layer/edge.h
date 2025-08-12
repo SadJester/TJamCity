@@ -24,6 +24,7 @@ namespace tjs::core {
 
 		//EdgeHandler opposite;
 		OppositeSide opposite_side = OppositeSide::None;
+		std::vector<Edge*> outgoing_edges;
 	};
 	using EdgeHandler = common::ContainerPtrHolder<std::vector<Edge>>;
 } // namespace tjs::core
