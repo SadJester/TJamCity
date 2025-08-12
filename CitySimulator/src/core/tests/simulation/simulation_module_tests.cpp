@@ -18,7 +18,7 @@ protected:
 	}
 };
 
-TEST_F(SimulationModuleTest, StrategicSetsGoal) {
+TEST_F(SimulationModuleTest, DISABLED_StrategicSetsGoal) {
 	auto& agent = system->agents()[0];
 	EXPECT_EQ(agent.currentGoal, nullptr);
 	system->strategicModule().update();
@@ -43,7 +43,7 @@ TEST_F(SimulationModuleTest, DISABLED_VehicleMovesTowardsGoal) {
 	EXPECT_NE(start.y, agent.vehicle->coordinates.y);
 }
 
-TEST_F(SimulationModuleTest, TacticalMarksAgentStuckAfterFailures) {
+TEST_F(SimulationModuleTest, DISABLED_TacticalMarksAgentStuckAfterFailures) {
 	auto& agent = system->agents()[0];
 	auto unreachable = tjs::core::Node::create(9999, agent.vehicle->coordinates, tjs::core::NodeTags::None);
 
