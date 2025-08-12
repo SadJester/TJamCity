@@ -3,7 +3,6 @@
 #include <core/simulation/transport_management/vehicle_state.h>
 
 #include <core/data_layer/vehicle.h>
-
 #include <core/simulation/movement/idm/lane_agnostic_movement.h>
 
 namespace tjs::core::simulation {
@@ -18,26 +17,14 @@ namespace tjs::core::simulation {
 	class VehicleSystem {
 	public:
 		using VehicleConfigs = std::unordered_map<VehicleType, VehicleConfig>;
-		using Vehicles = std::vector<Vehicle>;
-		enum class CreationState {
-			InProgress,
-			Completed,
-			Error
-		};
 
 	public:
 		explicit VehicleSystem(TrafficSimulationSystem& system);
+		virtual ~VehicleSystem();
 
 		void initialize();
 		void release();
-
-		// TODO[simulation]: here must be some profile
-		size_t populate();
-		size_t update();
-
-		CreationState creation_state() const noexcept {
-			return _creation_state;
-		}
+		void update();
 
 		VehicleBuffers& vehicle_buffers() {
 			return _buffers;
@@ -53,7 +40,9 @@ namespace tjs::core::simulation {
 
 		void commit();
 
-		void create_vehicle();
+		// return handle to vehicle
+		std::optional<size_t> create_vehicle(Lane& lane, VehicleType type);
+		void remove_vehicle(Vehicle& vehicle);
 
 	private:
 		TrafficSimulationSystem& _system;
@@ -63,9 +52,6 @@ namespace tjs::core::simulation {
 		Vehicles _vehicles;
 
 		std::vector<LaneRuntime> _lane_runtime;
-
-		CreationState _creation_state = CreationState::InProgress;
-		size_t _creation_ticks = 0;
 
 	public:
 		std::vector<LaneRuntime>& lane_runtime() {

@@ -5,6 +5,7 @@
 #include <core/simulation/movement/vehicle_movement_module.h>
 #include <core/simulation/simulation_settings.h>
 #include <core/simulation/transport_management/vehicle_system.h>
+#include <core/simulation/agent/agent_manager.h>
 
 #include <common/message_dispatcher/message_dispatcher.h>
 
@@ -36,7 +37,7 @@ namespace tjs::core::simulation {
 			return _timeModule;
 		}
 		Agents& agents() {
-			return _agents;
+			return _agent_manager.agents();
 		}
 		core::WorldData& worldData() {
 			return _worldData;
@@ -64,18 +65,21 @@ namespace tjs::core::simulation {
 			return _message_dispatcher;
 		}
 
+		AgentManager& agent_manager() {
+			return _agent_manager;
+		}
+
 		SimulationSettings& settings() {
 			return _settings;
 		}
 
 	private:
-		Agents _agents;
-
 		TimeModule _timeModule;
 		StrategicPlanningModule _strategicModule;
 		TacticalPlanningModule _tacticalModule;
 		VehicleMovementModule _vehicleMovementModule;
 
+		AgentManager _agent_manager;
 		VehicleSystem _vehicle_system;
 
 		core::model::DataModelStore& _store;

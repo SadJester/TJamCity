@@ -5,7 +5,6 @@
 #include <core/data_layer/data_types.h>
 #include <core/data_layer/world_data.h>
 #include <core/store_models/idata_model.h>
-#include <core/store_models/vehicle_analyze_data.h>
 #include <core/random_generator.h>
 
 #include <core/events/simulation_events.h>
@@ -22,6 +21,7 @@ namespace tjs::core::simulation {
 		, _timeModule(*this)
 		, _strategicModule(*this)
 		, _tacticalModule(*this)
+		, _agent_manager(*this)
 		, _vehicle_system(*this)
 		, _vehicleMovementModule(*this) {
 	}
@@ -29,7 +29,7 @@ namespace tjs::core::simulation {
 	TrafficSimulationSystem::~TrafficSimulationSystem() {
 	}
 
-	void sync_agents(TrafficSimulationSystem::Agents& agents, VehicleSystem::Vehicles& vehicles) {
+	void sync_agents(TrafficSimulationSystem::Agents& agents, Vehicles& vehicles) {
 		// Update pointers
 		for (size_t i = 0; i < agents.size(); ++i) {
 			agents[i].vehicle = &vehicles[i];
@@ -37,16 +37,7 @@ namespace tjs::core::simulation {
 
 		// Add new vehicles
 		for (size_t i = agents.size(); i < vehicles.size(); ++i) {
-			agents.push_back({ vehicles[i].uid,
-				TacticalBehaviour::Normal,
-				nullptr,
-				&vehicles[i],
-				{},
-				0,
-				0,
-				0.0f,
-				false,
-				0 });
+			agents.push_back({ vehicles[i].uid, &vehicles[i] });
 		}
 	}
 
@@ -67,12 +58,8 @@ namespace tjs::core::simulation {
 			}
 		}
 
+		_agent_manager.initialize();
 		_vehicle_system.initialize();
-		_vehicle_system.populate();
-
-		_agents.clear();
-		_agents.reserve(_settings.vehiclesCount);
-		sync_agents(_agents, _vehicle_system.vehicles());
 
 		_strategicModule.initialize();
 		_tacticalModule.initialize();
@@ -82,14 +69,11 @@ namespace tjs::core::simulation {
 			_timeModule.pause();
 		}
 
-		if (_agents.size() == 1) {
-			_store.get_entry<core::model::VehicleAnalyzeData>()->agent = &_agents[0];
-		}
-
 		_message_dispatcher.handle_message(events::SimulationInitialized {}, "simulation");
 	}
 
 	void TrafficSimulationSystem::release() {
+		_agent_manager.release();
 		_vehicle_system.release();
 		_strategicModule.release();
 		_tacticalModule.release();
@@ -111,10 +95,8 @@ namespace tjs::core::simulation {
 	void TrafficSimulationSystem::step() {
 		_timeModule.tick();
 
-		size_t created = _vehicle_system.update();
-		if (created > 0) {
-			sync_agents(_agents, _vehicle_system.vehicles());
-		}
+		_agent_manager.update();
+		_vehicle_system.update();
 
 		_strategicModule.update();
 		_tacticalModule.update();

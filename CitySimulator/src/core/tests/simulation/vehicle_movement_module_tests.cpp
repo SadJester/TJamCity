@@ -157,8 +157,8 @@ TEST_F(VehicleMovementModuleTest, MovementOccursWithValidGoalAndLane) {
 	system->vehicleMovementModule().update();
 
 	// Verify movement occurred
-	EXPECT_EQ(agent.vehicle->coordinates.x, initialPosition.x);
-	EXPECT_NE(agent.vehicle->coordinates.y, initialPosition.y);
+	EXPECT_NE(agent.vehicle->coordinates.x, initialPosition.x);
+	EXPECT_EQ(agent.vehicle->coordinates.y, initialPosition.y);
 	EXPECT_GT(agent.vehicle->s_on_lane, initialSOnLane);
 
 	// verify speed is set correctely - will be broken when accel will be added

@@ -23,18 +23,28 @@ namespace tjs::ui {
 		initialize();
 
 		_application.simulationSystem().message_dispatcher().register_handler(*this, &VehicleAnalyzeWidget::handle_simulation_initialized, "VehicleAnalyzeWidget");
+		_application.simulationSystem().message_dispatcher().register_handler(*this, &VehicleAnalyzeWidget::handle_population, "VehicleAnalyzeWidget");
+
 		_application.message_dispatcher().register_handler(*this, &VehicleAnalyzeWidget::handle_agent_selected, "VehicleAnalyzeWidget");
 		_application.message_dispatcher().register_handler(*this, &VehicleAnalyzeWidget::handle_open_map, "VehicleAnalyzeWidget");
 	}
 
 	VehicleAnalyzeWidget::~VehicleAnalyzeWidget() {
 		_application.simulationSystem().message_dispatcher().unregister_handler<core::events::SimulationInitialized>("VehicleAnalyzeWidget");
+		_application.simulationSystem().message_dispatcher().unregister_handler<core::events::VehiclesPopulated>("VehicleAnalyzeWidget");
+
 		_application.message_dispatcher().unregister_handler<events::AgentSelected>("VehicleAnalyzeWidget");
 		_application.message_dispatcher().unregister_handler<events::OpenMapEvent>("VehicleAnalyzeWidget");
 	}
 
 	void VehicleAnalyzeWidget::handle_simulation_initialized(const core::events::SimulationInitialized& event) {
 		_application.stores().get_entry<core::model::VehicleAnalyzeData>()->agent = nullptr;
+		initialize();
+	}
+
+	void VehicleAnalyzeWidget::handle_population(const core::events::VehiclesPopulated& event) {
+		auto prev_agent = _application.stores().get_entry<core::model::VehicleAnalyzeData>()->agent;
+
 		initialize();
 	}
 
@@ -66,24 +76,34 @@ namespace tjs::ui {
 		auto& simulation_system = _application.simulationSystem();
 		const auto& agents = simulation_system.agents();
 
-		auto setupAgentCombo = [this, &agents]() {
+		auto setupAgentCombo = [this, &agents](core::AgentData* prev_agent = nullptr) {
 			_agentComboBox->addItem("-- None --", QVariant::fromValue<uint64_t>(0));
 
+			std::optional<size_t> idx {};
 			for (size_t i = 0; i < agents.size(); ++i) {
 				const core::AgentData& agent = agents[i];
+				if (&agent == prev_agent) {
+					idx = i;
+				}
 				_agentComboBox->addItem(
 					"[" + QString::number(i) + "] Agent " + QString::number(agent.id),
 					QVariant::fromValue(agent.id));
 			}
 
-			if (agents.size() == 1) {
-				_agentComboBox->setCurrentIndex(1);
+			size_t selection = 0;
+			if (idx.has_value()) {
+				selection = idx.value() + 1;
+			} else if (agents.size() == 1) {
+				selection = 1;
 			}
+
+			_agentComboBox->setCurrentIndex(selection);
 		};
 
 		if (_agentComboBox != nullptr) {
+			auto prev_agent = _application.stores().get_entry<core::model::VehicleAnalyzeData>()->agent;
 			_agentComboBox->clear();
-			setupAgentCombo();
+			setupAgentCombo(prev_agent);
 			return;
 		}
 
