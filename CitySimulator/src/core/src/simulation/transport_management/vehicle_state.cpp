@@ -4,7 +4,7 @@
 #include <core/data_layer/vehicle.h>
 
 namespace tjs::core::simulation {
-	void VehicleBuffers::clear() {
+	/*void VehicleBuffers::clear() {
 		s_curr.clear();
 		s_next.clear();
 		v_curr.clear();
@@ -53,5 +53,5 @@ namespace tjs::core::simulation {
 		lane_change_dir.push_back(0);
 		flags.push_back(vehicle.state);
 		uids.push_back(vehicle.uid);
-	}
+	}*/
 } // namespace tjs::core::simulation

@@ -39,10 +39,6 @@ namespace tjs::core::simulation {
 			return _creation_state;
 		}
 
-		VehicleBuffers& vehicle_buffers() {
-			return _buffers;
-		}
-
 		Vehicles& vehicles() {
 			return _vehicles;
 		}
@@ -59,7 +55,6 @@ namespace tjs::core::simulation {
 		TrafficSimulationSystem& _system;
 
 		VehicleConfigs _vehicle_configs;
-		VehicleBuffers _buffers;
 		Vehicles _vehicles;
 
 		std::vector<LaneRuntime> _lane_runtime;

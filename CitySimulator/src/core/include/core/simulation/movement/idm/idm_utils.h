@@ -3,6 +3,10 @@
 #include <core/simulation/movement/idm/idm_params.h>
 #include <core/simulation/movement/movement_runtime_structures.h>
 
+namespace tjs::core {
+	struct Vehicle;
+} // namespace tjs::core
+
 namespace tjs::core::simulation::idm {
 
 	float safe_entry_speed(const float v_leader, const float gap, const double dt) noexcept;
@@ -15,9 +19,7 @@ namespace tjs::core::simulation::idm {
 	float desired_gap(const float v_follower, const float delta_v, const idm_params_t& p) noexcept;
 
 	bool gap_ok(const LaneRuntime& tgt_rt,
-		const std::vector<double>& s_curr,
-		const std::vector<float>& length,
-		const std::vector<float>& v_curr,
+		const std::vector<Vehicle>& vehicles,
 		const double s_new, // tentative bumper pos
 		const float len_new,
 		const idm::idm_params_t& p,

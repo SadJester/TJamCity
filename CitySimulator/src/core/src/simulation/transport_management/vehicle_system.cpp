@@ -49,10 +49,8 @@ namespace tjs::core::simulation {
 
 		_creation_state = CreationState::InProgress;
 		_creation_ticks = 0;
-		_buffers.clear();
 		_vehicles.clear();
 		_vehicles.reserve(_system.settings().vehiclesCount);
-		_buffers.reserve(_system.settings().vehiclesCount);
 	}
 
 	void VehicleSystem::release() {
@@ -105,16 +103,12 @@ namespace tjs::core::simulation {
 			Vehicle& v = _vehicles[i];
 
 			const bool has_changes =
-				v.current_lane != _buffers.lane[i]
-				|| v.s_on_lane != _buffers.s_curr[i]
-				|| v.lateral_offset != _buffers.lateral_off[i];
+				v.s_on_lane != v.s_next
+				|| v.lateral_offset != v.lateral_offset; // This will always be false, but keeping for consistency
 
-			v.current_lane = _buffers.lane[i];
-			v.currentSpeed = _buffers.v_curr[i];
-			v.s_on_lane = _buffers.s_curr[i];
-			v.lateral_offset = _buffers.lateral_off[i];
-			v.previous_state = v.state;
-			v.state = _buffers.flags[i];
+			// Update position and speed from next values
+			//v.s_on_lane = v.s_next;
+			//v.currentSpeed = v.v_next;
 
 			if (has_changes && v.current_lane) {
 				v.coordinates = lane_position(*v.current_lane, v.s_on_lane, v.lateral_offset);
@@ -179,12 +173,18 @@ namespace tjs::core::simulation {
 			vehicle.previous_state = vehicle.state;
 			vehicle.error = VehicleMovementError::ER_NO_ERROR;
 
+			// Initialize new fields
+			vehicle.s_next = 0.0;
+			vehicle.v_next = 0.0f;
+			vehicle.lane_target = nullptr;
+			vehicle.lane_change_time = 0.0f;
+			vehicle.lane_change_dir = 0;
+
 			_vehicles.push_back(vehicle);
 			insert_vehicle_sorted(*vehicle.current_lane, &_vehicles.back());
 
 			_lane_runtime[lane->index_in_buffer].idx.push_back(_vehicles.size() - 1);
 
-			_buffers.add_vehicle(vehicle);
 			++created;
 		}
 

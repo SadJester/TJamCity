@@ -14,13 +14,13 @@ namespace tjs::core::simulation {
 
 	void IDMMovementAlgo::update() {
 		auto& vs = _system.vehicle_system();
-		auto& buf = vs.vehicle_buffers();
+		auto& vehicles = vs.vehicles();
 		auto& lane_rt = vs.lane_runtime();
 
 		double dt = _system.timeModule().state().fixed_dt();
 
-		idm::phase1_simd(_system, buf, lane_rt, dt);
-		idm::phase2_commit(_system, buf, lane_rt, dt);
+		idm::phase1_simd(_system, vehicles, lane_rt, dt);
+		idm::phase2_commit(_system, vehicles, lane_rt, dt);
 		_system.vehicle_system().commit();
 	}
 
