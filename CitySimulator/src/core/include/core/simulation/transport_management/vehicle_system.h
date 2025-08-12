@@ -7,8 +7,6 @@
 
 namespace tjs::core::simulation {
 	class TrafficSimulationSystem;
-	class ITransportGenerator;
-	class IGeneratorListener;
 
 	struct VehicleConfig {
 		VehicleType type;
@@ -19,11 +17,6 @@ namespace tjs::core::simulation {
 	class VehicleSystem {
 	public:
 		using VehicleConfigs = std::unordered_map<VehicleType, VehicleConfig>;
-		enum class CreationState {
-			InProgress,
-			Completed,
-			Error
-		};
 
 	public:
 		explicit VehicleSystem(TrafficSimulationSystem& system);
@@ -32,15 +25,6 @@ namespace tjs::core::simulation {
 		void initialize();
 		void release();
 		void update();
-
-		CreationState creation_state() const noexcept {
-			return _creation_state;
-		}
-
-		// TODO: temporary for transition. Shouldn`t be skipped on review!
-		void set_state(CreationState state) {
-			_creation_state = state;
-		}
 
 		VehicleBuffers& vehicle_buffers() {
 			return _buffers;
@@ -68,9 +52,6 @@ namespace tjs::core::simulation {
 		Vehicles _vehicles;
 
 		std::vector<LaneRuntime> _lane_runtime;
-
-		CreationState _creation_state = CreationState::InProgress;
-		size_t _creation_ticks = 0;
 
 	public:
 		std::vector<LaneRuntime>& lane_runtime() {

@@ -6,7 +6,7 @@
 #include <core/random_generator.h>
 #include <core/events/vehicle_population_events.h>
 
-#include <core/simulation/transport_management/transport_generator.h>
+#include <core/simulation/agent/agent_generator.h>
 
 #include <core/simulation/time_module.h>
 
@@ -89,8 +89,6 @@ namespace tjs::core::simulation {
 			}
 		}
 
-		_creation_state = CreationState::InProgress;
-		_creation_ticks = 0;
 		_buffers.clear();
 		_vehicles.clear();
 		_vehicles.reserve(_system.settings().vehiclesCount);

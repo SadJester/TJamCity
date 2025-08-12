@@ -2,7 +2,7 @@
 
 #include <core/simulation/agent/agent_manager.h>
 #include <core/simulation/simulation_system.h>
-#include <core/simulation/transport_management/transport_generator.h>
+#include <core/simulation/agent/agent_generator.h>
 
 #include <core/simulation/transport_management/vehicle_system.h>
 #include <core/random_generator.h>
@@ -23,10 +23,10 @@ namespace tjs::core::simulation {
 		}
 
 		// Generate till count that was set
-		class BulkGenerator : public ITransportGenerator {
+		class BulkGenerator : public IAgentGenerator {
 		public:
 			BulkGenerator(VehicleSystem& vehicle_system, TrafficSimulationSystem& system)
-				: ITransportGenerator(system)
+				: IAgentGenerator(system)
 				, _vehicles(vehicle_system) {
 			}
 
@@ -55,7 +55,6 @@ namespace tjs::core::simulation {
 				size_t attempts = 0;
 				auto& edges = segment->road_network->edges;
 
-				// TODO: more prettier code. Don`t skip on review!
 				auto& vehicles_info = _vehicles.vehicles();
 				while (vehicles_info.size() < _expected_vehicles && attempts < max_attempts) {
 					++attempts;
@@ -115,10 +114,10 @@ namespace tjs::core::simulation {
 			}
 		};
 
-		class FlowVehicleGenerator : public ITransportGenerator {
+		class FlowVehicleGenerator : public IAgentGenerator {
 		public:
 			FlowVehicleGenerator(TrafficSimulationSystem& system)
-				: ITransportGenerator(system)
+				: IAgentGenerator(system)
 				, _vehicle_system(system.vehicle_system()) {
 			}
 
@@ -274,11 +273,9 @@ namespace tjs::core::simulation {
 
 		size_t created = _generator->populate();
 		bool need_send = created != 0;
-		const bool has_errors = _generator->get_state() == ITransportGenerator::State::Error;
+		const bool has_errors = _generator->get_state() == IAgentGenerator::State::Error;
 		if (_generator->is_done()) {
 			need_send = true;
-
-			_system.vehicle_system().set_state(has_errors ? VehicleSystem::CreationState::Error : VehicleSystem::CreationState::Completed);
 			if (_agents.size() == 1) {
 				auto& store = _system.store();
 				store.get_entry<core::model::VehicleAnalyzeData>()->agent = &_agents[0];

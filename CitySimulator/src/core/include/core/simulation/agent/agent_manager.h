@@ -4,7 +4,7 @@
 
 namespace tjs::core::simulation {
 	class TrafficSimulationSystem;
-	class ITransportGenerator;
+	class IAgentGenerator;
 
 	using Agents = std::vector<AgentData>;
 
@@ -23,6 +23,10 @@ namespace tjs::core::simulation {
 			return _agents;
 		}
 
+		IAgentGenerator* get_generator() const { 
+			return _generator.get(); 
+		}
+
 	private:
 		void remove_agents();
 		void populate_agents();
@@ -31,7 +35,7 @@ namespace tjs::core::simulation {
 		TrafficSimulationSystem& _system;
 		Agents _agents;
 
-		std::unique_ptr<ITransportGenerator> _generator;
+		std::unique_ptr<IAgentGenerator> _generator;
 		size_t _creation_ticks = 0;
 	};
 
