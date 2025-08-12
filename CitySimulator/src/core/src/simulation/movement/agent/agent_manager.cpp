@@ -58,6 +58,7 @@ namespace tjs::core::simulation {
 				// TODO: more prettier code. Don`t skip on review!
 				auto& vehicles_info = _vehicles.vehicles();
 				while (vehicles_info.size() < _expected_vehicles && attempts < max_attempts) {
+					++attempts;
 					auto& edge = edges[RandomGenerator::get().next_int(0, edges.size() - 1)];
 					Lane* lane = &edge.lanes[0];
 

@@ -18,12 +18,12 @@ namespace tjs::core {
 
 	struct AgentData {
 		uint64_t id;
-		TacticalBehaviour behaviour;
+		TacticalBehaviour behaviour = TacticalBehaviour::Normal;
 		AgentProfile profile;
 		core::Node* currentGoal = nullptr;
 		tjs::core::Vehicle* vehicle = nullptr;
 		std::vector<core::Edge*> path; // Path to follow
-		size_t path_offset;
+		size_t path_offset = 0;
 		uint32_t goal_lane_mask = 0;   // bitmask for current edge exit
 		double distanceTraveled = 0.0; // Total distance traveled
 		bool stucked = false;

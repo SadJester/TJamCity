@@ -35,7 +35,7 @@ namespace tjs::core::tests {
 
 	void SimulationTestsCommon::set_up_settings() {
 		settings.vehiclesCount = 1;
-		settings.randomSeed = 42;
+		settings.seedValue = 0;
 		settings.movement_algo = simulation::MovementAlgoType::Agent;
 		settings.randomSeed = false;
 	}
