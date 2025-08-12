@@ -100,23 +100,46 @@ namespace tjs::core::simulation {
 	void VehicleSystem::release() {
 	}
 
-	static core::Coordinates lane_position(const Lane& lane, double s) {
+#include <cmath> // hypot
+
+	static core::Coordinates lane_position(const Lane& lane,
+		double s,             // longitudinal [m]
+		double lateral_offset // lateral [m]
+	) {
 		if (lane.centerLine.empty()) {
 			return {};
 		}
+
 		const auto& start = lane.centerLine.front();
 		const auto& end = lane.centerLine.back();
-		if (s <= 0.0) {
-			return start;
+
+		/* ---------- longitudinal interpolation on the centre-line --------- */
+		const double len = std::max(lane.length, 1e-6);    // avoid div-by-zero
+		const double frac = std::clamp(s / len, 0.0, 1.0); // clamp within lane
+
+		core::Coordinates pos;
+		pos.x = start.x + frac * (end.x - start.x);
+		pos.y = start.y + frac * (end.y - start.y);
+
+		/* ---------- lateral shift ----------------------------------------- */
+		if (std::abs(lateral_offset) < 1e-6) {
+			return pos; // nothing to do
 		}
-		if (lane.length <= 1e-6) {
-			return end;
-		}
-		double fraction = s / lane.length;
-		Coordinates result {};
-		result.x = start.x + fraction * (end.x - start.x);
-		result.y = start.y + fraction * (end.y - start.y);
-		return result;
+
+		// unit direction vector along the lane
+		double dx = end.x - start.x;
+		double dy = end.y - start.y;
+		const double inv = 1.0 / std::hypot(dx, dy);
+		dx *= inv;
+		dy *= inv;
+
+		// left-hand normal vector = (-dy, +dx)
+		const double nx = -dy;
+		const double ny = dx;
+
+		pos.x += lateral_offset * nx;
+		pos.y += lateral_offset * ny;
+		return pos;
 	}
 
 	void VehicleSystem::commit() {
@@ -136,7 +159,7 @@ namespace tjs::core::simulation {
 			v.state = _buffers.flags[i];
 
 			if (has_changes && v.current_lane) {
-				v.coordinates = lane_position(*v.current_lane, v.s_on_lane);
+				v.coordinates = lane_position(*v.current_lane, v.s_on_lane, v.lateral_offset);
 				v.rotationAngle = v.current_lane->rotation_angle;
 			}
 		}
