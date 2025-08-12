@@ -10,24 +10,128 @@
 
 #include <core/map_math/path_finder.h>
 
+#include <latch>
+
 namespace tjs::core::simulation {
 
 	TacticalPlanningModule::TacticalPlanningModule(TrafficSimulationSystem& system)
 		: _system(system) {
 	}
 
+	TacticalPlanningModule::~TacticalPlanningModule() {
+		_pool.reset();
+	}
+
 	void TacticalPlanningModule::initialize() {
+		_pool.reset();
+		_pool = std::make_unique<_test::ThreadPool>(std::thread::hardware_concurrency() - 3);
 	}
 
 	void TacticalPlanningModule::release() {
 	}
 
+	namespace _test {
+		// --- very small pool ---
+		class ThreadPool {
+		public:
+			explicit ThreadPool(unsigned n = std::thread::hardware_concurrency())
+				: stop(false) {
+				workers.reserve(n ? n : 1);
+				_n = n;
+				for (unsigned t = 0; t < (n ? n : 1); ++t) {
+					workers.emplace_back([this, t] {
+						tracy::SetThreadName(("upd/" + std::to_string(t)).c_str());
+						for (;;) {
+							std::function<void()> job;
+							{
+								std::unique_lock lk(mx);
+								cv.wait(lk, [&] { return stop || !q.empty(); });
+								if (stop && q.empty()) {
+									return;
+								}
+								job = std::move(q.front());
+								q.pop();
+							}
+							ZoneScopedN("job");
+							job();
+						}
+					});
+				}
+			}
+			~ThreadPool() {
+				{
+					std::scoped_lock lk(mx);
+					stop = true;
+				}
+				cv.notify_all();
+				for (auto& w : workers) {
+					w.join();
+				}
+			}
+			template<class F>
+			void enqueue(F&& f) {
+				{
+					std::scoped_lock lk(mx);
+					q.emplace(std::forward<F>(f));
+				}
+				cv.notify_one();
+			}
+			void wait_idle() {
+				std::latch done(workers.size());
+
+				for (unsigned i = 0; i < workers.size(); ++i) {
+					enqueue([&done] {
+						done.count_down();
+					});
+				}
+
+				done.wait(); // blocks until all tasks called count_down()
+			}
+			int _n = 1;
+
+		private:
+			std::vector<std::thread> workers;
+			std::queue<std::function<void()>> q;
+			std::mutex mx;
+			std::condition_variable cv;
+			bool stop;
+		};
+	} // namespace _test
+
 	void TacticalPlanningModule::update() {
 		TJS_TRACY_NAMED("TacticalPlanning_Update");
 		auto& agents = _system.agents();
-		for (size_t i = 0; i < agents.size(); ++i) {
-			simulation_details::update_agent(i, agents[i], _system);
+
+		const size_t batch_size = agents.size() / _pool->_n;
+
+#if 1
+		for (size_t i = 0; i < batch_size; ++i) {
+			_pool->enqueue([this, batch_size, i, &agents] {
+				size_t m = std::min(agents.size(), i * batch_size + batch_size);
+				for (size_t j = i * batch_size; j < m; ++j) {
+					simulation_details::update_agent(j, agents[j], _system);
+				}
+			});
 		}
+		_pool->wait_idle();
+#endif
+
+#if 0
+	for (size_t i = 0; i < agents.size(); ++i) {
+		simulation_details::update_agent(i, agents[i], _system);	
+	}
+#endif
+
+#if 0
+
+		for (std::size_t i = 0; i < agents.size(); ++i) {
+			_pool->enqueue([this, i, &agents]{
+				ZoneScopedN("update_agent");
+				simulation_details::update_agent(i, agents[i], _system);
+			});
+		}
+		_pool->wait_idle();
+#endif
 	}
 
 	namespace simulation_details {

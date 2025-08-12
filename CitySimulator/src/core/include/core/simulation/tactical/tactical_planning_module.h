@@ -5,9 +5,14 @@
 namespace tjs::core::simulation {
 	class TrafficSimulationSystem;
 
+	namespace _test {
+		class ThreadPool;
+	} // namespace _test
+
 	class TacticalPlanningModule {
 	public:
 		TacticalPlanningModule(TrafficSimulationSystem& system);
+		~TacticalPlanningModule();
 
 		void initialize();
 		void release();
@@ -15,6 +20,7 @@ namespace tjs::core::simulation {
 
 	private:
 		TrafficSimulationSystem& _system;
+		std::unique_ptr<_test::ThreadPool> _pool;
 	};
 
 	namespace simulation_details {
