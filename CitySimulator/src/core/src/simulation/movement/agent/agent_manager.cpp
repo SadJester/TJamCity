@@ -59,7 +59,7 @@ namespace tjs::core::simulation {
 				while (vehicles_info.size() < _expected_vehicles && attempts < max_attempts) {
 					++attempts;
 					auto& edge = edges[RandomGenerator::get().next_int(0, edges.size() - 1)];
-					Lane* lane = &edge.lanes[0];
+					Lane* lane = &edge.lanes[RandomGenerator::get().next_int(0, edge.lanes.size() - 1)];
 
 					auto type = RandomGenerator::get().next_enum<VehicleType>();
 					auto result = _vehicles.create_vehicle(*lane, type);
@@ -71,14 +71,16 @@ namespace tjs::core::simulation {
 				}
 
 				if (_creation_ticks > 1000 && _state != State::Completed) {
+					// TODO[simulation]: log error no space
 					_state = State::Error;
 				}
 
 				if (_vehicles.vehicles().size() >= _expected_vehicles) {
+					// TODO[simulation]: log completed
 					_state = State::Completed;
 				}
 
-				// TEMPORARY
+				// TODO[simulation]: sync agents should go away
 				if (created != 0) {
 					sync_agents(agents, vehicles);
 				}
@@ -208,7 +210,7 @@ namespace tjs::core::simulation {
 					}
 				}
 
-				// TEMPORARY
+				// TODO[simulation]: sync agents should go away
 				if (created != 0) {
 					sync_agents(agents, vehicles);
 				}

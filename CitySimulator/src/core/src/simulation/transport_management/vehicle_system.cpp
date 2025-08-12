@@ -21,10 +21,12 @@ namespace tjs::core::simulation {
 
 	void create_vehicle_impl(Vehicles& vehicles, VehicleBuffers& buffers, Lane& lane, std::vector<LaneRuntime>& lane_rt, const VehicleSystem::VehicleConfigs& configs, VehicleType type) {
 		Vehicle vehicle {};
+		// TODO[simulation]: correct UID
 		vehicle.uid = RandomGenerator::get().next_int(1, 10000000);
 		vehicle.type = type;
 		auto it_config = configs.find(vehicle.type);
 		if (it_config == configs.end()) {
+			// TODO[simulation]: log Vehicle type configuration not found
 			it_config = configs.begin();
 		}
 
@@ -151,6 +153,7 @@ namespace tjs::core::simulation {
 
 	std::optional<size_t> VehicleSystem::create_vehicle(Lane& lane, VehicleType type) {
 		if (!allowed_on_lane(lane)) {
+			// TODO[simulation]: log no allowed on lane
 			return {};
 		}
 
