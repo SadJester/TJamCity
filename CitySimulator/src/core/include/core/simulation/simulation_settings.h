@@ -3,7 +3,32 @@
 #include <nlohmann/json.hpp>
 
 #include <core/simulation/simulation_debug.h>
+#include <core/simulation/simulation_types.h>
 #include <core/simulation/movement/movement_algorithm.h>
+
+namespace tjs::core {
+	enum class AgentGoalSelectionType : char;
+} // namespace tjs::core
+
+namespace tjs::core::simulation {
+	ENUM(GeneratorType, char, Bulk, Flow);
+
+	struct AgentTask {
+		int lane_id = 0;
+		int vehicles_per_hour = 100;
+		uint64_t goal_node_id = 0;
+		int max_vehicles = 0;
+		AgentGoalSelectionType goal_selection_type = AgentGoalSelectionType::RandomSelection;
+
+		NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+			AgentTask,
+			lane_id,
+			vehicles_per_hour,
+			goal_node_id,
+			max_vehicles,
+			goal_selection_type);
+	};
+} // namespace tjs::core::simulation
 
 namespace tjs::core {
 	struct SimulationSettings {
@@ -20,10 +45,13 @@ namespace tjs::core {
 		double step_delta_sec = DEFAULT_FIXED_STEP_SEC;
 		bool simulation_paused = true;
 		simulation::MovementAlgoType movement_algo = simulation::MovementAlgoType::IDM;
+		simulation::GeneratorType generator_type = simulation::GeneratorType::Bulk;
+		std::vector<simulation::AgentTask> spawn_requests;
 
 		simulation::SimulationDebugData debug_data;
 
-		NLOHMANN_DEFINE_TYPE_INTRUSIVE(SimulationSettings,
+		NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+			SimulationSettings,
 			randomSeed,
 			seedValue,
 			vehiclesCount,
@@ -31,7 +59,9 @@ namespace tjs::core {
 			step_delta_sec,
 			simulation_paused,
 			movement_algo,
-			debug_data);
+			debug_data,
+			generator_type,
+			spawn_requests);
 	};
 
 } // namespace tjs::core

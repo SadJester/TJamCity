@@ -245,6 +245,10 @@ namespace tjs::core::algo {
 					from_lane.outgoing_connections.push_back(link_handler);
 					to_lane->incoming_connections.push_back(link_handler);
 					network.lane_graph[&from_lane].push_back(link_handler);
+
+					if (std::ranges::find(from_lane.parent->outgoing_edges, to_lane->parent) == from_lane.parent->outgoing_edges.end()) {
+						from_lane.parent->outgoing_edges.push_back(to_lane->parent);
+					}
 				}
 			}
 		}

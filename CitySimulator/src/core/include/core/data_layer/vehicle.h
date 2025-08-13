@@ -48,4 +48,6 @@ namespace tjs::core {
 	};
 	static_assert(std::is_pod<Vehicle>::value, "Data object expect to be POD");
 
+	using Vehicles = std::vector<Vehicle>;
+
 } // namespace tjs::core
