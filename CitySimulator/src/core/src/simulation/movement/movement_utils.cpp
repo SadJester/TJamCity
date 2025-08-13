@@ -19,7 +19,6 @@ namespace tjs::core::simulation {
 				const LaneLink& link = *h;
 				if (link.to && link.to->parent == &next_edge) {
 					mask |= (1u << from_idx); // mark this *source* lane
-					break;                    // no need to scan others
 				}
 			}
 		}

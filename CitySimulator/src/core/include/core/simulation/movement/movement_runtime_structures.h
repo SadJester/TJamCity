@@ -11,8 +11,4 @@ namespace tjs::core::simulation {
 		float max_speed;
 		std::vector<std::size_t> idx;
 	};
-
-	struct EdgePrecomp {
-		std::vector<uint32_t> lane_exit_mask;
-	};
 } // namespace tjs::core::simulation

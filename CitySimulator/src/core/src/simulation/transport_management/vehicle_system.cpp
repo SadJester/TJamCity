@@ -102,60 +102,7 @@ namespace tjs::core::simulation {
 	void VehicleSystem::release() {
 	}
 
-#include <cmath> // hypot
-
-	static core::Coordinates lane_position(const Lane& lane,
-		double s,             // longitudinal [m]
-		double lateral_offset // lateral [m]
-	) {
-		if (lane.centerLine.empty()) {
-			return {};
-		}
-
-		const auto& start = lane.centerLine.front();
-		const auto& end = lane.centerLine.back();
-
-		/* ---------- longitudinal interpolation on the centre-line --------- */
-		const double len = std::max(lane.length, 1e-6);    // avoid div-by-zero
-		const double frac = std::clamp(s / len, 0.0, 1.0); // clamp within lane
-
-		core::Coordinates pos;
-		pos.x = start.x + frac * (end.x - start.x);
-		pos.y = start.y + frac * (end.y - start.y);
-
-		/* ---------- lateral shift ----------------------------------------- */
-		if (std::abs(lateral_offset) < 1e-6) {
-			return pos; // nothing to do
-		}
-
-		// unit direction vector along the lane
-		double dx = end.x - start.x;
-		double dy = end.y - start.y;
-		const double inv = 1.0 / std::hypot(dx, dy);
-		dx *= inv;
-		dy *= inv;
-
-		// left-hand normal vector = (-dy, +dx)
-		const double nx = -dy;
-		const double ny = dx;
-
-		pos.x += lateral_offset * nx;
-		pos.y += lateral_offset * ny;
-		return pos;
-	}
-
 	void VehicleSystem::commit() {
-		for (size_t i = 0; i < _vehicles.size(); ++i) {
-			Vehicle& v = _vehicles[i];
-
-			const bool has_changes = v.s_on_lane != v.s_next || v.lateral_offset != v.prev_lateral_offset;
-			v.prev_lateral_offset = v.lateral_offset;
-			if (has_changes && v.current_lane) {
-				v.coordinates = lane_position(*v.current_lane, v.s_on_lane, v.lateral_offset);
-				v.rotationAngle = v.current_lane->rotation_angle;
-			}
-		}
-
 		for (LaneRuntime& rt : _lane_runtime) {
 			Lane& lane = *rt.static_lane;
 			auto& idx = rt.idx;

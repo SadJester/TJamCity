@@ -113,6 +113,7 @@ namespace tjs::core::simulation {
 
 			v_tgt.insert(it_ins, row);
 		}
+		
 		Lane* choose_entry_lane(const Lane* src_lane, const Edge* next_edge, VehicleMovementError& err) {
 			Lane* best = nullptr;
 			bool best_is_yield = true; // so non-yield wins
