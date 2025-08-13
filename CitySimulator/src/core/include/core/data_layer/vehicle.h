@@ -35,6 +35,7 @@ namespace tjs::core {
 		Lane* current_lane;
 		double s_on_lane;
 		double lateral_offset;
+		double prev_lateral_offset;
 		simulation::VehicleMovementError error;
 		uint16_t state;
 		uint16_t previous_state;

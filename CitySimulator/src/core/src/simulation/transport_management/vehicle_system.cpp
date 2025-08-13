@@ -148,14 +148,8 @@ namespace tjs::core::simulation {
 		for (size_t i = 0; i < _vehicles.size(); ++i) {
 			Vehicle& v = _vehicles[i];
 
-			const bool has_changes =
-				v.s_on_lane != v.s_next
-				|| v.lateral_offset != v.lateral_offset; // This will always be false, but keeping for consistency
-
-			// Update position and speed from next values
-			//v.s_on_lane = v.s_next;
-			//v.currentSpeed = v.v_next;
-
+			const bool has_changes = v.s_on_lane != v.s_next || v.lateral_offset != v.prev_lateral_offset;
+			v.prev_lateral_offset = v.lateral_offset;
 			if (has_changes && v.current_lane) {
 				v.coordinates = lane_position(*v.current_lane, v.s_on_lane, v.lateral_offset);
 				v.rotationAngle = v.current_lane->rotation_angle;
