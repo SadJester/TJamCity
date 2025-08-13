@@ -65,10 +65,8 @@ namespace tjs::core::simulation {
 
 		for (size_t i = 0; i < vehicles.size(); ++i) {
 			Vehicle& v = vehicles[i];
-
-			const bool has_changes = v.s_on_lane != v.s_next || v.lateral_offset != v.prev_lateral_offset;
-			v.prev_lateral_offset = v.lateral_offset;
-			if (has_changes && v.current_lane) {
+			if (v.has_position_changes && v.current_lane) {
+				v.has_position_changes = false;
 				v.coordinates = lane_position(*v.current_lane, v.s_on_lane, v.lateral_offset);
 				v.rotationAngle = v.current_lane->rotation_angle;
 			}

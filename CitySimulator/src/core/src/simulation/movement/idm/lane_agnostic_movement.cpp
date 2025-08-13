@@ -319,8 +319,9 @@ namespace tjs::core::simulation {
 
 			// Swap current and next values for all vehicles
 			for (auto& vehicle : vehicles) {
-				std::swap(vehicle.s_on_lane, vehicle.s_next);
-				std::swap(vehicle.currentSpeed, vehicle.v_next);
+				vehicle.has_position_changes = vehicle.s_on_lane != vehicle.s_next;
+				vehicle.s_on_lane = vehicle.s_next;
+				vehicle.currentSpeed = vehicle.v_next;
 			}
 
 			static const idm::idm_params_t p_idm {};
@@ -416,6 +417,7 @@ namespace tjs::core::simulation {
 
 							vehicles[row].lane_change_dir = static_cast<int8_t>((tgt->index_in_edge > rt.static_lane->index_in_edge) ? -1 : 1) * edge_dir;
 							vehicles[row].lateral_offset = static_cast<float>(vehicles[row].lane_change_dir) * static_cast<float>(tgt->width);
+							vehicles[row].has_position_changes = true;
 							vehicles[row].lane_change_time = 0.0f;
 							VehicleStateBitsV::overwrite_info(vehicles[row].state, VehicleStateBits::ST_CROSS, VehicleStateBitsDivision::STATE);
 
@@ -429,8 +431,10 @@ namespace tjs::core::simulation {
 						float prog = std::min(vehicles[row].lane_change_time / T_CROSS, 1.0f);
 						float cos_term = std::cos(static_cast<float>(tjs::core::MathConstants::M_PI) * 0.5f * prog);
 						vehicles[row].lateral_offset = static_cast<float>(vehicles[row].lane_change_dir) * static_cast<float>(vehicles[row].current_lane->width) * cos_term;
+						vehicles[row].has_position_changes = true;
 						if (prog >= 1.0f) {
 							vehicles[row].lateral_offset = 0.0f;
+							vehicles[row].has_position_changes = true;
 							vehicles[row].lane_change_time = 0.0f;
 							VehicleStateBitsV::overwrite_info(vehicles[row].state, VehicleStateBits::ST_ALIGN, VehicleStateBitsDivision::STATE);
 						}

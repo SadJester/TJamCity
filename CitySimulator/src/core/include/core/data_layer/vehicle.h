@@ -35,12 +35,12 @@ namespace tjs::core {
 		Lane* current_lane;
 		double s_on_lane;
 		double lateral_offset;
-		double prev_lateral_offset;
 		simulation::VehicleMovementError error;
 		uint16_t state;
 		uint16_t previous_state;
 
 		// Additional fields for lane agnostic movement calculations
+		bool has_position_changes;
 		double s_next;           // next position on lane
 		float v_next;            // next speed
 		Lane* lane_target;       // target lane for lane change
