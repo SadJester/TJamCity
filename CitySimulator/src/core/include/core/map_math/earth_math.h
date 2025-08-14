@@ -22,5 +22,5 @@ namespace tjs::core::algo {
 		double lateral_offset_meters);
 
 	bool is_in_first_or_fourth(const Coordinates& axis_p1, const Coordinates& axis_p2,
-						const Coordinates& move_p1, const Coordinates& move_p2);
+		const Coordinates& move_p1, const Coordinates& move_p2);
 } // namespace tjs::core::algo

@@ -520,9 +520,9 @@ namespace tjs {
 				_populationLabel->setStyleSheet("color: green;");
 			} else {
 				_populationLabel->setText(QString("Generation: %2/%3 (%1 in last step)")
-						.arg(event.generated)
-						.arg(event.current)
-						.arg(generator_type == core::simulation::GeneratorType::Bulk ? event.total : 0));
+											  .arg(event.generated)
+											  .arg(event.current)
+											  .arg(generator_type == core::simulation::GeneratorType::Bulk ? event.total : 0));
 				_populationLabel->setStyleSheet("color: blue;");
 			}
 		}

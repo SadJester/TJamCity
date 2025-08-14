@@ -48,7 +48,6 @@ namespace tjs::core::simulation {
 		return pos;
 	}
 
-
 	IDMMovementAlgo::IDMMovementAlgo(TrafficSimulationSystem& system)
 		: IMovementAlgorithm(MovementAlgoType::IDM, system) {
 	}

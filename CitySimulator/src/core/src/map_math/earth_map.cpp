@@ -54,21 +54,23 @@ namespace tjs::core::algo {
 	}
 
 	bool is_in_first_or_fourth(const Coordinates& axis_p1, const Coordinates& axis_p2,
-							const Coordinates& move_p1, const Coordinates& move_p2) {
-		struct Vec2 { double x, y; };
+		const Coordinates& move_p1, const Coordinates& move_p2) {
+		struct Vec2 {
+			double x, y;
+		};
 		// Axis direction
-		Vec2 dx = {axis_p2.x - axis_p1.x, axis_p2.y - axis_p1.y};
+		Vec2 dx = { axis_p2.x - axis_p1.x, axis_p2.y - axis_p1.y };
 		float len = std::sqrt(dx.x * dx.x + dx.y * dx.y);
 		if (len == 0.0f) {
 			return false;
 		}
 
 		// Normalize
-		Vec2 ex = {dx.x / len, dx.y / len};       // new X axis
-		Vec2 ey = {-ex.y, ex.x};                  // new Y axis
+		Vec2 ex = { dx.x / len, dx.y / len }; // new X axis
+		Vec2 ey = { -ex.y, ex.x };            // new Y axis
 
 		// Move vector
-		Vec2 m = {move_p2.x - move_p1.x, move_p2.y - move_p1.y};
+		Vec2 m = { move_p2.x - move_p1.x, move_p2.y - move_p1.y };
 
 		// Project onto new basis
 		float mx = m.x * ex.x + m.y * ex.y;

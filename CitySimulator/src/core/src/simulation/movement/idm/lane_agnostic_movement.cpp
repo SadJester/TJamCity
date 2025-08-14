@@ -115,7 +115,7 @@ namespace tjs::core::simulation {
 
 			v_tgt.insert(it_ins, row);
 		}
-		
+
 		Lane* choose_entry_lane(const Lane* src_lane, const Edge* next_edge, VehicleMovementError& err) {
 			Lane* best = nullptr;
 			bool best_is_yield = true; // so non-yield wins
@@ -176,7 +176,9 @@ namespace tjs::core::simulation {
 		// Returns nearest set bit to curr_idx within [0, lanes_count).
 		// If the current bit is set → returns curr_idx. If mask==0 → returns -1.
 		inline int nearest_goal_idx(uint32_t mask, int curr_idx, int lanes_count) noexcept {
-			if (lanes_count <= 0) return -1;
+			if (lanes_count <= 0) {
+				return -1;
+			}
 
 			// clamp mask to existing lanes (avoid bits beyond lane count)
 			if (lanes_count < 32) {
@@ -184,9 +186,13 @@ namespace tjs::core::simulation {
 				mask &= low_bits;
 			}
 
-			if (mask == 0u) return -1;                       // no allowed lanes at all
+			if (mask == 0u) {
+				return -1; // no allowed lanes at all
+			}
 			if (curr_idx >= 0 && curr_idx < lanes_count) {
-				if (mask & (1u << curr_idx)) return curr_idx; // already allowed
+				if (mask & (1u << curr_idx)) {
+					return curr_idx; // already allowed
+				}
 			} else {
 				// out-of-range current index: clamp for search symmetry
 				curr_idx = std::clamp(curr_idx, 0, lanes_count - 1);
@@ -194,14 +200,17 @@ namespace tjs::core::simulation {
 
 			// search symmetrically: distance 1, then 2, ...
 			for (int d = 1; d < lanes_count; ++d) {
-				int left  = curr_idx - d;
+				int left = curr_idx - d;
 				int right = curr_idx + d;
-				if (left  >= 0           && (mask & (1u << left)))  return left;
-				if (right <  lanes_count && (mask & (1u << right))) return right;
+				if (left >= 0 && (mask & (1u << left))) {
+					return left;
+				}
+				if (right < lanes_count && (mask & (1u << right))) {
+					return right;
+				}
 			}
 			return -1; // should not happen if mask!=0 and lanes_count>0
 		}
-
 
 		void phase1_simd(
 			TrafficSimulationSystem& system,
@@ -253,8 +262,8 @@ namespace tjs::core::simulation {
 
 					// ─── 1. Gather follower state ────────────────────────────────────
 					const float s_f = static_cast<float>(vehicles[i].s_on_lane); // [m]
-					const float v_f = vehicles[i].currentSpeed; // [m/s]
-					const float l_f = vehicles[i].length; // bumper‑to‑bumper length [m]
+					const float v_f = vehicles[i].currentSpeed;                  // [m/s]
+					const float l_f = vehicles[i].length;                        // bumper‑to‑bumper length [m]
 
 					// ─── 1b. Gather leader state (if any) ────────────────────────────
 					float s_gap = 1e9f;   // sentinel = "free road"
@@ -290,7 +299,7 @@ namespace tjs::core::simulation {
 							std::cout << "";
 						}
 
-						const int curr_idx  = rt.static_lane->index_in_edge;      // 0 = right-most
+						const int curr_idx = rt.static_lane->index_in_edge; // 0 = right-most
 						const int lanes_cnt = static_cast<int>(rt.static_lane->parent->lanes.size());
 						const uint32_t mask = ag.goal_lane_mask;
 						const int goal_idx = nearest_goal_idx(mask, curr_idx, lanes_cnt);

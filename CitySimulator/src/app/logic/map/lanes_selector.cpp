@@ -100,7 +100,6 @@ namespace tjs::app::logic {
 			}
 		}
 
-		
 		debug_data->selectedNode = nearest_node;
 		render_data->selected_lane = nearestLane;
 		_application.message_dispatcher().handle_message(events::LaneIsSelected {}, "map");

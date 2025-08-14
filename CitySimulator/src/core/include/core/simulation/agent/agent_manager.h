@@ -23,8 +23,8 @@ namespace tjs::core::simulation {
 			return _agents;
 		}
 
-		IAgentGenerator* get_generator() const { 
-			return _generator.get(); 
+		IAgentGenerator* get_generator() const {
+			return _generator.get();
 		}
 
 	private:
