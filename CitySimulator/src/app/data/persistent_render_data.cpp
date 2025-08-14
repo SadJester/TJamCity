@@ -10,7 +10,7 @@
 namespace tjs::visualization {
 
 	void recalculate_map_data(Application& app) {
-		auto* debug = app.stores().get_entry<core::simulation::SimulationDebugData>();
+		auto* debug = &app.settings().simulationSettings.debug_data;
 		auto* render = app.stores().get_entry<core::model::MapRendererData>();
 		if (!render || !debug) {
 			return;

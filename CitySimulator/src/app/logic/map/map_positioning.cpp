@@ -40,7 +40,7 @@ namespace tjs::app::logic {
 
 		_dragging = true;
 
-		auto* debug = _application.stores().get_entry<core::simulation::SimulationDebugData>();
+		auto* debug = &_application.settings().simulationSettings.debug_data;
 		auto* render = _application.stores().get_entry<core::model::MapRendererData>();
 		if (!debug || !render) {
 			return;

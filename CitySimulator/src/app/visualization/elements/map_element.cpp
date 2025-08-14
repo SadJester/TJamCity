@@ -65,7 +65,7 @@ namespace tjs::visualization {
 		, _application(application)
 		, _render_data(*application.stores().get_entry<model::MapRendererData>())
 		, _cache(*application.stores().get_entry<core::model::PersistentRenderData>())
-		, _debugData(application.stores().get_entry<core::simulation::SimulationDebugData>()) {
+		, _debugData(&application.settings().simulationSettings.debug_data) {
 	}
 
 	MapElement::~MapElement() {

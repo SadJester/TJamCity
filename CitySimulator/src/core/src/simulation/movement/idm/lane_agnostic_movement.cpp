@@ -7,6 +7,7 @@
 
 #include <core/simulation/transport_management/vehicle_state.h>
 #include <core/math_constants.h>
+#include <core/map_math/earth_math.h>
 
 #include <core/data_layer/lane.h>
 #include <core/data_layer/edge.h>
@@ -16,6 +17,7 @@
 #include <core/simulation/simulation_system.h>
 
 namespace {
+	// TODO: This params should be edited with idm and slowing before crossing
 	constexpr float T_PREPARE = 0.1f;
 	constexpr float T_CROSS = 2.0f;
 	constexpr float T_ALIGN = 0.1f;
@@ -171,6 +173,36 @@ namespace tjs::core::simulation {
 			return best;
 		}
 
+		// Returns nearest set bit to curr_idx within [0, lanes_count).
+		// If the current bit is set → returns curr_idx. If mask==0 → returns -1.
+		inline int nearest_goal_idx(uint32_t mask, int curr_idx, int lanes_count) noexcept {
+			if (lanes_count <= 0) return -1;
+
+			// clamp mask to existing lanes (avoid bits beyond lane count)
+			if (lanes_count < 32) {
+				uint32_t low_bits = (lanes_count == 32) ? 0xFFFFFFFFu : ((1u << lanes_count) - 1u);
+				mask &= low_bits;
+			}
+
+			if (mask == 0u) return -1;                       // no allowed lanes at all
+			if (curr_idx >= 0 && curr_idx < lanes_count) {
+				if (mask & (1u << curr_idx)) return curr_idx; // already allowed
+			} else {
+				// out-of-range current index: clamp for search symmetry
+				curr_idx = std::clamp(curr_idx, 0, lanes_count - 1);
+			}
+
+			// search symmetrically: distance 1, then 2, ...
+			for (int d = 1; d < lanes_count; ++d) {
+				int left  = curr_idx - d;
+				int right = curr_idx + d;
+				if (left  >= 0           && (mask & (1u << left)))  return left;
+				if (right <  lanes_count && (mask & (1u << right))) return right;
+			}
+			return -1; // should not happen if mask!=0 and lanes_count>0
+		}
+
+
 		void phase1_simd(
 			TrafficSimulationSystem& system,
 			std::vector<Vehicle>& vehicles,
@@ -258,20 +290,10 @@ namespace tjs::core::simulation {
 							std::cout << "";
 						}
 
-						// Current and (first) desired lane indices on this edge
-						const int curr_idx = rt.static_lane->index_in_edge; // 0 = right-most
-						int goal_idx = -1;
-						// continue with the current lane if we could
-						if (((ag.goal_lane_mask >> curr_idx) & 1) == 0) {
-							for (int b = 0; b < 32; ++b) { // first set bit in goal mask
-								if ((ag.goal_lane_mask >> b) & 1) {
-									goal_idx = b;
-									break;
-								}
-							}
-						} else {
-							goal_idx = curr_idx;
-						}
+						const int curr_idx  = rt.static_lane->index_in_edge;      // 0 = right-most
+						const int lanes_cnt = static_cast<int>(rt.static_lane->parent->lanes.size());
+						const uint32_t mask = ag.goal_lane_mask;
+						const int goal_idx = nearest_goal_idx(mask, curr_idx, lanes_cnt);
 
 						if (goal_idx >= 0 && goal_idx != curr_idx && !VehicleStateBitsV::has_info(vehicles[i].state, VehicleStateBits::FL_COOLDOWN)) {
 							const int lanes_delta = goal_idx - curr_idx; // +ve ⇒ need to go LEFT
@@ -402,22 +424,14 @@ namespace tjs::core::simulation {
 						}
 
 						if (ready && politeness && gap_ok_simple) {
-							pending_moves.push_back(PendingMove { row, rt.static_lane, tgt });
-							vehicles[row].current_lane = tgt;
-							vehicles[row].lane_target = nullptr;
-
-							// hack for lane orientation; if it directed to right lane_change_dir should be -1:1, if right vice verse
-							const auto& end_node = tgt->parent->end_node;
-							const auto& start_node = tgt->parent->start_node;
-							const double x_delta = std::fabs(end_node->coordinates.x - start_node->coordinates.x);
-							const double y_delta = std::fabs(end_node->coordinates.y - start_node->coordinates.y);
-							const bool decision_by_y = x_delta < y_delta;
-							bool dir_right = decision_by_y ? start_node->coordinates.y < end_node->coordinates.y : start_node->coordinates.x > end_node->coordinates.x;
-							const int edge_dir = dir_right ? -1 : 1;
-
-							vehicles[row].lane_change_dir = static_cast<int8_t>((tgt->index_in_edge > rt.static_lane->index_in_edge) ? -1 : 1) * edge_dir;
-							vehicles[row].lateral_offset = static_cast<float>(vehicles[row].lane_change_dir) * static_cast<float>(tgt->width);
 							vehicles[row].has_position_changes = true;
+
+							auto& start = vehicles[row].current_lane->centerLine.front();
+							auto& end = vehicles[row].current_lane->centerLine.back();
+
+							const bool positive_dir = algo::is_in_first_or_fourth(start, end, start, tgt->centerLine.front());
+							vehicles[row].lane_change_dir = positive_dir ? 1 : -1;
+							vehicles[row].lateral_offset = 0.0f;
 							vehicles[row].lane_change_time = 0.0f;
 							VehicleStateBitsV::overwrite_info(vehicles[row].state, VehicleStateBits::ST_CROSS, VehicleStateBitsDivision::STATE);
 
@@ -429,12 +443,14 @@ namespace tjs::core::simulation {
 					} else if (VehicleStateBitsV::has_info(vehicles[row].state, VehicleStateBits::ST_CROSS)) {
 						vehicles[row].lane_change_time += static_cast<float>(dt);
 						float prog = std::min(vehicles[row].lane_change_time / T_CROSS, 1.0f);
-						float cos_term = std::cos(static_cast<float>(tjs::core::MathConstants::M_PI) * 0.5f * prog);
+						float cos_term = std::sin(static_cast<float>(tjs::core::MathConstants::M_PI) * 0.5f * prog);
 						vehicles[row].lateral_offset = static_cast<float>(vehicles[row].lane_change_dir) * static_cast<float>(vehicles[row].current_lane->width) * cos_term;
 						vehicles[row].has_position_changes = true;
 						if (prog >= 1.0f) {
+							pending_moves.push_back(PendingMove { row, rt.static_lane, tgt });
+							vehicles[row].lane_target = nullptr;
+
 							vehicles[row].lateral_offset = 0.0f;
-							vehicles[row].has_position_changes = true;
 							vehicles[row].lane_change_time = 0.0f;
 							VehicleStateBitsV::overwrite_info(vehicles[row].state, VehicleStateBits::ST_ALIGN, VehicleStateBitsDivision::STATE);
 						}
@@ -455,6 +471,7 @@ namespace tjs::core::simulation {
 			/* ----------------  Do all moves after scanning--------------------------------------- */
 			for (const auto& m : pending_moves) {
 				idm::move_index(m.row, lane_rt, m.src, m.tgt, vehicles);
+				vehicles[m.row].current_lane = m.tgt;
 			}
 
 			using VSB = VehicleStateBits;
