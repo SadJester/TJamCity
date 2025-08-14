@@ -55,10 +55,8 @@ protected:
 
 	void setup_goal(Node* goal = nullptr) {
 		getAgent().currentGoal = goal != nullptr ? goal : world.segments().front()->nodes.begin()->second.get();
-		auto& buf = system->vehicle_system().vehicle_buffers();
-		VehicleStateBitsV::overwrite_info(buf.flags[0], VehicleStateBits::ST_FOLLOW, VehicleStateBitsDivision::STATE);
-		VehicleStateBitsV::remove_info(buf.flags[0], VehicleStateBits::FL_ERROR, VehicleStateBitsDivision::FLAGS);
-		getAgent().vehicle->state = buf.flags[0];
+		VehicleStateBitsV::overwrite_info(getAgent().vehicle->state, VehicleStateBits::ST_FOLLOW, VehicleStateBitsDivision::STATE);
+		VehicleStateBitsV::remove_info(getAgent().vehicle->state, VehicleStateBits::FL_ERROR, VehicleStateBitsDivision::FLAGS);
 	}
 
 	void place_at_position(size_t way_idx = 0, size_t edge_idx = 0, size_t lane_idx = 0) {
