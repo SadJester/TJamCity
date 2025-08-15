@@ -48,6 +48,7 @@ namespace tjs::core {
 		simulation::GeneratorType generator_type = simulation::GeneratorType::Bulk;
 		std::vector<simulation::AgentTask> spawn_requests;
 
+		// It is here for saving debug information between launches
 		simulation::SimulationDebugData debug_data;
 
 		NLOHMANN_DEFINE_TYPE_INTRUSIVE(

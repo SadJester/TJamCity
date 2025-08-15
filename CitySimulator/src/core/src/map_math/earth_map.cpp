@@ -77,7 +77,7 @@ namespace tjs::core::algo {
 		float my = m.x * ey.x + m.y * ey.y;
 
 		// Quadrant check relative to axis
-		return (mx >= 0 && my >= 0) || (mx > 0 && my < 0);
+		return (mx > 0) || (mx == 0 && my >= 0);
 	}
 
 } // namespace tjs::core::algo
