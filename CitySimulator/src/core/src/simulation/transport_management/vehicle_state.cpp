@@ -4,7 +4,7 @@
 #include <core/data_layer/vehicle.h>
 
 namespace tjs::core::simulation {
-	void VehicleBuffers::clear() {
+	/*void VehicleBuffers::clear() {
 		s_curr.clear();
 		s_next.clear();
 		v_curr.clear();
@@ -14,8 +14,10 @@ namespace tjs::core::simulation {
 		lateral_off.clear();
 		lane.clear();
 		lane_target.clear();
+		lane_after.clear();
+		lane_change_time.clear();
+		lane_change_dir.clear();
 		flags.clear();
-		v_max_speed.clear();
 		uids.clear();
 	}
 
@@ -29,8 +31,10 @@ namespace tjs::core::simulation {
 		lateral_off.reserve(count);
 		lane.reserve(count);
 		lane_target.reserve(count);
+		lane_after.reserve(count);
+		lane_change_time.reserve(count);
+		lane_change_dir.reserve(count);
 		flags.reserve(count);
-		v_max_speed.reserve(count);
 		uids.reserve(count);
 	}
 
@@ -44,8 +48,10 @@ namespace tjs::core::simulation {
 		lateral_off.push_back(vehicle.lateral_offset);
 		lane.push_back(vehicle.current_lane);
 		lane_target.push_back(nullptr);
+		lane_after.push_back(nullptr);
+		lane_change_time.push_back(0.0f);
+		lane_change_dir.push_back(0);
 		flags.push_back(vehicle.state);
-		v_max_speed.push_back(vehicle.maxSpeed);
 		uids.push_back(vehicle.uid);
-	}
+	}*/
 } // namespace tjs::core::simulation

@@ -87,9 +87,8 @@ namespace tjs::core::simulation {
 			auto& segment = world.segments().front();
 			auto& road_network = *segment->road_network;
 			auto& spatial_grid = segment->spatialGrid;
-			auto& buf = system.vehicle_system().vehicle_buffers();
 
-			if (VehicleStateBitsV::has_info(buf.flags[i], VehicleStateBits::ST_STOPPED)) {
+			if (VehicleStateBitsV::has_info(vehicle.state, VehicleStateBits::ST_STOPPED)) {
 				// reach goal
 				if (vehicle.error == VehicleMovementError::ER_NO_PATH) {
 					vehicle.error = VehicleMovementError::ER_NO_ERROR;
@@ -113,12 +112,12 @@ namespace tjs::core::simulation {
 				if (vehicle.error == VehicleMovementError::ER_INCORRECT_EDGE || vehicle.error == VehicleMovementError::ER_INCORRECT_LANE) {
 					// need rebuild path
 					agent.path.clear();
-					VehicleStateBitsV::remove_info(buf.flags[i], VehicleStateBits::FL_ERROR, VehicleStateBitsDivision::FLAGS);
+					VehicleStateBitsV::remove_info(vehicle.state, VehicleStateBits::FL_ERROR, VehicleStateBitsDivision::FLAGS);
 				}
 			}
 
 			// new goal
-			if (agent.path.empty() && VehicleStateBitsV::has_info(buf.flags[i], VehicleStateBits::ST_STOPPED)) {
+			if (agent.path.empty() && VehicleStateBitsV::has_info(vehicle.state, VehicleStateBits::ST_STOPPED)) {
 				Node* start_node = vehicle.current_lane->parent->start_node;
 
 				Lane* start_lane = vehicle.current_lane;
@@ -137,13 +136,11 @@ namespace tjs::core::simulation {
 
 						agent.distanceTraveled = 0.0; // Reset distance for new path
 						agent.goalFailCount = 0;
-						VehicleStateBitsV::overwrite_info(buf.flags[i], VehicleStateBits::ST_FOLLOW, VehicleStateBitsDivision::STATE);
-						VehicleStateBitsV::remove_info(buf.flags[i], VehicleStateBits::FL_ERROR, VehicleStateBitsDivision::FLAGS);
-						vehicle.state = buf.flags[i];
+						VehicleStateBitsV::overwrite_info(vehicle.state, VehicleStateBits::ST_FOLLOW, VehicleStateBitsDivision::STATE);
+						VehicleStateBitsV::remove_info(vehicle.state, VehicleStateBits::FL_ERROR, VehicleStateBitsDivision::FLAGS);
 
 					} else {
-						VehicleStateBitsV::set_info(buf.flags[i], VehicleStateBits::FL_ERROR, VehicleStateBitsDivision::FLAGS);
-						vehicle.state = buf.flags[i];
+						VehicleStateBitsV::set_info(vehicle.state, VehicleStateBits::FL_ERROR, VehicleStateBitsDivision::FLAGS);
 						reset_goals(agent, false);
 					}
 				}

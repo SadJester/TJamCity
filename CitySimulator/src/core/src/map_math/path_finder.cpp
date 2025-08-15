@@ -169,21 +169,19 @@ namespace tjs::core::algo {
 		const Lane* start_lane,
 		Node* target,
 		bool look_adjacent_lanes) {
-
 		TJS_TRACY_NAMED("PathFinder::find_edge_path_a_star_from_lane");
 
 		using NodeEntry = std::pair<double, Node*>;
 		using OpenSetQueue = std::priority_queue<
 			std::pair<double, Node*>,
 			std::vector<std::pair<double, Node*>>,
-			std::greater<>
-		>;
+			std::greater<>>;
 
 		static thread_local std::unordered_map<Node*, NodeRecord> records;
 		static thread_local std::unordered_set<Node*> closed_set;
 		static thread_local OpenSetQueue open_set;
 
-		records.reserve(128); // reasonable default
+		records.reserve(128);
 		closed_set.reserve(128);
 
 		records.clear();
@@ -194,7 +192,9 @@ namespace tjs::core::algo {
 			for (LaneLinkHandler h : ln->outgoing_connections) {
 				const LaneLink& link = *h;
 				const Edge* e = link.to ? link.to->parent : nullptr;
-				if (!e) continue;
+				if (!e) {
+					continue;
+				}
 
 				Node* node = e->end_node;
 				NodeRecord rec;
@@ -216,15 +216,8 @@ namespace tjs::core::algo {
 			seed_successors(start_lane);
 		}
 
-		auto has_transition = [](const Edge& from, const Edge& to) {
-			for (auto& lane : from.lanes) {
-				for (auto& link : lane.outgoing_connections) {
-					if (link->to->parent == &to) {
-						return true;
-					}
-				}
-			}
-			return false;
+		const auto has_transition = [](const Edge& from, const Edge& to) {
+			return std::ranges::find(from.outgoing_edges, &to) != from.outgoing_edges.end();
 		};
 
 		while (!open_set.empty()) {
@@ -236,42 +229,47 @@ namespace tjs::core::algo {
 				Node* n = current;
 				while (records.contains(n)) {
 					const auto& rec = records[n];
-					if (!rec.via) break; // entry point
+					if (!rec.via) {
+						break; // entry point
+					}
 					path.insert(path.begin(), rec.via);
 					n = rec.parent;
 				}
 				return path;
 			}
 
-			if (closed_set.contains(current)) {
+			auto result = closed_set.insert(current);
+			if (!result.second) {
 				continue;
 			}
-			closed_set.insert(current);
 
 			auto it = network.edge_graph.find(current);
-			if (it == network.edge_graph.end()) continue;
+			if (it == network.edge_graph.end()) {
+				continue;
+			}
+
+			auto from_it = records.find(current);
+			const double tentative_base = from_it->second.g_score;
 
 			for (const Edge* edge : it->second) {
 				Node* neighbor = edge->end_node;
 
 				// check lane-level connectivity
-				auto from_it = records.find(current);
-				if (from_it != records.end() && from_it->second.via) {
+				if (from_it->second.via) {
 					if (!has_transition(*from_it->second.via, *edge)) {
 						continue;
 					}
 				}
 
-				double tentative_g = records[current].g_score + edge->length;
+				const double tentative_g = tentative_base + edge->length;
+				const double h = core::algo::euclidean_distance(neighbor->coordinates, target->coordinates);
 
 				auto it = records.find(neighbor);
 				if (it == records.end()) {
-					records[neighbor] = NodeRecord{current, edge, tentative_g};
-					double h = core::algo::euclidean_distance(neighbor->coordinates, target->coordinates);
+					records[neighbor] = NodeRecord { current, edge, tentative_g };
 					open_set.emplace(tentative_g + h, neighbor);
 				} else if (tentative_g < it->second.g_score) {
-					it->second = NodeRecord{current, edge, tentative_g};
-					double h = core::algo::euclidean_distance(neighbor->coordinates, target->coordinates);
+					it->second = NodeRecord { current, edge, tentative_g };
 					open_set.emplace(tentative_g + h, neighbor);
 				}
 			}
@@ -279,6 +277,5 @@ namespace tjs::core::algo {
 
 		return {}; // no path found
 	}
-
 
 } // namespace tjs::core::algo

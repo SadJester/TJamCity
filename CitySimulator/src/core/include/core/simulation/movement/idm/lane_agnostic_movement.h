@@ -9,23 +9,22 @@ namespace tjs::core {
 	struct Lane;
 	struct Edge;
 	struct AgentData;
+	struct Vehicle;
 } // namespace tjs::core
 
 namespace tjs::core::simulation {
 	class TrafficSimulationSystem;
 
-	struct VehicleBuffers;
-
 	namespace idm {
 		void phase1_simd(
 			TrafficSimulationSystem& system,
-			VehicleBuffers& buf,
+			std::vector<Vehicle>& vehicles,
 			const std::vector<LaneRuntime>& lane_rt,
 			double dt);
 
 		void phase2_commit(
 			TrafficSimulationSystem& system,
-			VehicleBuffers& buf,
+			std::vector<Vehicle>& vehicles,
 			std::vector<LaneRuntime>& lane_rt,
 			double dt);
 
@@ -40,10 +39,10 @@ namespace tjs::core::simulation {
 
 		//------------------------------------------------------------------
 		//  move_index
-		//     • row          = VehicleBuffers row to move
+		//     • row          = Vehicle index to move
 		//     • lane_rt      = global vector<LaneRuntime> (indexed by Lane::id())
 		//     • src / tgt    = source & destination Lane* (may be identical)
-		//     • s_curr       = reference to the current-position column
+		//     • vehicles     = reference to vehicles vector
 		//
 		//  Effect: removes `row` from src-lane's idx vector and inserts it in
 		//          order into tgt-lane's idx vector so both stay sorted.
@@ -52,17 +51,17 @@ namespace tjs::core::simulation {
 			std::vector<LaneRuntime>& lane_rt,
 			const Lane* src,
 			const Lane* tgt,
-			const std::vector<double>& s_curr);
+			const std::vector<Vehicle>& vehicles);
 
 		//------------------------------------------------------------------
-		//  Pick the concrete landing lane on `next_edge` for a car that is
-		//  currently in `src_lane` and about to cross the node.
+		//  choose_entry_lane
+		//     • src_lane     = current lane
+		//     • next_edge    = target edge
+		//     • err          = error output
 		//
-		//  • Must return a valid pointer (throws if the route is impossible).
-		//  • Preference order:   1) non-yield link
-		//                        2) shortest lateral hop (|id diff|)
-		//                        3) first found
+		//  Returns: best lane to enter on next_edge, or nullptr if impossible
 		//------------------------------------------------------------------
 		Lane* choose_entry_lane(const Lane* src_lane, const Edge* next_edge, VehicleMovementError& err);
+
 	} // namespace idm
 } // namespace tjs::core::simulation

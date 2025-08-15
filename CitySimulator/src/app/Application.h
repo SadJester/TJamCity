@@ -21,7 +21,7 @@ namespace tjs {
 		namespace simulation {
 			class TrafficSimulationSystem;
 		} // namespace simulation
-	} // namespace core
+	}     // namespace core
 
 	class CommandLine {
 	public:

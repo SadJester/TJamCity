@@ -5,6 +5,7 @@
 #include <visualization/elements/map_element.h>
 
 #include <core/data_layer/world_data.h>
+#include <core/simulation/simulation_debug.h>
 #include <events/map_events.h>
 
 namespace tjs::app::logic {
@@ -46,7 +47,8 @@ namespace tjs::app::logic {
 		}
 
 		auto* render_data = _application.stores().get_entry<core::model::MapRendererData>();
-		if (!render_data) {
+		auto* debug_data = &_application.settings().simulationSettings.debug_data;
+		if (!render_data || !debug_data) {
 			return;
 		}
 
@@ -84,6 +86,21 @@ namespace tjs::app::logic {
 			}
 		}
 
+		core::Node* nearest_node = nullptr;
+		for (auto& n : segment.road_network->nodes) {
+			Position p = visualization::convert_to_screen(n.second->coordinates, render_data->screen_center, render_data->metersPerPixel);
+
+			float dx = static_cast<float>(p.x - event.x);
+			float dy = static_cast<float>(p.y - event.y);
+			float dist = std::sqrt(dx * dx + dy * dy);
+			if (dist < bestDist) {
+				bestDist = dist;
+				nearestLane = nullptr;
+				nearest_node = n.second;
+			}
+		}
+
+		debug_data->selectedNode = nearest_node;
 		render_data->selected_lane = nearestLane;
 		_application.message_dispatcher().handle_message(events::LaneIsSelected {}, "map");
 	}
