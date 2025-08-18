@@ -1,11 +1,5 @@
 
 #pragma once
-#include <vector>
-#include <cstdint>
-#include <mutex>
-#include <new> // std::align_val_t
-#include <atomic>
-#include <cassert>
 
 namespace tjs::common {
 
@@ -247,6 +241,11 @@ namespace tjs::common {
 			alive_blocks_.clear();
 			free_list_.clear();
 			free_list_size_.store(0);
+
+			for (size_t i = 0; i < TLSCacheSize; ++i) {
+				tls_cache_.buf[i] = 0;
+			}
+			tls_cache_.size = 0;
 		}
 	};
 
