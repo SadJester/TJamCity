@@ -51,7 +51,7 @@ namespace tjs::core::simulation {
 			std::vector<LaneRuntime>& lane_rt,
 			const Lane* src,
 			const Lane* tgt,
-			const std::vector<Vehicle>& vehicles);
+			std::vector<Vehicle>& vehicles);
 
 		//------------------------------------------------------------------
 		//  choose_entry_lane

@@ -52,7 +52,7 @@ namespace tjs::core::simulation {
 		vehicles.push_back(vehicle);
 		insert_vehicle_sorted(*vehicle.current_lane, &vehicles.back());
 
-		lane_rt[lane.index_in_buffer].idx.push_back(vehicles.size() - 1);
+		lane_rt[lane.index_in_buffer].idx.push_back(&vehicles.back());
 	}
 
 	bool allowed_on_lane(const Lane& lane) {
@@ -108,7 +108,7 @@ namespace tjs::core::simulation {
 			auto& idx = rt.idx;
 			lane.vehicles.resize(idx.size());
 			for (std::size_t i = 0; i < idx.size(); ++i) {
-				lane.vehicles[i] = &_vehicles[idx[i]];
+				lane.vehicles[i] = idx[i];
 			}
 		}
 	}
