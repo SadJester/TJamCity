@@ -12,7 +12,6 @@
 #include <common/object_pool.h>
 
 #include <barrier>
-#include <thread>
 
 using namespace tjs::common;
 

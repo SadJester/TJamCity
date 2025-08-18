@@ -3,6 +3,7 @@
 
 namespace tjs::common {
 
+	// TODO: DON`t skip on review: Need to remove block-size, tls-cache size to constructor parameters
 	template<typename _T, size_t _BlockSize = 65536u, size_t _TLSCacheSize = 1024u>
 	class ObjectPool {
 	public:
@@ -242,6 +243,7 @@ namespace tjs::common {
 			free_list_.clear();
 			free_list_size_.store(0);
 
+			// TODO: DON`t skip on review. This is hack that inserts limitation 1 pool for one object type. Need to remove limitation or make it more visible
 			for (size_t i = 0; i < TLSCacheSize; ++i) {
 				tls_cache_.buf[i] = 0;
 			}
