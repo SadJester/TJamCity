@@ -135,8 +135,12 @@ TEST_F(object_pool_fixture, multithread_below_tls_cache) {
 									  (threads * per_thread_ops + 7) / 8));
 }
 
+class object_pool_repeat_fixture
+    : public object_pool_fixture,
+      public ::testing::WithParamInterface<int> {};
+
 // 3b) Multithreaded use that DOES exceed TLS cache (forces spills/refills)
-TEST_F(object_pool_fixture, multithread_exceed_tls_cache_spill_and_refill) {
+TEST_P(object_pool_repeat_fixture, multithread_exceed_tls_cache_spill_and_refill) {
 	pool8x4_t<> pool;
 
 	constexpr int threads = 8;
@@ -172,6 +176,12 @@ TEST_F(object_pool_fixture, multithread_exceed_tls_cache_spill_and_refill) {
 	EXPECT_EQ(test_obj::live.load(), 0);
 	EXPECT_GE(pool.block_count(), 1u);
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    RepeatRuns,
+    object_pool_repeat_fixture,
+    ::testing::Values(0, 0, 0, 0, 0, 0, 0)  // 5 identical runs
+);
 
 // 4) Pool growth across multiple blocks
 TEST_F(object_pool_fixture, grows_to_multiple_blocks) {

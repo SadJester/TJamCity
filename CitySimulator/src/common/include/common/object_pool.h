@@ -27,7 +27,14 @@ namespace tjs::common {
 			}
 		};
 
-		ObjectPool() = default;
+		ObjectPool() {
+#if TJS_SIMULATION_DEBUG
+			for (size_t i = 0; i < TLSCacheSize; ++i) {
+				assert(tls_cache_.buf[i] == 0);
+			}
+			assert(tls_cache_.size == 0);
+#endif
+		}
 		~ObjectPool() {
 			destroy_all_live();
 			free_all_blocks();
@@ -79,7 +86,7 @@ namespace tjs::common {
 			}
 			uint32_t idx = pp.idx;
 // Safety in debug: validate pointer matches index
-#ifndef NDEBUG
+#if TJS_SIMULATION_DEBUG
 			assert(slot_ptr_(idx) == pp.ptr && "pooled_ptr idx/pointer mismatch");
 #endif
 
@@ -136,13 +143,15 @@ namespace tjs::common {
 		void set_alive(uint32_t idx, bool v) {
 			size_t b = idx / BlockSize;
 			size_t o = idx % BlockSize;
-			alive_blocks_[b][o].store(v, std::memory_order_release);
+			auto& block = alive_blocks_[b];
+			block[o].store(v, std::memory_order_release);
 		}
 
 		bool is_alive(uint32_t idx) const {
 			size_t b = idx / BlockSize;
 			size_t o = idx % BlockSize;
-			return alive_blocks_[b][o].load(std::memory_order_acquire);
+			auto& block = alive_blocks_[b];
+			return block[o].load(std::memory_order_acquire);
 		}
 
 		void allocate_block_unsafe_() {
@@ -243,7 +252,6 @@ namespace tjs::common {
 			free_list_.clear();
 			free_list_size_.store(0);
 
-			// TODO: DON`t skip on review. This is hack that inserts limitation 1 pool for one object type. Need to remove limitation or make it more visible
 			for (size_t i = 0; i < TLSCacheSize; ++i) {
 				tls_cache_.buf[i] = 0;
 			}
