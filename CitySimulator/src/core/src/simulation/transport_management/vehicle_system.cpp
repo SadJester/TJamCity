@@ -104,6 +104,9 @@ namespace tjs::core::simulation {
 		}
 
 		// Reserve capacity in the object pool
+		_vehicle_pool.destroy_all_live();
+		_vehicle_handles.clear();
+		_vehicles.clear();
 		_vehicle_pool.reserve(_system.settings().vehiclesCount);
 	}
 

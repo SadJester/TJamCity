@@ -50,6 +50,24 @@ namespace tjs::common {
 			throw;
 		}
 
+		void destroy_all_live() noexcept {
+			// Walk all blocks, then each slot in block
+			for (size_t b = 0; b < alive_blocks_.size(); ++b) {
+				auto& alive_block = alive_blocks_[b];
+				if (!alive_block) {
+					continue;
+				}
+
+				for (size_t o = 0; o < BlockSize; ++o) {
+					size_t idx = b * BlockSize + o;
+					if (alive_block[o].load(std::memory_order_relaxed)) {
+						std::destroy_at(slot_ptr_(static_cast<uint32_t>(idx)));
+						alive_block[o].store(false, std::memory_order_relaxed);
+					}
+				}
+			}
+		}
+
 		// Preallocate capacity (rounded up to whole blocks).
 		void reserve(size_t capacity) {
 			std::lock_guard<std::mutex> lk(global_lock_);
@@ -227,24 +245,6 @@ namespace tjs::common {
 		size_t tls_total_cached_() const noexcept {
 			// Not exact across threads; just for rough stats
 			return 0;
-		}
-
-		void destroy_all_live() noexcept {
-			// Walk all blocks, then each slot in block
-			for (size_t b = 0; b < alive_blocks_.size(); ++b) {
-				auto& alive_block = alive_blocks_[b];
-				if (!alive_block) {
-					continue;
-				}
-
-				for (size_t o = 0; o < BlockSize; ++o) {
-					size_t idx = b * BlockSize + o;
-					if (alive_block[o].load(std::memory_order_relaxed)) {
-						std::destroy_at(slot_ptr_(static_cast<uint32_t>(idx)));
-						alive_block[o].store(false, std::memory_order_relaxed);
-					}
-				}
-			}
 		}
 
 		void free_all_blocks() noexcept {
