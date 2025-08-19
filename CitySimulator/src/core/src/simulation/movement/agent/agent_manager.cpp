@@ -40,7 +40,7 @@ namespace tjs::core::simulation {
 				if (is_done() || system().worldData().segments().empty()) {
 					return 0;
 				}
-
+				
 				++_creation_ticks;
 
 				const auto& configs = system().vehicle_system().vehicle_configs();
@@ -49,7 +49,6 @@ namespace tjs::core::simulation {
 				auto& segment = system().worldData().segments()[0];
 
 				auto& agents = system().agent_manager().agents();
-				auto& vehicles = system().vehicle_system().vehicles();
 
 				const size_t max_attempts = 100;
 				size_t attempts = 0;
@@ -66,7 +65,8 @@ namespace tjs::core::simulation {
 					if (!result.has_value()) {
 						continue;
 					}
-					agents.push_back({ vehicles[result.value()].uid, &vehicles[result.value()] });
+					agents.push_back({ result.value()->uid, result.value() });
+					result.value()->agent_idx = agents.size() - 1;
 					++created;
 				}
 
@@ -79,12 +79,6 @@ namespace tjs::core::simulation {
 					// TODO[simulation]: log completed
 					_state = State::Completed;
 				}
-
-				// TODO[simulation]: sync agents should go away
-				if (created != 0) {
-					sync_agents(agents, vehicles);
-				}
-
 				return created;
 			}
 
@@ -196,11 +190,12 @@ namespace tjs::core::simulation {
 						auto type = RandomGenerator::get().next_enum<VehicleType>();
 						auto result = _vehicle_system.create_vehicle(*point.lane, type);
 						if (result.has_value()) {
-							AgentData agent { vehicles[result.value()].uid, &vehicles[result.value()] };
+							AgentData agent { result.value()->uid, result.value() };
 							agent.profile.goal_selection = point.goal_selection_type;
 							agent.profile.goal = point.goal;
 
 							agents.push_back(agent);
+							result.value()->agent_idx = agents.size() - 1;
 							++created;
 							++point.generated;
 							point.accumulator = 0.0;
@@ -208,11 +203,6 @@ namespace tjs::core::simulation {
 							break; // no space
 						}
 					}
-				}
-
-				// TODO[simulation]: sync agents should go away
-				if (created != 0) {
-					sync_agents(agents, vehicles);
 				}
 
 				return created;

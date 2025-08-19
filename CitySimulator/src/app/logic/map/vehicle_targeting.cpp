@@ -45,7 +45,7 @@ namespace tjs::app::logic {
 		core::Vehicle* nearest = nullptr;
 		float best_dist = _maxDistance;
 		for (auto& info : vehicles) {
-			FPoint node_point = visualization::convert_to_screen_f(info.coordinates, render->screen_center, render->metersPerPixel);
+			FPoint node_point = visualization::convert_to_screen_f(info->coordinates, render->screen_center, render->metersPerPixel);
 			float dx = static_cast<float>(node_point.x - event.x);
 			float dy = static_cast<float>(node_point.y - event.y);
 			float dist = dx * dx + dy * dy;
@@ -53,7 +53,7 @@ namespace tjs::app::logic {
 			float scaled_dist = dist / scaler;
 			if (scaled_dist < best_dist) {
 				best_dist = dist;
-				nearest = &info;
+				nearest = info;
 			}
 		}
 

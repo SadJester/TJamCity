@@ -19,8 +19,16 @@
 
 namespace tjs::core::simulation {
 
-	void create_vehicle_impl(Vehicles& vehicles, Lane& lane, std::vector<LaneRuntime>& lane_rt, const VehicleSystem::VehicleConfigs& configs, VehicleType type) {
-		Vehicle vehicle {};
+
+
+	// Helper function to create vehicle with ObjectPool
+	VehicleSystem::VehiclePtr create_vehicle_impl(VehicleSystem::VehiclePool& vehicle_pool, Lane& lane, std::vector<LaneRuntime>& lane_rt, const VehicleSystem::VehicleConfigs& configs, VehicleType type) {
+		auto vehicle_ptr = vehicle_pool.acquire();
+		if (!vehicle_ptr) {
+			return VehicleSystem::VehiclePtr{};
+		}
+
+		Vehicle& vehicle = *vehicle_ptr;
 		// TODO[simulation]: correct UID
 		vehicle.uid = RandomGenerator::get().next_int(1, 10000000);
 		vehicle.type = type;
@@ -49,10 +57,10 @@ namespace tjs::core::simulation {
 		vehicle.lane_change_time = 0.0f;
 		vehicle.lane_change_dir = 0;
 
-		vehicles.push_back(vehicle);
-		insert_vehicle_sorted(*vehicle.current_lane, &vehicles.back());
+		insert_vehicle_sorted(*vehicle.current_lane, &vehicle);
+		lane_rt[lane.index_in_buffer].idx.push_back(&vehicle);
 
-		lane_rt[lane.index_in_buffer].idx.push_back(&vehicles.back());
+		return vehicle_ptr;
 	}
 
 	bool allowed_on_lane(const Lane& lane) {
@@ -95,11 +103,12 @@ namespace tjs::core::simulation {
 			}
 		}
 
-		_vehicles.clear();
-		_vehicles.reserve(_system.settings().vehiclesCount);
+		// Reserve capacity in the object pool
+		_vehicle_pool.reserve(_system.settings().vehiclesCount);
 	}
 
 	void VehicleSystem::release() {
+		// ObjectPool will automatically clean up when destroyed
 	}
 
 	void VehicleSystem::commit() {
@@ -113,21 +122,53 @@ namespace tjs::core::simulation {
 		}
 	}
 
-	std::optional<size_t> VehicleSystem::create_vehicle(Lane& lane, VehicleType type) {
+	std::optional<Vehicle*> VehicleSystem::create_vehicle(Lane& lane, VehicleType type) {
 		if (!allowed_on_lane(lane)) {
 			// TODO[simulation]: log no allowed on lane
 			return {};
 		}
 
-		create_vehicle_impl(_vehicles, lane, _lane_runtime, _vehicle_configs, type);
+		auto vehicle_ptr = create_vehicle_impl(_vehicle_pool, lane, _lane_runtime, _vehicle_configs, type);
+		if (!vehicle_ptr) {
+			return {};
+		}
 
-		return _vehicles.size() - 1;
+		_vehicles.push_back(vehicle_ptr.get());
+		_vehicle_handles[vehicle_ptr.get()] = vehicle_ptr;
+
+		return vehicle_ptr.get();
 	}
 
 	void VehicleSystem::update() {
 	}
 
-	void VehicleSystem::remove_vehicle(Vehicle& vehicle) {
+	void VehicleSystem::remove_vehicle(Vehicle* vehicle) {
+		if (!vehicle) {
+			return;
+		}
+
+		// Remove from lane
+		if (vehicle->current_lane) {
+			core::remove_vehicle(*vehicle->current_lane, vehicle);
+			
+			// Remove from lane runtime
+			if (vehicle->current_lane->index_in_buffer < _lane_runtime.size()) {
+				auto& idx = _lane_runtime[vehicle->current_lane->index_in_buffer].idx;
+				auto it = std::find(idx.begin(), idx.end(), vehicle);
+				if (it != idx.end()) {
+					idx.erase(it);
+				}
+			}
+		}
+
+		// Release back to pool
+
+		auto v_handle = _vehicle_handles.find(vehicle);
+		if (v_handle != _vehicle_handles.end()) {
+			_vehicle_pool.release(v_handle->second);
+			_vehicle_handles.erase(v_handle);
+		}
+		_vehicles.erase(std::find(_vehicles.begin(), _vehicles.end(), vehicle));
 	}
 
 } // namespace tjs::core::simulation

@@ -31,12 +31,11 @@ namespace tjs::core::simulation::idm {
 	}
 
 	bool gap_ok(const LaneRuntime& tgt_rt,
-		const std::vector<Vehicle>& vehicles,
+		const Vehicle& vehicle_newcomer,
 		const double s_new, // tentative bumper pos
 		const float len_new,
 		const idm::idm_params_t& p,
-		const double dt,
-		const std::size_t row_newcomer) {
+		const double dt) {
 		const auto& idx = tgt_rt.idx; // descending s_curr
 
 		// Find insertion point (same as before)
@@ -79,7 +78,7 @@ namespace tjs::core::simulation::idm {
 				static_cast<float>(s_new),
 				j_lead->length, len_new);
 			if (!enough_gap_and_brake(gap, /* follower = newcomer */
-					vehicles[row_newcomer].currentSpeed, j_lead->currentSpeed)) {
+					vehicle_newcomer.currentSpeed, j_lead->currentSpeed)) {
 				return false;
 			}
 		}
@@ -91,7 +90,7 @@ namespace tjs::core::simulation::idm {
 				static_cast<float>(j_follow->s_on_lane),
 				len_new, j_follow->length);
 			if (!enough_gap_and_brake(gap, /* follower behind */
-					j_follow->currentSpeed, vehicles[row_newcomer].currentSpeed)) {
+					j_follow->currentSpeed, vehicle_newcomer.currentSpeed)) {
 				return false;
 			}
 		}

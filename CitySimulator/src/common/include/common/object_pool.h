@@ -25,6 +25,10 @@ namespace tjs::common {
 			T* operator->() const noexcept {
 				return ptr;
 			}
+
+			T* get() const noexcept {
+				return ptr;
+			}
 		};
 
 		ObjectPool() {

@@ -6,6 +6,7 @@
 
 namespace tjs::core {
 	struct Node;
+	struct Vehicle;
 } // namespace tjs::core
 
 namespace tjs::core {
@@ -21,7 +22,7 @@ namespace tjs::core {
 		TacticalBehaviour behaviour = TacticalBehaviour::Normal;
 		AgentProfile profile;
 		core::Node* currentGoal = nullptr;
-		tjs::core::Vehicle* vehicle = nullptr;
+		Vehicle* vehicle = nullptr;
 		std::vector<core::Edge*> path; // Path to follow
 		size_t path_offset = 0;
 		uint32_t goal_lane_mask = 0;   // bitmask for current edge exit
