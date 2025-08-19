@@ -81,7 +81,7 @@ namespace tjs::ui {
 
 			std::optional<size_t> idx {};
 			for (size_t i = 0; i < agents.size(); ++i) {
-				const core::AgentData& agent = agents[i];
+				const core::AgentData& agent = *agents[i];
 				if (&agent == prev_agent) {
 					idx = i;
 				}
@@ -252,11 +252,11 @@ namespace tjs::ui {
 		auto& agents = _application.simulationSystem().agents();
 
 		auto it = std::find_if(agents.begin(), agents.end(),
-			[agentId](const core::AgentData& a) { return a.id == agentId; });
+			[agentId](const core::AgentData* a) { return a->id == agentId; });
 
 		if (it != agents.end()) {
-			model->set_agent(&(*it));
-			updateAgentDetails(&(*it));
+			model->set_agent(*it);
+			updateAgentDetails(*it);
 			_detailsGroup->setVisible(true);
 		}
 	}

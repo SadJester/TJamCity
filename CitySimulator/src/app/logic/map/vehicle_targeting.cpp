@@ -62,11 +62,11 @@ namespace tjs::app::logic {
 			return;
 		}
 
-		core::simulation::TrafficSimulationSystem::Agents& agents = _application.simulationSystem().agents();
+		auto& agents = _application.simulationSystem().agents();
 		core::AgentData* agent = nullptr;
-		for (auto& a : agents) {
-			if (a.vehicle == nearest) {
-				agent = &a;
+		for (auto a : agents) {
+			if (a->vehicle == nearest) {
+				agent = a;
 				break;
 			}
 		}

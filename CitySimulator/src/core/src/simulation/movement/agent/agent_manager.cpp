@@ -16,18 +16,29 @@ namespace tjs::core::simulation {
 
 	namespace details {
 
-		void sync_agents(Agents& agents, Vehicles& vehicles) {
+		void sync_agents(std::vector<AgentPtr>& agents, Vehicles& vehicles) {
 			for (size_t i = 0; i < agents.size(); ++i) {
-				agents[i].vehicle = &vehicles[i];
+				if (agents[i] && i < vehicles.size()) {
+					agents[i]->vehicle = &vehicles[i];
+				}
 			}
 		}
 
 		// Generate till count that was set
 		class BulkGenerator : public IAgentGenerator {
 		public:
-			BulkGenerator(VehicleSystem& vehicle_system, TrafficSimulationSystem& system)
+			BulkGenerator(
+				VehicleSystem& vehicle_system,
+				TrafficSimulationSystem& system,
+				AgentPool& agent_pool,
+				std::vector<AgentData*>& _agents,
+				std::unordered_map<AgentData*, AgentPtr>& _agent_handles
+			)
 				: IAgentGenerator(system)
-				, _vehicles(vehicle_system) {
+				, _vehicles(vehicle_system)
+				, _agent_pool(agent_pool)
+				, _agents(_agents)
+				, _agent_handles(_agent_handles) {
 			}
 
 			void start_populating() override {
@@ -48,7 +59,7 @@ namespace tjs::core::simulation {
 				size_t created = 0;
 				auto& segment = system().worldData().segments()[0];
 
-				auto& agents = system().agent_manager().agents();
+				auto& agent_manager = system().agent_manager();
 
 				const size_t max_attempts = 100;
 				size_t attempts = 0;
@@ -65,8 +76,16 @@ namespace tjs::core::simulation {
 					if (!result.has_value()) {
 						continue;
 					}
-					agents.push_back({ result.value()->uid, result.value() });
-					result.value()->agent_idx = agents.size() - 1;
+					
+					// Create agent using object pool
+					auto agent_ptr = _agent_pool.acquire(result.value()->uid, result.value());
+					
+					// Add to agents vector and handles map (like vehicle system)
+					_agents.push_back(agent_ptr.get());
+					_agent_handles[agent_ptr.get()] = agent_ptr;
+					
+					result.value()->agent = agent_ptr.get();
+					
 					++created;
 				}
 
@@ -88,6 +107,9 @@ namespace tjs::core::simulation {
 
 		private:
 			VehicleSystem& _vehicles;
+			AgentPool& _agent_pool;
+			std::vector<AgentData*>& _agents;
+			std::unordered_map<AgentData*, AgentPtr>& _agent_handles;
 			size_t _expected_vehicles = 0;
 			size_t _creation_ticks = 0;
 		};
@@ -112,11 +134,18 @@ namespace tjs::core::simulation {
 
 		class FlowVehicleGenerator : public IAgentGenerator {
 		public:
-			FlowVehicleGenerator(TrafficSimulationSystem& system)
+			FlowVehicleGenerator(
+				TrafficSimulationSystem& system,
+				AgentPool& agent_pool,
+				std::vector<AgentData*>& _agents,
+				std::unordered_map<AgentData*, AgentPtr>& _agent_handles
+			)
 				: IAgentGenerator(system)
-				, _vehicle_system(system.vehicle_system()) {
+				, _vehicle_system(system.vehicle_system())
+				, _agent_pool(agent_pool)
+				, _agents(_agents)
+				, _agent_handles(_agent_handles) {
 			}
-
 			void start_populating() override {
 				_state = State::InProgress;
 
@@ -174,10 +203,8 @@ namespace tjs::core::simulation {
 
 				size_t created = 0;
 
-				const auto& configs = system().vehicle_system().vehicle_configs();
+				const auto& configs = _vehicle_system.vehicle_configs();
 				auto& lane_rt = system().vehicle_system().lane_runtime();
-				auto& agents = system().agent_manager().agents();
-				auto& vehicles = _vehicle_system.vehicles();
 
 				const double dt = _system.timeModule().state().fixed_dt();
 				for (auto& point : _spawn_requests) {
@@ -190,12 +217,17 @@ namespace tjs::core::simulation {
 						auto type = RandomGenerator::get().next_enum<VehicleType>();
 						auto result = _vehicle_system.create_vehicle(*point.lane, type);
 						if (result.has_value()) {
-							AgentData agent { result.value()->uid, result.value() };
-							agent.profile.goal_selection = point.goal_selection_type;
-							agent.profile.goal = point.goal;
+							// Create agent using object pool
+							auto agent_ptr = _agent_pool.acquire(result.value()->uid, result.value());
+							agent_ptr->profile.goal_selection = point.goal_selection_type;
+							agent_ptr->profile.goal = point.goal;
 
-							agents.push_back(agent);
-							result.value()->agent_idx = agents.size() - 1;
+							// Add to agents vector and handles map (like vehicle system)
+							_agents.push_back(agent_ptr.get());
+							_agent_handles[agent_ptr.get()] = agent_ptr;
+							
+							result.value()->agent = agent_ptr.get();
+							
 							++created;
 							++point.generated;
 							point.accumulator = 0.0;
@@ -214,6 +246,9 @@ namespace tjs::core::simulation {
 
 		private:
 			VehicleSystem& _vehicle_system;
+			AgentPool& _agent_pool;
+			std::vector<AgentData*>& _agents;
+			std::unordered_map<AgentData*, AgentPtr>& _agent_handles;
 			std::vector<VehicleSpawnRequest> _spawn_requests;
 		};
 	} // namespace details
@@ -228,17 +263,23 @@ namespace tjs::core::simulation {
 	void AgentManager::initialize() {
 		auto& settings = _system.settings();
 
-		_agents.clear();
-		_agents.reserve(settings.vehiclesCount);
 		_creation_ticks = 0;
+
+		// Clear existing agents and handles
+		_agent_handles.clear();
+		_agents.clear();
+		
+		// Reserve capacity in the object pool
+		_agent_pool.destroy_all_live();
+		_agent_pool.reserve(settings.vehiclesCount);
 
 		switch (_system.settings().generator_type) {
 			case simulation::GeneratorType::Bulk:
-				_generator = std::make_unique<details::BulkGenerator>(_system.vehicle_system(), _system);
+				_generator = std::make_unique<details::BulkGenerator>(_system.vehicle_system(), _system, _agent_pool, _agents, _agent_handles);
 				break;
 			case simulation::GeneratorType::Flow:
 			default:
-				_generator = std::make_unique<details::FlowVehicleGenerator>(_system);
+				_generator = std::make_unique<details::FlowVehicleGenerator>(_system, _agent_pool, _agents, _agent_handles);
 				break;
 		}
 
@@ -250,6 +291,7 @@ namespace tjs::core::simulation {
 	}
 
 	void AgentManager::release() {
+		// ObjectPool will automatically clean up when destroyed
 	}
 
 	void AgentManager::update() {
@@ -270,7 +312,7 @@ namespace tjs::core::simulation {
 			need_send = true;
 			if (_agents.size() == 1) {
 				auto& store = _system.store();
-				store.get_entry<core::model::VehicleAnalyzeData>()->agent = &_agents[0];
+				store.get_entry<core::model::VehicleAnalyzeData>()->agent = _agents[0];
 			}
 		}
 
@@ -287,6 +329,39 @@ namespace tjs::core::simulation {
 	}
 
 	void AgentManager::remove_agents() {
+		// Remove agents marked for removal from both active_agents and agents/handles
+		/*size_t write_index = 0;
+		for (size_t read_index = 0; read_index < _agents.size(); ++read_index) {
+			if (_agents[read_index] && _agents[read_index]->to_remove) {
+				// Get the agent pointer for removal
+				AgentData* agent_ptr = _agents[read_index].get();
+				
+				// Remove from agents vector
+				auto it = std::find(_agents.begin(), _agents.end(), agent_ptr);
+				if (it != _agents.end()) {
+					_agents.erase(it);
+				}
+				
+				// Remove from handles map and release back to pool
+				auto handle_it = _agent_handles.find(agent_ptr);
+				if (handle_it != _agent_handles.end()) {
+					_agent_pool.release(handle_it->second);
+					_agent_handles.erase(handle_it);
+				}
+				
+				// Mark as invalid in active_agents
+				_agents[read_index] = AgentPtr{};
+			} else {
+				// Keep this agent and update its index
+				if (write_index != read_index) {
+					_agents[write_index] = std::move(_active_agents[read_index]);
+				}
+				if (_active_agents[write_index] && _active_agents[write_index]->vehicle) {
+					_active_agents[write_index]->vehicle->agent_idx = write_index;
+				}
+				++write_index;
+			}
+		}*/
 	}
 
 	void AgentManager::remove_agent(AgentData& agent) {

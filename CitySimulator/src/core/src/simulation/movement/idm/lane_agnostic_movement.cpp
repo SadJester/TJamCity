@@ -213,7 +213,7 @@ namespace tjs::core::simulation {
 
 		void phase1_simd(
 			TrafficSimulationSystem& system,
-			std::vector<AgentData>& agents,
+			std::vector<AgentData*>& agents,
 			const std::vector<LaneRuntime>& lane_rt,
 			const double dt) {
 			TJS_TRACY_NAMED("VehicleMovement::IDM::Phase1");
@@ -287,7 +287,7 @@ namespace tjs::core::simulation {
 
 					// ─── 4. Lane‑change decision (unchanged, but uses new kinematics) ─
 					const float dist_to_node = rt.length - s_f;
-					const AgentData& ag = agents[vehicle->agent_idx];
+					const AgentData& ag = *vehicle->agent;
 
 					const uint16_t change_state = static_cast<int>(VehicleStateBits::ST_PREPARE) | static_cast<int>(VehicleStateBits::ST_CROSS) | static_cast<int>(VehicleStateBits::ST_ALIGN);
 					if (!VehicleStateBitsV::has_any(vehicle->state, change_state, VehicleStateBitsDivision::STATE)) {
@@ -328,7 +328,7 @@ namespace tjs::core::simulation {
 
 		void phase2_commit(
 			TrafficSimulationSystem& system,
-			std::vector<AgentData>& agents,
+			std::vector<AgentData*>& agents,
 			std::vector<LaneRuntime>& lane_rt,
 			const double dt) // unchanged param list
 		{
@@ -339,8 +339,8 @@ namespace tjs::core::simulation {
 #endif
 
 			// Swap current and next values for all vehicles
-			for (auto& agent : agents) {
-				auto& vehicle = *agent.vehicle;
+			for (auto agent : agents) {
+				auto& vehicle = *agent->vehicle;
 				vehicle.has_position_changes = vehicle.s_on_lane != vehicle.s_next;
 				vehicle.s_on_lane = vehicle.s_next;
 				vehicle.currentSpeed = vehicle.v_next;
@@ -469,7 +469,7 @@ namespace tjs::core::simulation {
 
 			/* ---------------- edge hop loop -------------------------------------- */
 			for (std::size_t i = 0; i < agents.size(); ++i) {
-				AgentData& ag = agents[i];
+				AgentData& ag = *agents[i];
 				if (ag.path.empty()) {
 					continue;
 				}

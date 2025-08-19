@@ -18,13 +18,13 @@ namespace tjs::core::simulation {
 	namespace idm {
 		void phase1_simd(
 			TrafficSimulationSystem& system,
-			std::vector<AgentData>& agents,
+			std::vector<AgentData*>& agents,
 			const std::vector<LaneRuntime>& lane_rt,
 			double dt);
 
 		void phase2_commit(
 			TrafficSimulationSystem& system,
-			std::vector<AgentData>& agents,
+			std::vector<AgentData*>& agents,
 			std::vector<LaneRuntime>& lane_rt,
 			double dt);
 

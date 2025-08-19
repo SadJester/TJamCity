@@ -162,7 +162,7 @@ namespace tjs::ui {
 		const auto& rt_lane = lanes[lane->index_in_buffer];
 		for (core::Vehicle* vehicle : rt_lane.idx) {
 			vehicle_info << QString("%1 (%2): %3")
-								.arg(vehicle->agent_idx)
+								.arg(0) //TODO: need to make it by index
 								.arg(vehicle->uid)
 								.arg(vehicle->s_on_lane);
 		}
