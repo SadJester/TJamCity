@@ -35,7 +35,7 @@ namespace tjs::core::simulation {
 				}
 
 				auto& vehicle_system = _system.vehicle_system();
-				
+
 				++_creation_ticks;
 
 				const auto& configs = system().vehicle_system().vehicle_configs();
@@ -60,11 +60,11 @@ namespace tjs::core::simulation {
 					if (!result.has_value()) {
 						continue;
 					}
-					
+
 					// Create agent using object pool
 					auto agent_ptr = _agent_pool.acquire_ptr(result.value()->uid, result.value());
 					result.value()->agent = agent_ptr;
-					
+
 					++agnets_count;
 					++created;
 				}
@@ -87,7 +87,7 @@ namespace tjs::core::simulation {
 
 		private:
 			AgentPool& _agent_pool;
-			
+
 			size_t _expected_vehicles = 0;
 			size_t _creation_ticks = 0;
 		};
@@ -193,9 +193,9 @@ namespace tjs::core::simulation {
 							auto agent_ptr = _agent_pool.acquire_ptr(result.value()->uid, result.value());
 							agent_ptr->profile.goal_selection = point.goal_selection_type;
 							agent_ptr->profile.goal = point.goal;
-							
+
 							result.value()->agent = agent_ptr;
-							
+
 							++created;
 							++point.generated;
 							point.accumulator = 0.0;
@@ -214,7 +214,7 @@ namespace tjs::core::simulation {
 
 		private:
 			AgentPool& _agent_pool;
-			
+
 			std::vector<VehicleSpawnRequest> _spawn_requests;
 		};
 	} // namespace details

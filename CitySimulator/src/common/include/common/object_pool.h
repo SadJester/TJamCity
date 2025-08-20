@@ -54,7 +54,7 @@ namespace tjs::common {
 
 		void destroy_all_live() noexcept {
 			auto** tbl = alive_tbl_.load(std::memory_order_acquire);
-			uint32_t n  = alive_cnt_.load(std::memory_order_acquire);
+			uint32_t n = alive_cnt_.load(std::memory_order_acquire);
 			for (uint32_t b = 0; b < n; ++b) {
 				auto* block = tbl[b];
 				for (uint32_t o = 0; o < BlockSize; ++o) {
@@ -132,7 +132,7 @@ namespace tjs::common {
 	protected:
 		const std::atomic<std::atomic<bool>**>& alive_table() const noexcept { return alive_tbl_; }
 		const std::atomic<uint32_t>& alive_cnt() const noexcept { return alive_cnt_; }
-		
+
 		T* _slot_ptr(uint32_t idx) const noexcept {
 			uint32_t b = idx / BlockSize, o = idx % BlockSize;
 			T** tbl = blocks_tbl_.load(std::memory_order_acquire);
@@ -185,8 +185,7 @@ namespace tjs::common {
 			}
 			free_list_size_.store(free_list_.size(), std::memory_order_relaxed);
 
-
-			 // Publish new block table
+			// Publish new block table
 			const uint32_t new_cnt = static_cast<uint32_t>(blocks_.size()); // under lock from parent function
 			_publish_alive_table_nolock(new_cnt);
 			_publish_blocks_table(new_cnt);
@@ -246,8 +245,7 @@ namespace tjs::common {
 			const uint32_t n = static_cast<uint32_t>(alive_blocks_.size()); // under lock
 			// allocate exact n entries (can choose pow2 growth if you want fewer allocations)
 			auto** new_tbl = static_cast<std::atomic<bool>**>(
-				::operator new[](sizeof(std::atomic<bool>*) * cnt)
-			);
+				::operator new[](sizeof(std::atomic<bool>*) * cnt));
 			for (uint32_t i = 0; i < n; ++i) {
 				new_tbl[i] = alive_blocks_[i].get();
 			}
@@ -317,22 +315,22 @@ namespace tjs::common {
 
 			_free_tables();
 		}
-	
+
 	private:
 		std::mutex global_lock_;
 		// -------- storage layout --------
 		std::vector<T*> blocks_;                                         // slabs
 		std::vector<std::unique_ptr<std::atomic<bool>[]>> alive_blocks_; // 1 byte each, ok for millions
 		std::vector<uint32_t> free_list_;                                // global free ids (LIFO)
-		std::atomic<size_t> free_list_size_ { 0 }; // approximate for stats	
+		std::atomic<size_t> free_list_size_ { 0 };                       // approximate for stats
 
 		// -------- To remove race conditions while reallocating blocks need black magic with T** arrays --------
 		// Published read-only table of block bases
-		std::atomic<T**>                  blocks_tbl_{nullptr};
-		std::atomic<uint32_t>             blocks_cnt_{0};
-		
-		std::atomic<std::atomic<bool>**> alive_tbl_{nullptr}; // array of pointers to per-block flags
-		std::atomic<uint32_t>            alive_cnt_{0};       // number of published blocks
+		std::atomic<T**> blocks_tbl_ { nullptr };
+		std::atomic<uint32_t> blocks_cnt_ { 0 };
+
+		std::atomic<std::atomic<bool>**> alive_tbl_ { nullptr }; // array of pointers to per-block flags
+		std::atomic<uint32_t> alive_cnt_ { 0 };                  // number of published blocks
 
 		// Keep all previous tables to free them in ~ObjectPool
 		std::vector<std::atomic<bool>**> alive_tbl_old_;
@@ -349,14 +347,13 @@ namespace tjs::common {
 	template<typename T, size_t BS, size_t CacheSize>
 	thread_local typename ObjectPool<T, BS, CacheSize>::tls_cache_t ObjectPool<T, BS, CacheSize>::tls_cache_ {};
 
-
 	template<typename _T, size_t _BlockSize = 65536u, size_t _TLSCacheSize = 1024u>
 	class ObjectPoolExt : public ObjectPool<_T, _BlockSize, _TLSCacheSize> {
 	public:
 		using T = _T;
 		static constexpr size_t BlockSize = _BlockSize;
 
-		// Update internal objects, use locks so not use in parallel after acquire 
+		// Update internal objects, use locks so not use in parallel after acquire
 		void update_objects() const {
 			if (_valid_objects.load(std::memory_order_acquire)) {
 				return;
@@ -399,7 +396,7 @@ namespace tjs::common {
 			if (idx == UINT32_MAX) {
 				return;
 			}
-			ObjectPool<_T, _BlockSize, _TLSCacheSize>::release({ptr, idx});
+			ObjectPool<_T, _BlockSize, _TLSCacheSize>::release({ ptr, idx });
 			_valid_objects.store(false, std::memory_order_release);
 		}
 

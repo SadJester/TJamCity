@@ -19,8 +19,6 @@
 
 namespace tjs::core::simulation {
 
-
-
 	// Helper function to create vehicle with ObjectPool
 	Vehicle* create_vehicle_impl(VehicleSystem::VehiclePool& vehicle_pool, Lane& lane, std::vector<LaneRuntime>& lane_rt, const VehicleSystem::VehicleConfigs& configs, VehicleType type) {
 		auto vehicle_ptr = vehicle_pool.acquire_ptr();
@@ -144,7 +142,7 @@ namespace tjs::core::simulation {
 		// Remove from lane
 		if (vehicle->current_lane) {
 			core::remove_vehicle(*vehicle->current_lane, vehicle);
-			
+
 			// Remove from lane runtime
 			if (vehicle->current_lane->index_in_buffer < _lane_runtime.size()) {
 				auto& idx = _lane_runtime[vehicle->current_lane->index_in_buffer].idx;
