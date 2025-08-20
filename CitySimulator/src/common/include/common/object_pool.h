@@ -118,14 +118,6 @@ namespace tjs::common {
 			tls_push_(idx);
 		}
 
-		// (Optional) convenience if you’ve stored the idx yourself
-		void release_by_index(uint32_t idx) {
-			T* p = slot_ptr_(idx);
-			p->~T();
-			set_alive(idx, false);
-			tls_push_(idx);
-		}
-
 		// Access by index (e.g., if you keep ids in your structures).
 		T* get(uint32_t idx) noexcept {
 			return slot_ptr_(idx);
@@ -139,12 +131,12 @@ namespace tjs::common {
 		size_t live_count() const noexcept { return capacity() - (free_list_size_.load() + tls_total_cached_()); }
 		size_t block_count() const noexcept { return blocks_.size(); }
 
-	private:
+	protected:
+		mutable std::mutex global_lock_;
 		// -------- storage layout --------
 		std::vector<T*> blocks_;                                         // slabs
 		std::vector<std::unique_ptr<std::atomic<bool>[]>> alive_blocks_; // 1 byte each, ok for millions
 		std::vector<uint32_t> free_list_;                                // global free ids (LIFO)
-		std::mutex global_lock_;
 		std::atomic<size_t> free_list_size_ { 0 }; // approximate for stats
 
 		// Per-thread cache of ids to avoid taking the global lock on every op.
@@ -154,7 +146,7 @@ namespace tjs::common {
 		};
 		static thread_local tls_cache_t tls_cache_;
 
-	private:
+	protected:
 		// -------- helpers --------
 		T* slot_ptr_(uint32_t idx) const noexcept {
 			uint32_t b = idx / BlockSize;
@@ -162,6 +154,7 @@ namespace tjs::common {
 			return blocks_[b] + o;
 		}
 
+	private:
 		void set_alive(uint32_t idx, bool v) {
 			size_t b = idx / BlockSize;
 			size_t o = idx % BlockSize;
@@ -265,5 +258,80 @@ namespace tjs::common {
 
 	template<typename T, size_t BS, size_t CacheSize>
 	thread_local typename ObjectPool<T, BS, CacheSize>::tls_cache_t ObjectPool<T, BS, CacheSize>::tls_cache_ {};
+
+
+	template<typename _T, size_t _BlockSize = 65536u, size_t _TLSCacheSize = 1024u>
+	class ObjectPoolExt : public ObjectPool<_T, _BlockSize, _TLSCacheSize> {
+	public:
+		using T = _T;
+		static constexpr size_t BlockSize = _BlockSize;
+
+		// Update internal objects, use locks so not use in parallel after acquire 
+		void update_objects() const {
+			if (_valid_objects.load(std::memory_order_acquire)) {
+				return;
+			}
+			std::lock_guard<std::mutex> lk(this->global_lock_);
+
+			_objects.clear();
+			_objects.reserve(this->capacity());
+
+			for (uint32_t b = 0; b < this->alive_blocks_.size(); ++b) {
+				auto& alive_block = this->alive_blocks_[b];
+				for (uint32_t o = 0; o < BlockSize; ++o) {
+					uint32_t idx = b * BlockSize + o;
+					if (alive_block[o].load(std::memory_order_relaxed)) {
+						_objects.push_back(this->slot_ptr_(idx));
+					}
+				}
+			}
+
+			_valid_objects.store(true, std::memory_order_release);
+		}
+
+		template<typename... Args>
+		T* acquire_ptr(Args&&... args) {
+			T* p = ObjectPool<_T, _BlockSize, _TLSCacheSize>::acquire(std::forward<Args>(args)...).ptr;
+			_valid_objects.store(false, std::memory_order_release);
+			return p;
+		}
+
+		void clear() {
+			ObjectPool<_T, _BlockSize, _TLSCacheSize>::destroy_all_live();
+			_objects.clear();
+			_valid_objects.store(false, std::memory_order_release);
+		}
+
+		void release(T* ptr) {
+			const uint32_t idx = index_of_ptr_(ptr);
+			if (idx == UINT32_MAX) {
+				return;
+			}
+			ObjectPool<_T, _BlockSize, _TLSCacheSize>::release({ptr, idx});
+			_valid_objects.store(false, std::memory_order_release);
+		}
+
+		const std::vector<T*>& objects() const {
+			update_objects();
+			return _objects;
+		}
+
+
+	private:
+		uint32_t index_of_ptr_(const T* ptr) const noexcept {
+			for (uint32_t b = 0; b < this->blocks_.size(); ++b) {
+				const T* base = this->blocks_[b];
+				const T* end  = base + BlockSize;
+				if (ptr >= base && ptr < end) {
+					return b * BlockSize + static_cast<uint32_t>(ptr - base);
+				}
+			}
+			return UINT32_MAX; // not found
+		}
+
+	private:
+		mutable std::atomic<bool> _valid_objects = true;
+		mutable std::vector<T*> _objects;
+	};
 
 } // namespace tjs::common

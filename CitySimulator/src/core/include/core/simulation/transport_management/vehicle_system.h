@@ -18,7 +18,7 @@ namespace tjs::core::simulation {
 	class VehicleSystem {
 	public:
 		using VehicleConfigs = std::unordered_map<VehicleType, VehicleConfig>;
-		using VehiclePool = tjs::common::ObjectPool<Vehicle>;
+		using VehiclePool = tjs::common::ObjectPoolExt<Vehicle>;
 		using VehiclePtr = VehiclePool::pooled_ptr;
 
 	public:
@@ -29,8 +29,8 @@ namespace tjs::core::simulation {
 		void release();
 		void update();
 
-		std::vector<Vehicle*>& vehicles() {
-			return _vehicles;
+		const std::vector<Vehicle*>& vehicles() {
+			return _vehicle_pool.objects();
 		}
 
 		const VehicleConfigs& vehicle_configs() const {
@@ -48,9 +48,6 @@ namespace tjs::core::simulation {
 
 		VehicleConfigs _vehicle_configs;
 		VehiclePool _vehicle_pool;
-
-		std::vector<Vehicle*> _vehicles;
-		std::unordered_map<Vehicle*, VehiclePtr> _vehicle_handles;
 
 		std::vector<LaneRuntime> _lane_runtime;
 

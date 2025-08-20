@@ -213,7 +213,7 @@ namespace tjs::core::simulation {
 
 		void phase1_simd(
 			TrafficSimulationSystem& system,
-			std::vector<AgentData*>& agents,
+			const std::vector<AgentData*>& agents,
 			const std::vector<LaneRuntime>& lane_rt,
 			const double dt) {
 			TJS_TRACY_NAMED("VehicleMovement::IDM::Phase1");
@@ -328,7 +328,7 @@ namespace tjs::core::simulation {
 
 		void phase2_commit(
 			TrafficSimulationSystem& system,
-			std::vector<AgentData*>& agents,
+			const std::vector<AgentData*>& agents,
 			std::vector<LaneRuntime>& lane_rt,
 			const double dt) // unchanged param list
 		{

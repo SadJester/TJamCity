@@ -22,10 +22,10 @@ namespace tjs::core::simulation {
 
 
 	// Helper function to create vehicle with ObjectPool
-	VehicleSystem::VehiclePtr create_vehicle_impl(VehicleSystem::VehiclePool& vehicle_pool, Lane& lane, std::vector<LaneRuntime>& lane_rt, const VehicleSystem::VehicleConfigs& configs, VehicleType type) {
-		auto vehicle_ptr = vehicle_pool.acquire();
+	Vehicle* create_vehicle_impl(VehicleSystem::VehiclePool& vehicle_pool, Lane& lane, std::vector<LaneRuntime>& lane_rt, const VehicleSystem::VehicleConfigs& configs, VehicleType type) {
+		auto vehicle_ptr = vehicle_pool.acquire_ptr();
 		if (!vehicle_ptr) {
-			return VehicleSystem::VehiclePtr{};
+			return nullptr;
 		}
 
 		Vehicle& vehicle = *vehicle_ptr;
@@ -104,9 +104,7 @@ namespace tjs::core::simulation {
 		}
 
 		// Reserve capacity in the object pool
-		_vehicle_pool.destroy_all_live();
-		_vehicle_handles.clear();
-		_vehicles.clear();
+		_vehicle_pool.clear();
 		_vehicle_pool.reserve(_system.settings().vehiclesCount);
 	}
 
@@ -131,18 +129,11 @@ namespace tjs::core::simulation {
 			return {};
 		}
 
-		auto vehicle_ptr = create_vehicle_impl(_vehicle_pool, lane, _lane_runtime, _vehicle_configs, type);
-		if (!vehicle_ptr) {
-			return {};
-		}
-
-		_vehicles.push_back(vehicle_ptr.get());
-		_vehicle_handles[vehicle_ptr.get()] = vehicle_ptr;
-
-		return vehicle_ptr.get();
+		return create_vehicle_impl(_vehicle_pool, lane, _lane_runtime, _vehicle_configs, type);
 	}
 
 	void VehicleSystem::update() {
+		_vehicle_pool.update_objects();
 	}
 
 	void VehicleSystem::remove_vehicle(Vehicle* vehicle) {
@@ -165,13 +156,7 @@ namespace tjs::core::simulation {
 		}
 
 		// Release back to pool
-
-		auto v_handle = _vehicle_handles.find(vehicle);
-		if (v_handle != _vehicle_handles.end()) {
-			_vehicle_pool.release(v_handle->second);
-			_vehicle_handles.erase(v_handle);
-		}
-		_vehicles.erase(std::find(_vehicles.begin(), _vehicles.end(), vehicle));
+		_vehicle_pool.release(vehicle);
 	}
 
 } // namespace tjs::core::simulation

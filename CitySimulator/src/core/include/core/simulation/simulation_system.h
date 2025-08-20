@@ -33,7 +33,7 @@ namespace tjs::core::simulation {
 		TimeModule& timeModule() {
 			return _timeModule;
 		}
-		std::vector<AgentData*>& agents() {
+		const std::vector<AgentData*>& agents() {
 			return _agent_manager.agents();
 		}
 		core::WorldData& worldData() {
