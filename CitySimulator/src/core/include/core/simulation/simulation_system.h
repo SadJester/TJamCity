@@ -22,9 +22,6 @@ namespace tjs::core {
 namespace tjs::core::simulation {
 	class TrafficSimulationSystem {
 	public:
-		using Agents = std::vector<AgentData>;
-
-	public:
 		TrafficSimulationSystem(core::WorldData& data, core::model::DataModelStore& store, SimulationSettings& settings);
 		~TrafficSimulationSystem();
 
@@ -36,7 +33,7 @@ namespace tjs::core::simulation {
 		TimeModule& timeModule() {
 			return _timeModule;
 		}
-		Agents& agents() {
+		const std::vector<AgentData*>& agents() {
 			return _agent_manager.agents();
 		}
 		core::WorldData& worldData() {

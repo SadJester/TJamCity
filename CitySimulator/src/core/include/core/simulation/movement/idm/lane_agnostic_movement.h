@@ -18,13 +18,13 @@ namespace tjs::core::simulation {
 	namespace idm {
 		void phase1_simd(
 			TrafficSimulationSystem& system,
-			std::vector<Vehicle>& vehicles,
+			const std::vector<AgentData*>& agents,
 			const std::vector<LaneRuntime>& lane_rt,
 			double dt);
 
 		void phase2_commit(
 			TrafficSimulationSystem& system,
-			std::vector<Vehicle>& vehicles,
+			const std::vector<AgentData*>& agents,
 			std::vector<LaneRuntime>& lane_rt,
 			double dt);
 
@@ -47,11 +47,10 @@ namespace tjs::core::simulation {
 		//  Effect: removes `row` from src-lane's idx vector and inserts it in
 		//          order into tgt-lane's idx vector so both stay sorted.
 		//------------------------------------------------------------------
-		void move_index(std::size_t row,
+		void move_index(Vehicle* vehicle_ptr,
 			std::vector<LaneRuntime>& lane_rt,
 			const Lane* src,
-			const Lane* tgt,
-			const std::vector<Vehicle>& vehicles);
+			const Lane* tgt);
 
 		//------------------------------------------------------------------
 		//  choose_entry_lane

@@ -2,6 +2,7 @@
 
 namespace tjs::core {
 	struct Lane;
+	struct Vehicle;
 } // namespace tjs::core
 
 namespace tjs::core::simulation {
@@ -9,6 +10,6 @@ namespace tjs::core::simulation {
 		Lane* static_lane = nullptr;
 		double length;
 		float max_speed;
-		std::vector<std::size_t> idx;
+		std::vector<Vehicle*> idx;
 	};
 } // namespace tjs::core::simulation

@@ -26,7 +26,7 @@ namespace tjs::core::simulation {
 		TJS_TRACY_NAMED("TacticalPlanning_Update");
 		auto& agents = _system.agents();
 		for (size_t i = 0; i < agents.size(); ++i) {
-			simulation_details::update_agent(i, agents[i], _system);
+			simulation_details::update_agent(i, *agents[i], _system);
 		}
 	}
 

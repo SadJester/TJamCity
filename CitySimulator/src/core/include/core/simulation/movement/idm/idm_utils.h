@@ -19,11 +19,10 @@ namespace tjs::core::simulation::idm {
 	float desired_gap(const float v_follower, const float delta_v, const idm_params_t& p) noexcept;
 
 	bool gap_ok(const LaneRuntime& tgt_rt,
-		const std::vector<Vehicle>& vehicles,
+		const Vehicle& vehicle_newcomer,
 		const double s_new, // tentative bumper pos
 		const float len_new,
 		const idm::idm_params_t& p,
-		const double dt,
-		const std::size_t row_newcomer);
+		const double dt);
 
 } // namespace tjs::core::simulation::idm

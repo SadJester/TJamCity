@@ -31,18 +31,17 @@ namespace tjs::core::simulation::idm {
 	}
 
 	bool gap_ok(const LaneRuntime& tgt_rt,
-		const std::vector<Vehicle>& vehicles,
+		const Vehicle& vehicle_newcomer,
 		const double s_new, // tentative bumper pos
 		const float len_new,
 		const idm::idm_params_t& p,
-		const double dt,
-		const std::size_t row_newcomer) {
+		const double dt) {
 		const auto& idx = tgt_rt.idx; // descending s_curr
 
 		// Find insertion point (same as before)
 		auto it = std::lower_bound(idx.begin(), idx.end(), s_new,
-			[&](std::size_t j, double pos) {
-				return vehicles[j].s_on_lane > pos;
+			[&](Vehicle* vehicle, double pos) {
+				return vehicle->s_on_lane > pos;
 			});
 
 		auto enough_gap_and_brake = [&](float gap,
@@ -74,24 +73,24 @@ namespace tjs::core::simulation::idm {
 
 		/* ---------- leader gap ------------------------------------------------- */
 		if (it != idx.begin()) {
-			std::size_t j_lead = *(it - 1);
-			float gap = idm::actual_gap(static_cast<float>(vehicles[j_lead].s_on_lane),
+			Vehicle* j_lead = *(it - 1);
+			float gap = idm::actual_gap(static_cast<float>(j_lead->s_on_lane),
 				static_cast<float>(s_new),
-				vehicles[j_lead].length, len_new);
+				j_lead->length, len_new);
 			if (!enough_gap_and_brake(gap, /* follower = newcomer */
-					vehicles[row_newcomer].currentSpeed, vehicles[j_lead].currentSpeed)) {
+					vehicle_newcomer.currentSpeed, j_lead->currentSpeed)) {
 				return false;
 			}
 		}
 
 		/* ---------- follower (vehicle behind newcomer) ------------------------- */
 		if (it != idx.end()) {
-			std::size_t j_follow = *it;
+			Vehicle* j_follow = *it;
 			float gap = idm::actual_gap(static_cast<float>(s_new),
-				static_cast<float>(vehicles[j_follow].s_on_lane),
-				len_new, vehicles[j_follow].length);
+				static_cast<float>(j_follow->s_on_lane),
+				len_new, j_follow->length);
 			if (!enough_gap_and_brake(gap, /* follower behind */
-					vehicles[j_follow].currentSpeed, vehicles[row_newcomer].currentSpeed)) {
+					j_follow->currentSpeed, vehicle_newcomer.currentSpeed)) {
 				return false;
 			}
 		}

@@ -6,6 +6,7 @@ namespace tjs::core {
 
 	struct WayInfo;
 	struct Lane;
+	struct AgentData;
 
 	enum class VehicleType : char {
 		SimpleCar,
@@ -46,6 +47,8 @@ namespace tjs::core {
 		Lane* lane_target;      // target lane for lane change
 		float lane_change_time; // timer for lane change FSM
 		int8_t lane_change_dir; // +1 leftwards, -1 rightwards
+
+		AgentData* agent;
 	};
 	static_assert(std::is_pod<Vehicle>::value, "Data object expect to be POD");
 

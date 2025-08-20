@@ -4,6 +4,7 @@
 
 #include <core/simulation/simulation_system.h>
 #include <core/simulation/transport_management/vehicle_system.h>
+#include <core/data_layer/vehicle.h>
 
 #include <core/data_layer/world_data.h>
 #include <core/data_layer/enums.h>
@@ -158,13 +159,13 @@ namespace tjs::ui {
 
 		QStringList vehicle_info;
 		const auto& lanes = _application.simulationSystem().vehicle_system().lane_runtime();
-		const auto& vehicles = _application.simulationSystem().vehicle_system().vehicles();
 		const auto& rt_lane = lanes[lane->index_in_buffer];
-		for (int idx : rt_lane.idx) {
-			vehicle_info << QString("%1 (%2): %3")
-								.arg(idx)
-								.arg(vehicles[idx].uid)
-								.arg(vehicles[idx].s_on_lane);
+		vehicle_info.reserve(rt_lane.idx.size());
+		for (core::Vehicle* vehicle : rt_lane.idx) {
+			QString vehicleStr;
+			vehicleStr.reserve(50); // Reserve approximate needed size
+			vehicleStr = QString::number(0) + " (" + QString::number(vehicle->uid) + "): " + QString::number(vehicle->s_on_lane);
+			vehicle_info << vehicleStr;
 		}
 
 		QString text = QString("Lane %1\nWidth: %2\nTurn: %3\nOutgoing: %4\nIncoming: %5\nVehicles: %6")

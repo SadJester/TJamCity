@@ -24,7 +24,7 @@ namespace tjs::core::simulation {
 		TJS_TRACY_NAMED("StrategicPlanning_Update");
 		auto& agents = _system.agents();
 		for (size_t i = 0; i < agents.size(); ++i) {
-			update_agent_strategy(agents[i]);
+			update_agent_strategy(*agents[i]);
 		}
 	}
 

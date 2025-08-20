@@ -50,7 +50,7 @@ protected:
 
 	// Helper method to get initial agent state
 	AgentData& getAgent() {
-		return system->agents()[0];
+		return *system->agents()[0];
 	}
 
 	void setup_goal(Node* goal = nullptr) {

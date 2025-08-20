@@ -29,18 +29,6 @@ namespace tjs::core::simulation {
 	TrafficSimulationSystem::~TrafficSimulationSystem() {
 	}
 
-	void sync_agents(TrafficSimulationSystem::Agents& agents, Vehicles& vehicles) {
-		// Update pointers
-		for (size_t i = 0; i < agents.size(); ++i) {
-			agents[i].vehicle = &vehicles[i];
-		}
-
-		// Add new vehicles
-		for (size_t i = agents.size(); i < vehicles.size(); ++i) {
-			agents.push_back({ vehicles[i].uid, &vehicles[i] });
-		}
-	}
-
 	void TrafficSimulationSystem::initialize() {
 		_timeModule.initialize();
 
