@@ -62,8 +62,8 @@ namespace tjs::core::simulation {
 		idm::phase1_simd(_system, agents, lane_rt, dt);
 		idm::phase2_commit(_system, agents, lane_rt, dt);
 
-		for (size_t i = 0; i < agents.size(); ++i) {
-			Vehicle& v = *agents[i]->vehicle;
+		for (size_t i = 0; i < vs.vehicles().size(); ++i) {
+			Vehicle& v = *vs.vehicles()[i];
 			if (v.has_position_changes && v.current_lane) {
 				v.has_position_changes = false;
 				v.coordinates = lane_position(*v.current_lane, v.s_on_lane, v.lateral_offset);

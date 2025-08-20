@@ -93,8 +93,6 @@ namespace tjs::ui {
 			size_t selection = 0;
 			if (idx.has_value()) {
 				selection = idx.value() + 1;
-			} else if (agents.size() == 1) {
-				selection = 1;
 			}
 
 			_agentComboBox->setCurrentIndex(selection);

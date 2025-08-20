@@ -160,11 +160,12 @@ namespace tjs::ui {
 		QStringList vehicle_info;
 		const auto& lanes = _application.simulationSystem().vehicle_system().lane_runtime();
 		const auto& rt_lane = lanes[lane->index_in_buffer];
+		vehicle_info.reserve(rt_lane.idx.size());
 		for (core::Vehicle* vehicle : rt_lane.idx) {
-			vehicle_info << QString("%1 (%2): %3")
-								.arg(0) //TODO: need to make it by index
-								.arg(vehicle->uid)
-								.arg(vehicle->s_on_lane);
+			QString vehicleStr;
+			vehicleStr.reserve(50); // Reserve approximate needed size
+			vehicleStr = QString::number(0) + " (" + QString::number(vehicle->uid) + "): " + QString::number(vehicle->s_on_lane);
+			vehicle_info << vehicleStr;
 		}
 
 		QString text = QString("Lane %1\nWidth: %2\nTurn: %3\nOutgoing: %4\nIncoming: %5\nVehicles: %6")
