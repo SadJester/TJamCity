@@ -38,31 +38,30 @@ namespace tjs::common {
 			}
 			assert(tls_cache_.size == 0);
 #endif
+			T** tbl = nullptr;
+			blocks_tbl_.store(tbl, std::memory_order_release);
+			blocks_cnt_.store(0, std::memory_order_release);
 		}
 		~ObjectPool() {
 			destroy_all_live();
-			free_all_blocks();
+			_free_all_blocks();
 		}
 
 		ObjectPool(const ObjectPool&) = delete;
 		ObjectPool& operator=(const ObjectPool&) = delete;
-		ObjectPool(ObjectPool&& other) {
-			throw;
-		}
+		ObjectPool(ObjectPool&& other) = delete;
+		ObjectPool& operator=(ObjectPool&& other) = delete;
 
 		void destroy_all_live() noexcept {
-			// Walk all blocks, then each slot in block
-			for (size_t b = 0; b < alive_blocks_.size(); ++b) {
-				auto& alive_block = alive_blocks_[b];
-				if (!alive_block) {
-					continue;
-				}
-
-				for (size_t o = 0; o < BlockSize; ++o) {
-					size_t idx = b * BlockSize + o;
-					if (alive_block[o].load(std::memory_order_relaxed)) {
-						std::destroy_at(slot_ptr_(static_cast<uint32_t>(idx)));
-						alive_block[o].store(false, std::memory_order_relaxed);
+			auto** tbl = alive_tbl_.load(std::memory_order_acquire);
+			uint32_t n  = alive_cnt_.load(std::memory_order_acquire);
+			for (uint32_t b = 0; b < n; ++b) {
+				auto* block = tbl[b];
+				for (uint32_t o = 0; o < BlockSize; ++o) {
+					uint32_t idx = b * BlockSize + o;
+					if (block[o].load(std::memory_order_relaxed)) {
+						std::destroy_at(_slot_ptr(idx));
+						block[o].store(false, std::memory_order_relaxed);
 					}
 				}
 			}
@@ -73,7 +72,7 @@ namespace tjs::common {
 			std::lock_guard<std::mutex> lk(global_lock_);
 			size_t need_blocks = (capacity + BlockSize - 1) / BlockSize;
 			while (blocks_.size() < need_blocks) {
-				allocate_block_unsafe_(); // fills free_list_
+				_allocate_block_unsafe(); // fills free_list_
 			}
 		}
 
@@ -81,21 +80,20 @@ namespace tjs::common {
 		template<typename... Args>
 		pooled_ptr acquire(Args&&... args) {
 			uint32_t idx;
-			if (!tls_pop_(idx)) {
+			if (!_tls_pop(idx)) {
 				// refill TLS from global list
-				refill_tls_cache_();
-				if (!tls_pop_(idx)) {
+				_refill_tls_cache();
+				if (!_tls_pop(idx)) {
 					// global also empty → make a new block
 					std::lock_guard<std::mutex> lk(global_lock_);
 					if (free_list_.empty()) {
-						allocate_block_unsafe_();
+						_allocate_block_unsafe();
 					}
-					idx = pop_global_nolock_();
+					idx = _pop_global_nolock();
 				}
 			}
 
-			T* p = slot_ptr_(idx);
-			// Construct in place
+			T* p = _slot_ptr(idx);
 			std::construct_at(p, std::forward<Args>(args)...);
 			set_alive(idx, true);
 			return pooled_ptr { p, idx };
@@ -109,67 +107,65 @@ namespace tjs::common {
 			uint32_t idx = pp.idx;
 // Safety in debug: validate pointer matches index
 #if TJS_SIMULATION_DEBUG
-			assert(slot_ptr_(idx) == pp.ptr && "pooled_ptr idx/pointer mismatch");
+			assert(_slot_ptr(idx) == pp.ptr && "pooled_ptr idx/pointer mismatch");
 #endif
 
 			// Call destructor *before* marking free
 			std::destroy_at(pp.ptr);
 			set_alive(idx, false);
-			tls_push_(idx);
+			_tls_push(idx);
 		}
 
 		// Access by index (e.g., if you keep ids in your structures).
 		T* get(uint32_t idx) noexcept {
-			return slot_ptr_(idx);
+			return _slot_ptr(idx);
 		}
 		const T* get(uint32_t idx) const noexcept {
-			return slot_ptr_(idx);
+			return _slot_ptr(idx);
 		}
 
 		// Stats
 		size_t capacity() const noexcept { return blocks_.size() * BlockSize; }
-		size_t live_count() const noexcept { return capacity() - (free_list_size_.load() + tls_total_cached_()); }
+		size_t live_count() const noexcept { return capacity() - (free_list_size_.load() + _tls_total_cached()); }
 		size_t block_count() const noexcept { return blocks_.size(); }
 
 	protected:
-		mutable std::mutex global_lock_;
-		// -------- storage layout --------
-		std::vector<T*> blocks_;                                         // slabs
-		std::vector<std::unique_ptr<std::atomic<bool>[]>> alive_blocks_; // 1 byte each, ok for millions
-		std::vector<uint32_t> free_list_;                                // global free ids (LIFO)
-		std::atomic<size_t> free_list_size_ { 0 }; // approximate for stats
+		const std::atomic<std::atomic<bool>**>& alive_table() const noexcept { return alive_tbl_; }
+		const std::atomic<uint32_t>& alive_cnt() const noexcept { return alive_cnt_; }
+		
+		T* _slot_ptr(uint32_t idx) const noexcept {
+			uint32_t b = idx / BlockSize, o = idx % BlockSize;
+			T** tbl = blocks_tbl_.load(std::memory_order_acquire);
+			// b is guaranteed to be < published count for valid indices
+			return tbl[b] + o;
+		}
 
-		// Per-thread cache of ids to avoid taking the global lock on every op.
-		struct tls_cache_t {
-			uint32_t buf[ObjectPool::TLSCacheSize];
-			uint32_t size { 0 };
-		};
-		static thread_local tls_cache_t tls_cache_;
-
-	protected:
-		// -------- helpers --------
-		T* slot_ptr_(uint32_t idx) const noexcept {
-			uint32_t b = idx / BlockSize;
-			uint32_t o = idx % BlockSize;
-			return blocks_[b] + o;
+		uint32_t _index_of_ptr(const T* p) const noexcept {
+			T** tbl = blocks_tbl_.load(std::memory_order_acquire);
+			uint32_t n = blocks_cnt_.load(std::memory_order_acquire);
+			for (uint32_t b = 0; b < n; ++b) {
+				const T* base = tbl[b];
+				if (p >= base && p < base + BlockSize) {
+					return b * BlockSize + static_cast<uint32_t>(p - base);
+				}
+			}
+			return UINT32_MAX;
 		}
 
 	private:
-		void set_alive(uint32_t idx, bool v) {
-			size_t b = idx / BlockSize;
-			size_t o = idx % BlockSize;
-			auto& block = alive_blocks_[b];
-			block[o].store(v, std::memory_order_release);
+		void set_alive(uint32_t idx, bool v) noexcept {
+			uint32_t b = idx / BlockSize, o = idx % BlockSize;
+			auto** tbl = alive_tbl_.load(std::memory_order_acquire);
+			tbl[b][o].store(v, std::memory_order_release);
 		}
 
-		bool is_alive(uint32_t idx) const {
-			size_t b = idx / BlockSize;
-			size_t o = idx % BlockSize;
-			auto& block = alive_blocks_[b];
-			return block[o].load(std::memory_order_acquire);
+		bool is_alive(uint32_t idx) const noexcept {
+			uint32_t b = idx / BlockSize, o = idx % BlockSize;
+			auto** tbl = alive_tbl_.load(std::memory_order_acquire);
+			return tbl[b][o].load(std::memory_order_relaxed);
 		}
 
-		void allocate_block_unsafe_() {
+		void _allocate_block_unsafe() {
 			// Aligned allocation improves line sharing; requires matching delete.
 			T* block = reinterpret_cast<T*>(
 				::operator new[](sizeof(T) * BlockSize, std::align_val_t(64)));
@@ -188,16 +184,22 @@ namespace tjs::common {
 				free_list_.push_back(start_idx + (BlockSize - 1 - i));
 			}
 			free_list_size_.store(free_list_.size(), std::memory_order_relaxed);
+
+
+			 // Publish new block table
+			const uint32_t new_cnt = static_cast<uint32_t>(blocks_.size()); // under lock from parent function
+			_publish_alive_table_nolock(new_cnt);
+			_publish_blocks_table(new_cnt);
 		}
 
-		uint32_t pop_global_nolock_() {
+		uint32_t _pop_global_nolock() {
 			uint32_t id = free_list_.back();
 			free_list_.pop_back();
 			free_list_size_.store(free_list_.size(), std::memory_order_relaxed);
 			return id;
 		}
 
-		bool tls_pop_(uint32_t& out) noexcept {
+		bool _tls_pop(uint32_t& out) noexcept {
 			auto& c = tls_cache_;
 			if (c.size == 0) {
 				return false;
@@ -206,7 +208,7 @@ namespace tjs::common {
 			return true;
 		}
 
-		void tls_push_(uint32_t id) {
+		void _tls_push(uint32_t id) {
 			auto& c = tls_cache_;
 			if (c.size < TLSCacheSize) {
 				c.buf[c.size++] = id;
@@ -222,7 +224,7 @@ namespace tjs::common {
 			free_list_size_.store(free_list_.size(), std::memory_order_relaxed);
 		}
 
-		void refill_tls_cache_() {
+		void _refill_tls_cache() {
 			std::lock_guard<std::mutex> lk(global_lock_);
 			auto& c = tls_cache_;
 			const uint32_t want = TLSCacheSize;
@@ -235,12 +237,71 @@ namespace tjs::common {
 			free_list_size_.store(free_list_.size(), std::memory_order_relaxed);
 		}
 
-		size_t tls_total_cached_() const noexcept {
+		size_t _tls_total_cached() const noexcept {
 			// Not exact across threads; just for rough stats
 			return 0;
 		}
 
-		void free_all_blocks() noexcept {
+		void _publish_alive_table_nolock(uint32_t cnt) {
+			const uint32_t n = static_cast<uint32_t>(alive_blocks_.size()); // under lock
+			// allocate exact n entries (can choose pow2 growth if you want fewer allocations)
+			auto** new_tbl = static_cast<std::atomic<bool>**>(
+				::operator new[](sizeof(std::atomic<bool>*) * cnt)
+			);
+			for (uint32_t i = 0; i < n; ++i) {
+				new_tbl[i] = alive_blocks_[i].get();
+			}
+
+			// publish
+			auto** old = alive_tbl_.load(std::memory_order_acquire);
+			alive_tbl_.store(new_tbl, std::memory_order_release);
+			alive_cnt_.store(n, std::memory_order_release);
+
+			// retain old to free later (no hazard to readers)
+			if (old) {
+				alive_tbl_old_.push_back(old);
+			}
+		}
+
+		void _publish_blocks_table(uint32_t cnt) {
+			// build fresh table
+			T** new_tbl = static_cast<T**>(::operator new[](sizeof(T*) * cnt));
+			const size_t n = blocks_.size();
+			for (uint32_t i = 0; i < n; ++i) {
+				new_tbl[i] = blocks_[i];
+			}
+			// keep the rest undefined/unused
+
+			// Publish (readers keep using old table until they next load)
+			T** old = blocks_tbl_.load(std::memory_order_acquire);
+			blocks_tbl_.store(new_tbl, std::memory_order_release);
+			blocks_cnt_.store(n, std::memory_order_release);
+			// Retain old table to free on destruction (no hazard to readers)
+			if (old) {
+				blocks_tbl_old_.push_back(old);
+			}
+		}
+
+		void _free_tables() noexcept {
+			for (auto* p : blocks_tbl_old_) {
+				::operator delete[](p);
+			}
+			T** tbl = blocks_tbl_.load(std::memory_order_relaxed);
+			if (tbl) {
+				::operator delete[](tbl);
+			}
+
+			if (auto** p = alive_tbl_.load(std::memory_order_relaxed)) {
+				::operator delete[](p);
+				alive_tbl_.store(nullptr, std::memory_order_relaxed);
+			}
+			for (auto* p : alive_tbl_old_) {
+				::operator delete[](p);
+			}
+			alive_tbl_old_.clear();
+		}
+
+		void _free_all_blocks() noexcept {
 			for (T* b : blocks_) {
 				::operator delete[](b, std::align_val_t(64));
 			}
@@ -253,7 +314,36 @@ namespace tjs::common {
 				tls_cache_.buf[i] = 0;
 			}
 			tls_cache_.size = 0;
+
+			_free_tables();
 		}
+	
+	private:
+		std::mutex global_lock_;
+		// -------- storage layout --------
+		std::vector<T*> blocks_;                                         // slabs
+		std::vector<std::unique_ptr<std::atomic<bool>[]>> alive_blocks_; // 1 byte each, ok for millions
+		std::vector<uint32_t> free_list_;                                // global free ids (LIFO)
+		std::atomic<size_t> free_list_size_ { 0 }; // approximate for stats	
+
+		// -------- To remove race conditions while reallocating blocks need black magic with T** arrays --------
+		// Published read-only table of block bases
+		std::atomic<T**>                  blocks_tbl_{nullptr};
+		std::atomic<uint32_t>             blocks_cnt_{0};
+		
+		std::atomic<std::atomic<bool>**> alive_tbl_{nullptr}; // array of pointers to per-block flags
+		std::atomic<uint32_t>            alive_cnt_{0};       // number of published blocks
+
+		// Keep all previous tables to free them in ~ObjectPool
+		std::vector<std::atomic<bool>**> alive_tbl_old_;
+		std::vector<T**> blocks_tbl_old_;
+
+		// Per-thread cache of ids to avoid taking the global lock on every op.
+		struct tls_cache_t {
+			uint32_t buf[ObjectPool::TLSCacheSize];
+			uint32_t size { 0 };
+		};
+		static thread_local tls_cache_t tls_cache_;
 	};
 
 	template<typename T, size_t BS, size_t CacheSize>
@@ -271,17 +361,19 @@ namespace tjs::common {
 			if (_valid_objects.load(std::memory_order_acquire)) {
 				return;
 			}
-			std::lock_guard<std::mutex> lk(this->global_lock_);
+			// no need to lock: read the snapshot table atomically
+			auto** tbl = this->alive_table().load(std::memory_order_acquire);
+			uint32_t n = this->alive_cnt().load(std::memory_order_acquire);
 
 			_objects.clear();
 			_objects.reserve(this->capacity());
 
-			for (uint32_t b = 0; b < this->alive_blocks_.size(); ++b) {
-				auto& alive_block = this->alive_blocks_[b];
+			for (uint32_t b = 0; b < n; ++b) {
+				auto* flags = tbl[b];
 				for (uint32_t o = 0; o < BlockSize; ++o) {
-					uint32_t idx = b * BlockSize + o;
-					if (alive_block[o].load(std::memory_order_relaxed)) {
-						_objects.push_back(this->slot_ptr_(idx));
+					if (flags[o].load(std::memory_order_relaxed)) {
+						uint32_t idx = b * BlockSize + o;
+						_objects.push_back(this->_slot_ptr(idx));
 					}
 				}
 			}
@@ -303,7 +395,7 @@ namespace tjs::common {
 		}
 
 		void release(T* ptr) {
-			const uint32_t idx = index_of_ptr_(ptr);
+			const uint32_t idx = this->_index_of_ptr(ptr);
 			if (idx == UINT32_MAX) {
 				return;
 			}
@@ -314,19 +406,6 @@ namespace tjs::common {
 		const std::vector<T*>& objects() const {
 			update_objects();
 			return _objects;
-		}
-
-
-	private:
-		uint32_t index_of_ptr_(const T* ptr) const noexcept {
-			for (uint32_t b = 0; b < this->blocks_.size(); ++b) {
-				const T* base = this->blocks_[b];
-				const T* end  = base + BlockSize;
-				if (ptr >= base && ptr < end) {
-					return b * BlockSize + static_cast<uint32_t>(ptr - base);
-				}
-			}
-			return UINT32_MAX; // not found
 		}
 
 	private:

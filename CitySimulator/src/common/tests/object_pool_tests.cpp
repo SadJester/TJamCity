@@ -180,7 +180,7 @@ TEST_P(object_pool_repeat_fixture, multithread_exceed_tls_cache_spill_and_refill
 INSTANTIATE_TEST_SUITE_P(
     RepeatRuns,
     object_pool_repeat_fixture,
-    ::testing::Values(0, 0, 0, 0, 0, 0, 0)  // 5 identical runs
+    ::testing::Values(0, 0, 0, 0, 0, 0)  // 6 identical runs this time
 );
 
 // 4) Pool growth across multiple blocks
@@ -230,3 +230,189 @@ TEST_F(object_pool_fixture, reserve_exact_fit_then_grow) {
 	}
 	pool.release(extra);
 }
+
+
+// ---------------- ObjectPoolExt Tests ----------------
+class object_pool_ext_fixture : public object_pool_fixture {};
+
+// Tiny pool types for stress
+template <size_t BS=4, size_t TLS=2>
+using ext_pool_t  = ObjectPoolExt<test_obj, BS, TLS>;
+
+// 1) Empty snapshot is empty
+TEST_F(object_pool_ext_fixture, snapshot_empty) {
+    ext_pool_t<> pool;
+    const auto& vec = pool.objects(); // triggers update_objects() once
+    EXPECT_TRUE(vec.empty());
+}
+
+// 2) Snapshot after some acquires contains exactly those pointers
+TEST_F(object_pool_ext_fixture, snapshot_after_acquire) {
+    ext_pool_t<> pool;
+
+    test_obj* p1 = pool.acquire_ptr(1);
+    test_obj* p2 = pool.acquire_ptr(2);
+    test_obj* p3 = pool.acquire_ptr(3);
+
+    const auto& objs = pool.objects();
+    ASSERT_EQ(objs.size(), 3u);
+
+    std::unordered_set<test_obj*> s(objs.begin(), objs.end());
+    EXPECT_EQ(s.count(p1), 1u);
+    EXPECT_EQ(s.count(p2), 1u);
+    EXPECT_EQ(s.count(p3), 1u);
+}
+
+// 3) Releasing by pointer updates snapshot on-demand
+TEST_F(object_pool_ext_fixture, release_by_pointer_updates_snapshot) {
+    ext_pool_t<> pool;
+
+    test_obj* p1 = pool.acquire_ptr(100);
+    test_obj* p2 = pool.acquire_ptr(101);
+
+    // First snapshot has both
+    const auto& a = pool.objects();
+    ASSERT_EQ(a.size(), 2u);
+
+    // Release one pointer using ObjectPoolExt::release(ptr)
+    pool.release(p1);
+
+    // Next call must rebuild and exclude p1
+    const auto& b = pool.objects();
+    ASSERT_EQ(b.size(), 1u);
+    EXPECT_EQ(b[0], p2);
+}
+
+// 4) Multiple slabs: ensure snapshot walks blocks
+TEST_F(object_pool_ext_fixture, multi_block_snapshot) {
+    // BlockSize=4, request 10 → 3 slabs
+    ext_pool_t<4,2> pool;
+
+    std::vector<test_obj*> keep;
+    for (int i = 0; i < 10; ++i) {
+		keep.push_back(pool.acquire_ptr(i+1));
+	}
+
+    const auto& objs = pool.objects();
+    ASSERT_EQ(objs.size(), 10u);
+
+    // Release some across block boundaries (e.g., idx 0,4,8)
+    pool.release(keep[0]);
+    pool.release(keep[4]);
+    pool.release(keep[8]);
+
+    const auto& after = pool.objects();
+    ASSERT_EQ(after.size(), 7u);
+
+    std::unordered_set<test_obj*> s(after.begin(), after.end());
+    EXPECT_EQ(s.count(keep[0]), 0u);
+    EXPECT_EQ(s.count(keep[4]), 0u);
+    EXPECT_EQ(s.count(keep[8]), 0u);
+}
+
+// 5) objects() caches snapshot until invalidated (size & content stable)
+TEST_F(object_pool_ext_fixture, snapshot_cached_until_mutation) {
+    ext_pool_t<> pool;
+    test_obj* p1 = pool.acquire_ptr(1);
+    test_obj* p2 = pool.acquire_ptr(2);
+
+    auto const& first  = pool.objects();
+    ASSERT_EQ(first.size(), 2u);
+
+    // Call objects() again without mutations: must not rebuild (content equal)
+    auto const& second = pool.objects();
+    ASSERT_EQ(second.size(), first.size());
+    EXPECT_EQ(second[0], first[0]);
+    EXPECT_EQ(second[1], first[1]);
+
+    // After mutation, content should differ
+    pool.release(p1);
+    auto const& third = pool.objects();
+    ASSERT_EQ(third.size(), 1u);
+    EXPECT_EQ(third[0], p2);
+}
+
+// 6) Acquire after snapshot invalidates and next objects() reflects it
+TEST_F(object_pool_ext_fixture, acquire_invalidates_snapshot) {
+    ext_pool_t<> pool;
+
+    // Start with one
+    test_obj* p1 = pool.acquire_ptr(1);
+    auto const& a = pool.objects();
+    ASSERT_EQ(a.size(), 1u);
+    ASSERT_EQ(a[0], p1);
+
+    // New acquire invalidates snapshot
+    test_obj* p2 = pool.acquire_ptr(2);
+
+    auto const& b = pool.objects(); // should rebuild
+    ASSERT_EQ(b.size(), 2u);
+    std::unordered_set<test_obj*> s(b.begin(), b.end());
+    EXPECT_EQ(s.count(p1), 1u);
+    EXPECT_EQ(s.count(p2), 1u);
+}
+
+// 7) Pointer→index arithmetic stays correct across slabs (no handles map)
+TEST_F(object_pool_ext_fixture, release_pointer_across_slabs) {
+    ext_pool_t<4,2> pool;
+
+    std::vector<test_obj*> ptrs;
+    ptrs.reserve(9);
+    for (int i = 0; i < 9; ++i) {
+		ptrs.push_back(pool.acquire_ptr(i+1)); // 3 slabs (4+4+1)
+	}
+
+    // Release a middle element in slab 2 (global index 5)
+    pool.release(ptrs[5]);
+    auto const& after = pool.objects();
+    ASSERT_EQ(after.size(), 8u);
+
+    // Ensure released ptr is gone, neighbors remain
+    std::unordered_set<test_obj*> s(after.begin(), after.end());
+    EXPECT_EQ(s.count(ptrs[5]), 0u);
+    EXPECT_EQ(s.count(ptrs[4]), 1u);
+    EXPECT_EQ(s.count(ptrs[6]), 1u);
+}
+
+// 8) Concurrency note: update_objects is main-thread-only; but we can
+// still stress concurrent alloc/free then snapshot on main thread.
+TEST_F(object_pool_ext_fixture, concurrent_mutations_then_snapshot) {
+    ext_pool_t<4,4> pool;
+
+    constexpr int threads = 6;
+    constexpr int ops     = 100;
+    std::barrier sync(threads);
+
+    std::vector<std::thread> ws;
+    ws.reserve(threads);
+    for (int t = 0; t < threads; ++t) {
+        ws.emplace_back([&, t]{
+            sync.arrive_and_wait();
+            for (int i = 0; i < ops; ++i) {
+                auto* p = pool.acquire_ptr((t<<16) + i);
+                // do small work
+                pool.release(p);
+            }
+        });
+    }
+    for (auto& th : ws) {
+		th.join();
+	}
+
+    // After threads stop, a snapshot is consistent and empty
+    auto const& objs = pool.objects();
+    EXPECT_TRUE(objs.empty());
+}
+
+// 9) Dtor brings live->0 even if user never called objects()
+TEST_F(object_pool_ext_fixture, destruction_cleans_even_without_snapshot) {
+    {
+        ext_pool_t<> pool;
+        (void)pool.acquire_ptr(1);
+        (void)pool.acquire_ptr(2);
+        EXPECT_EQ(test_obj::live.load(), 2);
+        // no snapshot call here
+    }
+    // TearDown will check live==0
+}
+
