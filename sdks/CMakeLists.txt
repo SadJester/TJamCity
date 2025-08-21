@@ -14,7 +14,8 @@ set_target_properties(pugixml nlohmann_json PROPERTIES FOLDER "sdks")
 
 if (WITH_TESTS)
     add_subdirectory(gtest)
-    set_target_properties(gtest PROPERTIES FOLDER "sdks")
+    add_subdirectory(benchmark)
+    set_target_properties(gtest benchmark PROPERTIES FOLDER "sdks")
 endif()
 
 add_subdirectory(tracy)
