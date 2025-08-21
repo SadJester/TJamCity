@@ -53,8 +53,9 @@ namespace tjs::common {
 		ObjectPool& operator=(ObjectPool&& other) = delete;
 
 		void destroy_all_live() noexcept {
+			std::lock_guard<std::mutex> lk(global_lock_);
 			auto** tbl = alive_tbl_.load(std::memory_order_acquire);
-			uint32_t n = alive_cnt_.load(std::memory_order_acquire);
+			uint32_t n = alive_cnt_.load(std::memory_order_relaxed);
 			for (uint32_t b = 0; b < n; ++b) {
 				auto* block = tbl[b];
 				for (uint32_t o = 0; o < BlockSize; ++o) {
@@ -142,7 +143,7 @@ namespace tjs::common {
 
 		uint32_t _index_of_ptr(const T* p) const noexcept {
 			T** tbl = blocks_tbl_.load(std::memory_order_acquire);
-			uint32_t n = blocks_cnt_.load(std::memory_order_acquire);
+			uint32_t n = blocks_cnt_.load(std::memory_order_relaxed);
 			for (uint32_t b = 0; b < n; ++b) {
 				const T* base = tbl[b];
 				if (p >= base && p < base + BlockSize) {
@@ -155,14 +156,14 @@ namespace tjs::common {
 	private:
 		void set_alive(uint32_t idx, bool v) noexcept {
 			uint32_t b = idx / BlockSize, o = idx % BlockSize;
-			auto** tbl = alive_tbl_.load(std::memory_order_acquire);
+			auto** tbl = alive_tbl_.load(std::memory_order_relaxed);
 			tbl[b][o].store(v, std::memory_order_release);
 		}
 
 		bool is_alive(uint32_t idx) const noexcept {
 			uint32_t b = idx / BlockSize, o = idx % BlockSize;
-			auto** tbl = alive_tbl_.load(std::memory_order_acquire);
-			return tbl[b][o].load(std::memory_order_relaxed);
+			auto** tbl = alive_tbl_.load(std::memory_order_relaxed);
+			return tbl[b][o].load(std::memory_order_release);
 		}
 
 		void _allocate_block_unsafe() {
@@ -252,8 +253,8 @@ namespace tjs::common {
 
 			// publish
 			auto** old = alive_tbl_.load(std::memory_order_acquire);
+			alive_cnt_.store(n, std::memory_order_relaxed);
 			alive_tbl_.store(new_tbl, std::memory_order_release);
-			alive_cnt_.store(n, std::memory_order_release);
 
 			// retain old to free later (no hazard to readers)
 			if (old) {
@@ -272,8 +273,9 @@ namespace tjs::common {
 
 			// Publish (readers keep using old table until they next load)
 			T** old = blocks_tbl_.load(std::memory_order_acquire);
+			blocks_cnt_.store(n, std::memory_order_relaxed);
 			blocks_tbl_.store(new_tbl, std::memory_order_release);
-			blocks_cnt_.store(n, std::memory_order_release);
+			
 			// Retain old table to free on destruction (no hazard to readers)
 			if (old) {
 				blocks_tbl_old_.push_back(old);
@@ -284,14 +286,14 @@ namespace tjs::common {
 			for (auto* p : blocks_tbl_old_) {
 				::operator delete[](p);
 			}
-			T** tbl = blocks_tbl_.load(std::memory_order_relaxed);
+			T** tbl = blocks_tbl_.load(std::memory_order_acquire);
 			if (tbl) {
 				::operator delete[](tbl);
 			}
 
-			if (auto** p = alive_tbl_.load(std::memory_order_relaxed)) {
+			if (auto** p = alive_tbl_.load(std::memory_order_acquire)) {
 				::operator delete[](p);
-				alive_tbl_.store(nullptr, std::memory_order_relaxed);
+				alive_tbl_.store(nullptr, std::memory_order_release);
 			}
 			for (auto* p : alive_tbl_old_) {
 				::operator delete[](p);
