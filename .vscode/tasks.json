@@ -1,39 +1,29 @@
 {
     "version": "2.0.0",
     "tasks": [
-        {
-            "label": "cs_win_build_debug",
-            "type": "shell",
-            "command": "cmake",
-            "args": [
-                "--build",
-                "${workspaceFolder}/.cmake/cs",
-				"--preset",
-				"win-build-debug"
-            ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "problemMatcher": ["$gcc"],
-            "detail": "Build your project using CMake"
+       {
+        "label": "cs_win_build_debug",
+        "type": "shell",
+        "command": "cmake",
+        "args": [
+            "--build",
+            "--preset", "win-build-debug"
+        ],
+        "group": { "kind": "build", "isDefault": true },
+        "problemMatcher": ["$gcc"],
+        "detail": "Build your project using CMake"
         },
-		{
-            "label": "cs_win_build_release",
-            "type": "shell",
-            "command": "cmake",
-            "args": [
-                "--build",
-                "${workspaceFolder}/.cmake/cs",
-				"--preset",
-				"win-build-release"
-            ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "problemMatcher": ["$gcc"],
-            "detail": "Build your project using CMake"
+        {
+        "label": "cs_win_build_release",
+        "type": "shell",
+        "command": "cmake",
+        "args": [
+            "--build",
+            "--preset", "win-build-release"
+        ],
+        "group": { "kind": "build", "isDefault": false },
+        "problemMatcher": ["$gcc"],
+        "detail": "Build your project using CMake"
         },
         {
             "label": "cs_mac_build_debug",
