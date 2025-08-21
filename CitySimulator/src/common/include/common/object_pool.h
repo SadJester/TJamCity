@@ -1,7 +1,29 @@
 
 #pragma once
 
+#include <new>
+
 namespace tjs::common {
+
+
+	namespace _details {
+		template <typename T>
+		void* allocate_block(std::size_t count) {
+			constexpr std::size_t hd = std::hardware_destructive_interference_size;
+			// alignment must be a power of two and >= alignof(T)
+			constexpr std::size_t want_align = (hd >= alignof(T)) ? hd : alignof(T);
+			static_assert((want_align & (want_align - 1)) == 0, "alignment must be power of two");
+
+			return ::operator new[](sizeof(T) * count, std::align_val_t(want_align));
+		}
+
+		template <typename T>
+		void deallocate_block(void* p) noexcept {
+			constexpr std::size_t hd = std::hardware_destructive_interference_size;
+			constexpr std::size_t want_align = (hd >= alignof(T)) ? hd : alignof(T);
+			::operator delete[](p, std::align_val_t(want_align));
+		}
+	}
 
 	// TODO: DON`t skip on review: Need to remove block-size, tls-cache size to constructor parameters
 	template<typename _T, size_t _BlockSize = 65536u, size_t _TLSCacheSize = 1024u>
@@ -168,8 +190,7 @@ namespace tjs::common {
 
 		void _allocate_block_unsafe() {
 			// Aligned allocation improves line sharing; requires matching delete.
-			T* block = reinterpret_cast<T*>(
-				::operator new[](sizeof(T) * BlockSize, std::align_val_t(64)));
+			T* block = reinterpret_cast<T*>(_details::allocate_block<T>(BlockSize));
 			blocks_.push_back(block);
 
 			// alive flags for this block
@@ -303,7 +324,7 @@ namespace tjs::common {
 
 		void _free_all_blocks() noexcept {
 			for (T* b : blocks_) {
-				::operator delete[](b, std::align_val_t(64));
+				_details::deallocate_block<T>(b);
 			}
 			blocks_.clear();
 			alive_blocks_.clear();
