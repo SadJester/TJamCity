@@ -48,6 +48,7 @@ namespace tjs::core::simulation {
 		vehicle.current_lane = &lane;
 		vehicle.s_on_lane = vehicle.length / 2.0f;
 		vehicle.lateral_offset = 0.0;
+		vehicle.goal_lane_mask = 0;
 		VehicleStateBitsV::set_info(vehicle.state, VehicleStateBits::ST_STOPPED, VehicleStateBitsDivision::STATE);
 		vehicle.previous_state = vehicle.state;
 		vehicle.error = VehicleMovementError::ER_NO_ERROR;

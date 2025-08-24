@@ -132,7 +132,7 @@ namespace tjs::core::simulation {
 						agent.path.insert(agent.path.begin(), start_lane->parent);
 
 						agent.path_offset = 0;
-						agent.goal_lane_mask = build_goal_mask(*start_lane->parent, *first_edge);
+						agent.vehicle->goal_lane_mask = build_goal_mask(*start_lane->parent, *first_edge);
 
 						agent.distanceTraveled = 0.0; // Reset distance for new path
 						agent.goalFailCount = 0;

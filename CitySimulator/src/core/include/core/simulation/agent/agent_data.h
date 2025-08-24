@@ -25,7 +25,6 @@ namespace tjs::core {
 		Vehicle* vehicle = nullptr;
 		std::vector<core::Edge*> path; // Path to follow
 		size_t path_offset = 0;
-		uint32_t goal_lane_mask = 0;   // bitmask for current edge exit
 		double distanceTraveled = 0.0; // Total distance traveled
 		bool stucked = false;
 		bool to_remove = false;

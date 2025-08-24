@@ -172,6 +172,17 @@ namespace tjs::core::simulation {
 			return best;
 		}
 
+		inline Vehicle* tgt_leader(const std::vector<Vehicle*>& idx, double s) {
+			auto it = std::lower_bound(idx.begin(), idx.end(), s,
+				[](const Vehicle* v, double pos) { return v->s_on_lane > pos; });
+			return (it != idx.begin()) ? *(it - 1) : nullptr;
+		}
+		inline Vehicle* tgt_follower(const std::vector<Vehicle*>& idx, double s) {
+			auto it = std::lower_bound(idx.begin(), idx.end(), s,
+				[](const Vehicle* v, double pos) { return v->s_on_lane > pos; });
+			return (it != idx.end()) ? *it : nullptr;
+		}
+
 		// Returns nearest set bit to curr_idx within [0, lanes_count).
 		// If the current bit is set → returns curr_idx. If mask==0 → returns -1.
 		inline int nearest_goal_idx(uint32_t mask, int curr_idx, int lanes_count) noexcept {
@@ -266,15 +277,23 @@ namespace tjs::core::simulation {
 					float v_leader = v_f; // same speed → Δv = 0
 
 					if (k > 0) {
-						Vehicle* leader = idx[k - 1];
-						const float s_l = static_cast<float>(leader->s_on_lane);
+						const Vehicle* leader = idx[k - 1];
 						v_leader = leader->currentSpeed;
+						s_gap = idm::actual_gap(leader->s_on_lane, s_f, leader->length, leader->length);
+					}
 
-						const float s_l_ctr = static_cast<float>(leader->s_on_lane);
-						const float v_leader = leader->currentSpeed;
-						const float len_leader = leader->length;
+					if (
+						VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::ST_CROSS)
+						&& vehicle->lane_target != nullptr) {
+						const auto& tgt_rt = lane_rt[vehicle->lane_target->index_in_buffer];
+						auto tgt_lead = tgt_leader(tgt_rt.idx, vehicle->s_on_lane);
+						if (tgt_lead != nullptr) {
+							v_leader = std::min(v_leader, tgt_lead->currentSpeed);
 
-						s_gap = idm::actual_gap(s_l_ctr, s_f, len_leader, l_f);
+							s_gap = std::min(
+								s_gap,
+								idm::actual_gap(tgt_lead->s_on_lane, s_f, tgt_lead->length, tgt_lead->length));
+						}
 					}
 
 					// ─── 2. IDM acceleration ────────────────────────────────────────
@@ -287,13 +306,12 @@ namespace tjs::core::simulation {
 
 					// ─── 4. Lane‑change decision (unchanged, but uses new kinematics) ─
 					const float dist_to_node = rt.length - s_f;
-					const AgentData& ag = *vehicle->agent;
 
 					const uint16_t change_state = static_cast<int>(VehicleStateBits::ST_PREPARE) | static_cast<int>(VehicleStateBits::ST_CROSS) | static_cast<int>(VehicleStateBits::ST_ALIGN);
 					if (!VehicleStateBitsV::has_any(vehicle->state, change_state, VehicleStateBitsDivision::STATE)) {
 						const int curr_idx = rt.static_lane->index_in_edge; // 0 = right-most
 						const int lanes_cnt = static_cast<int>(rt.static_lane->parent->lanes.size());
-						const uint32_t mask = ag.goal_lane_mask;
+						const uint32_t mask = vehicle->goal_lane_mask;
 						const int goal_idx = nearest_goal_idx(mask, curr_idx, lanes_cnt);
 
 						if (goal_idx >= 0 && goal_idx != curr_idx && !VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::FL_COOLDOWN)) {
@@ -324,17 +342,6 @@ namespace tjs::core::simulation {
 					}
 				}
 			}
-		}
-
-		inline Vehicle* tgt_leader(const std::vector<Vehicle*>& idx, double s) {
-			auto it = std::lower_bound(idx.begin(), idx.end(), s,
-				[](const Vehicle* v, double pos) { return v->s_on_lane > pos; });
-			return (it != idx.begin()) ? *(it - 1) : nullptr;
-		}
-		inline Vehicle* tgt_follower(const std::vector<Vehicle*>& idx, double s) {
-			auto it = std::lower_bound(idx.begin(), idx.end(), s,
-				[](const Vehicle* v, double pos) { return v->s_on_lane > pos; });
-			return (it != idx.end()) ? *it : nullptr;
 		}
 
 		bool check_need_switch(
@@ -575,9 +582,9 @@ namespace tjs::core::simulation {
 					v.current_lane = entry;
 
 					if (ag.path_offset < ag.path.size() - 1) {
-						ag.goal_lane_mask = build_goal_mask(*entry->parent, *ag.path[ag.path_offset + 1]);
+						v.goal_lane_mask = build_goal_mask(*entry->parent, *ag.path[ag.path_offset + 1]);
 					} else {
-						ag.goal_lane_mask = 0xFFFF;
+						v.goal_lane_mask = 0xFFFF;
 					}
 					/* ----- SUMO‑style speed clamp ------------------------------ */
 					const auto& tgt_idx = lane_rt[entry->index_in_buffer].idx;

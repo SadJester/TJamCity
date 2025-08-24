@@ -23,17 +23,17 @@ namespace tjs::core {
 		Undefined, PendingMove, Moving, Stopped);
 
 	struct Vehicle {
-		 // ---- 8‑byte group (kept together to avoid padding) ----
+		// ---- 8‑byte group (kept together to avoid padding) ----
 		uint64_t uid;
 
-		double   s_on_lane;
-		double   s_next;
-		double   lateral_offset;
+		double s_on_lane;
+		double s_next;
+		double lateral_offset;
 
 		Coordinates coordinates;
-		WayInfo*  currentWay;
-		Lane*     current_lane;
-		Lane*     lane_target;
+		WayInfo* currentWay;
+		Lane* current_lane;
+		Lane* lane_target;
 		AgentData* agent;
 
 		// ---- 4‑byte group ----
@@ -44,7 +44,8 @@ namespace tjs::core {
 		float length;
 		float width;
 		float maxSpeed;
-		int   currentSegmentIndex;
+		uint32_t goal_lane_mask; // bitmask for current edge exit
+		int currentSegmentIndex;
 
 		VehicleType type;
 		simulation::VehicleMovementError error;
@@ -55,7 +56,7 @@ namespace tjs::core {
 
 		// ---- 1‑byte group ----
 		int8_t lane_change_dir;
-		bool   has_position_changes;
+		bool has_position_changes;
 	};
 	static_assert(std::is_pod<Vehicle>::value, "Data object expect to be POD");
 
