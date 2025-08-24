@@ -22,8 +22,8 @@ namespace {
 	constexpr float T_CROSS = 2.0f;
 	constexpr float T_ALIGN = 0.1f;
 	constexpr float POLITENESS_THRESHOLD = 0.2f;
-	constexpr float TAU = 1.0f;
-	constexpr float DELTA = 1.0f;
+	constexpr float TAU = .2f;
+	constexpr float DELTA = 0.0f;
 	constexpr float MIN_GAP = 2.0f;
 
 	static int VEHICLE_ID = 59;
@@ -326,6 +326,82 @@ namespace tjs::core::simulation {
 			}
 		}
 
+		inline Vehicle* tgt_leader(const std::vector<Vehicle*>& idx, double s) {
+			auto it = std::lower_bound(idx.begin(), idx.end(), s,
+				[](const Vehicle* v, double pos) { return v->s_on_lane > pos; });
+			return (it != idx.begin()) ? *(it - 1) : nullptr;
+		}
+		inline Vehicle* tgt_follower(const std::vector<Vehicle*>& idx, double s) {
+			auto it = std::lower_bound(idx.begin(), idx.end(), s,
+				[](const Vehicle* v, double pos) { return v->s_on_lane > pos; });
+			return (it != idx.end()) ? *it : nullptr;
+		}
+
+		bool check_need_switch(
+			const std::vector<LaneRuntime>& lane_rt,
+			const Lane* tgt,
+			Vehicle* vehicle,
+			const idm_params_t& p_idm,
+			bool is_mandatory_switch) {
+			// --- current-lane leader (for a_old) ---
+			const auto& idx_curr = lane_rt[vehicle->current_lane->index_in_buffer].idx;
+			Vehicle* curr_lead = nullptr;
+			if (idx_curr.size() > 1) {
+				auto it = std::find(idx_curr.begin(), idx_curr.end(), vehicle);
+				if (it != idx_curr.begin()) {
+					curr_lead = *(it - 1);
+				}
+			}
+			float gap_curr = std::numeric_limits<float>::infinity();
+			float v_lead_curr = vehicle->currentSpeed;
+			if (curr_lead) {
+				gap_curr = idm::actual_gap((float)curr_lead->s_on_lane,
+					(float)vehicle->s_on_lane,
+					curr_lead->length, vehicle->length);
+				v_lead_curr = curr_lead->currentSpeed;
+			}
+
+			// --- target-lane neighbors ---
+			const auto& idx_tgt = lane_rt[tgt->index_in_buffer].idx;
+			Vehicle* lead = tgt_leader(idx_tgt, vehicle->s_on_lane);
+			Vehicle* foll = tgt_follower(idx_tgt, vehicle->s_on_lane);
+
+			// front gap (ego vs target-lane leader)
+			float gap_front = std::numeric_limits<float>::infinity();
+			float v_lead = vehicle->currentSpeed;
+			if (lead) {
+				gap_front = idm::actual_gap((float)lead->s_on_lane,
+					(float)vehicle->s_on_lane,
+					lead->length, vehicle->length);
+				v_lead = lead->currentSpeed;
+			}
+
+			// rear safety (new follower vs ego as new leader)
+			bool rear_safe = true;
+			if (foll) {
+				float gap_rear = idm::actual_gap((float)vehicle->s_on_lane,
+					(float)foll->s_on_lane,
+					vehicle->length, foll->length);
+				float a_after = idm::idm_scalar(foll->currentSpeed,
+					vehicle->currentSpeed,
+					gap_rear, p_idm);
+				rear_safe = (a_after >= -p_idm.b_comf); // MOBIL safety
+			}
+
+			// benefit / politeness
+			float a_old = idm::idm_scalar(vehicle->currentSpeed, v_lead_curr, gap_curr, p_idm);
+			float a_new = idm::idm_scalar(vehicle->currentSpeed, v_lead, gap_front, p_idm);
+			float benefit = a_new - a_old;
+
+			bool politeness = is_mandatory_switch ? true : (benefit > POLITENESS_THRESHOLD);
+
+			// simple cut-in guard (front)
+			float req_gap = std::max(TAU * vehicle->currentSpeed + DELTA, MIN_GAP);
+			bool front_ok = (gap_front >= req_gap);
+
+			return front_ok && rear_safe && politeness;
+		}
+
 		void phase2_commit(
 			TrafficSimulationSystem& system,
 			const std::vector<AgentData*>& agents,
@@ -371,50 +447,9 @@ namespace tjs::core::simulation {
 					if (VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::ST_PREPARE) && tgt) {
 						vehicle->lane_change_time += static_cast<float>(dt);
 						bool ready = vehicle->lane_change_time >= T_PREPARE;
-						bool gap_ok_simple = false;
-						bool politeness = false;
 
-						if (ready) {
-							/* ---- leader on target lane ----------------------------------- */
-							const LaneRuntime& tgt_rt = lane_rt[tgt->index_in_buffer];
-							const auto& idx = tgt_rt.idx;
-							auto it = std::lower_bound(idx.begin(), idx.end(), vehicle->s_on_lane,
-								[&](Vehicle* v, double pos) { return v->s_on_lane > pos; });
-							float gap_lead = std::numeric_limits<float>::infinity();
-							float v_lead = vehicle->currentSpeed;
-							if (it != idx.begin()) {
-								Vehicle* j_lead = *(it - 1);
-								gap_lead = idm::actual_gap(static_cast<float>(j_lead->s_on_lane),
-									static_cast<float>(vehicle->s_on_lane),
-									j_lead->length, vehicle->length);
-								v_lead = j_lead->currentSpeed;
-							}
-
-							/* ---- leader on current lane --------------------------------- */
-							const auto& idx_curr = rt.idx;
-							auto it_c = std::find(idx_curr.begin(), idx_curr.end(), vehicle);
-							float gap_curr = std::numeric_limits<float>::infinity();
-							float v_lead_curr = vehicle->currentSpeed;
-							if (it_c != idx_curr.begin()) {
-								Vehicle* j_curr = *(it_c - 1);
-								gap_curr = idm::actual_gap(static_cast<float>(j_curr->s_on_lane),
-									static_cast<float>(vehicle->s_on_lane),
-									j_curr->length, vehicle->length);
-								v_lead_curr = j_curr->currentSpeed;
-							}
-
-							float a_old = idm::idm_scalar(vehicle->currentSpeed, v_lead_curr, gap_curr, p_idm);
-							float a_new = idm::idm_scalar(vehicle->currentSpeed, v_lead, gap_lead, p_idm);
-							const float benefit = a_new - a_old;
-
-							bool mandatory = true;
-							politeness = mandatory ? true : benefit > POLITENESS_THRESHOLD;
-
-							float req_gap = std::max(TAU * vehicle->currentSpeed + DELTA, MIN_GAP);
-							gap_ok_simple = gap_lead >= req_gap;
-						}
-
-						if (ready && politeness && gap_ok_simple) {
+						bool need_switch = ready && check_need_switch(lane_rt, tgt, vehicle, p_idm, true);
+						if (ready && need_switch) {
 							vehicle->has_position_changes = true;
 
 							auto& start = vehicle->current_lane->centerLine.front();
