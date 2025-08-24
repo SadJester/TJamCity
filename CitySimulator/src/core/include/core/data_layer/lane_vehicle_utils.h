@@ -10,7 +10,7 @@ namespace tjs::core {
 	inline void insert_vehicle_sorted(Lane& lane, Vehicle* vehicle) {
 		auto it = std::lower_bound(lane.vehicles.begin(), lane.vehicles.end(),
 			vehicle->s_on_lane,
-			[](const Vehicle* v, double s) { return v->s_on_lane < s; });
+			[](const Vehicle* v, double s) { return v->s_on_lane > s; });
 		lane.vehicles.insert(it, vehicle);
 	}
 

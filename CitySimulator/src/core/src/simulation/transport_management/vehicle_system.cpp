@@ -20,7 +20,7 @@
 namespace tjs::core::simulation {
 
 	// Helper function to create vehicle with ObjectPool
-	Vehicle* create_vehicle_impl(VehicleSystem::VehiclePool& vehicle_pool, Lane& lane, std::vector<LaneRuntime>& lane_rt, const VehicleSystem::VehicleConfigs& configs, VehicleType type) {
+	Vehicle* create_vehicle_impl(VehicleSystem::VehiclePool& vehicle_pool, Lane& lane, std::vector<LaneRuntime>& lane_rt, const VehicleConfig& config, VehicleType type) {
 		auto vehicle_ptr = vehicle_pool.acquire_ptr();
 		if (!vehicle_ptr) {
 			return nullptr;
@@ -30,20 +30,15 @@ namespace tjs::core::simulation {
 		// TODO[simulation]: correct UID
 		vehicle.uid = RandomGenerator::get().next_int(1, 10000000);
 		vehicle.type = type;
-		auto it_config = configs.find(vehicle.type);
-		if (it_config == configs.end()) {
-			// TODO[simulation]: log Vehicle type configuration not found
-			it_config = configs.begin();
-		}
 
-		vehicle.length = it_config->second.length;
-		vehicle.width = it_config->second.width;
+		vehicle.length = config.length;
+		vehicle.width = config.width;
 		vehicle.currentSpeed = 0;
 		vehicle.maxSpeed = RandomGenerator::get().next_float(40, 100.0f);
 		vehicle.coordinates = lane.parent->start_node->coordinates;
 		vehicle.currentSegmentIndex = 0;
 		vehicle.current_lane = &lane;
-		vehicle.s_on_lane = 0.0;
+		vehicle.s_on_lane = vehicle.length / 2.0f;
 		vehicle.lateral_offset = 0.0;
 		VehicleStateBitsV::set_info(vehicle.state, VehicleStateBits::ST_STOPPED, VehicleStateBitsDivision::STATE);
 		vehicle.previous_state = vehicle.state;
@@ -55,15 +50,21 @@ namespace tjs::core::simulation {
 		vehicle.lane_change_time = 0.0f;
 		vehicle.lane_change_dir = 0;
 
-		insert_vehicle_sorted(*vehicle.current_lane, &vehicle);
+		// we know that this is the last vehicle in the lane (allow_on_lane)
+		vehicle.current_lane->vehicles.push_back(&vehicle);
 		lane_rt[lane.index_in_buffer].idx.push_back(&vehicle);
 
 		return vehicle_ptr;
 	}
 
-	bool allowed_on_lane(const Lane& lane) {
+	bool allowed_on_lane(const Lane& lane, float vehicle_length) {
+		if (lane.vehicles.empty()) {
+			return true;
+		}
+
 		// 2 meters from bumper
-		return lane.vehicles.empty() || lane.vehicles.back()->s_on_lane > (2.0f + lane.vehicles.back()->length / 2.0f);
+		Vehicle* last_vehicle = lane.vehicles.back();
+		return last_vehicle->s_on_lane > (2.0f + (vehicle_length + last_vehicle->length) / 2.0f);
 	}
 
 	VehicleSystem::VehicleSystem(TrafficSimulationSystem& system)
@@ -122,12 +123,18 @@ namespace tjs::core::simulation {
 	}
 
 	std::optional<Vehicle*> VehicleSystem::create_vehicle(Lane& lane, VehicleType type) {
-		if (!allowed_on_lane(lane)) {
+		auto it_config = _vehicle_configs.find(type);
+		if (it_config == _vehicle_configs.end()) {
+			// TODO[simulation]: log Vehicle type configuration not found
+			it_config = _vehicle_configs.begin();
+		}
+
+		const auto& config = it_config->second;
+		if (!allowed_on_lane(lane, config.length)) {
 			// TODO[simulation]: log no allowed on lane
 			return {};
 		}
-
-		return create_vehicle_impl(_vehicle_pool, lane, _lane_runtime, _vehicle_configs, type);
+		return create_vehicle_impl(_vehicle_pool, lane, _lane_runtime, config, type);
 	}
 
 	void VehicleSystem::update() {
