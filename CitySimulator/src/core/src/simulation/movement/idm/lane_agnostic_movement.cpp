@@ -511,7 +511,7 @@ namespace tjs::core::simulation {
 					}
 
 					if (!gap_ok(lane_rt[entry->index_in_buffer],
-							v,
+							v.currentSpeed,
 							remain, v.length,
 							p_idm, dt)) {
 						v.s_on_lane = lane->length - 0.01;

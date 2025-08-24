@@ -10,6 +10,8 @@
 
 #include <core/simulation/time_module.h>
 
+#include <core/simulation/movement/idm/idm_utils.h>
+
 //TODO[simulation]: Probably must move from here while moving further
 #include <core/data_layer/data_types.h>
 #include <core/data_layer/world_data.h>
@@ -20,7 +22,13 @@
 namespace tjs::core::simulation {
 
 	// Helper function to create vehicle with ObjectPool
-	Vehicle* create_vehicle_impl(VehicleSystem::VehiclePool& vehicle_pool, Lane& lane, std::vector<LaneRuntime>& lane_rt, const VehicleConfig& config, VehicleType type) {
+	Vehicle* create_vehicle_impl(
+		VehicleSystem::VehiclePool& vehicle_pool,
+		Lane& lane,
+		std::vector<LaneRuntime>& lane_rt,
+		const VehicleConfig& config,
+		VehicleType type,
+		float desired_speed) {
 		auto vehicle_ptr = vehicle_pool.acquire_ptr();
 		if (!vehicle_ptr) {
 			return nullptr;
@@ -33,7 +41,7 @@ namespace tjs::core::simulation {
 
 		vehicle.length = config.length;
 		vehicle.width = config.width;
-		vehicle.currentSpeed = 0;
+		vehicle.currentSpeed = desired_speed;
 		vehicle.maxSpeed = RandomGenerator::get().next_float(40, 100.0f);
 		vehicle.coordinates = lane.parent->start_node->coordinates;
 		vehicle.currentSegmentIndex = 0;
@@ -57,14 +65,14 @@ namespace tjs::core::simulation {
 		return vehicle_ptr;
 	}
 
-	bool allowed_on_lane(const Lane& lane, float vehicle_length) {
-		if (lane.vehicles.empty()) {
+	bool allowed_on_lane(const LaneRuntime& lane, float v_length, float v_speed, float dt) {
+		if (lane.idx.empty()) {
 			return true;
 		}
 
 		// 2 meters from bumper
-		Vehicle* last_vehicle = lane.vehicles.back();
-		return last_vehicle->s_on_lane > (2.0f + (vehicle_length + last_vehicle->length) / 2.0f);
+		Vehicle* leader = lane.idx.back();
+		return idm::gap_ok(lane, v_speed, v_length / 2.0f, v_length, {}, dt);
 	}
 
 	VehicleSystem::VehicleSystem(TrafficSimulationSystem& system)
@@ -122,7 +130,7 @@ namespace tjs::core::simulation {
 		}
 	}
 
-	std::optional<Vehicle*> VehicleSystem::create_vehicle(Lane& lane, VehicleType type) {
+	std::optional<Vehicle*> VehicleSystem::create_vehicle(Lane& lane, VehicleType type, float desired_speed) {
 		auto it_config = _vehicle_configs.find(type);
 		if (it_config == _vehicle_configs.end()) {
 			// TODO[simulation]: log Vehicle type configuration not found
@@ -130,11 +138,13 @@ namespace tjs::core::simulation {
 		}
 
 		const auto& config = it_config->second;
-		if (!allowed_on_lane(lane, config.length)) {
+		const auto& lr = _lane_runtime[lane.index_in_buffer];
+		double dt = _system.timeModule().state().fixed_dt();
+		if (!allowed_on_lane(lr, config.length, desired_speed, dt)) {
 			// TODO[simulation]: log no allowed on lane
 			return {};
 		}
-		return create_vehicle_impl(_vehicle_pool, lane, _lane_runtime, config, type);
+		return create_vehicle_impl(_vehicle_pool, lane, _lane_runtime, config, type, desired_speed);
 	}
 
 	void VehicleSystem::update() {

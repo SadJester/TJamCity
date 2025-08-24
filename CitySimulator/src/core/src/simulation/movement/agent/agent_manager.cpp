@@ -56,7 +56,7 @@ namespace tjs::core::simulation {
 					Lane* lane = &edge.lanes[RandomGenerator::get().next_int(0, edge.lanes.size() - 1)];
 
 					auto type = RandomGenerator::get().next_enum<VehicleType>();
-					auto result = vehicle_system.create_vehicle(*lane, type);
+					auto result = vehicle_system.create_vehicle(*lane, type, 0.0f);
 					if (!result.has_value()) {
 						continue;
 					}
@@ -187,7 +187,7 @@ namespace tjs::core::simulation {
 					while (point.accumulator >= 1.0
 						   && (point.max_vehicles == 0 || point.generated < point.max_vehicles)) {
 						auto type = RandomGenerator::get().next_enum<VehicleType>();
-						auto result = vehicle_system.create_vehicle(*point.lane, type);
+						auto result = vehicle_system.create_vehicle(*point.lane, type, 10.0f);
 						if (result.has_value()) {
 							// Create agent using object pool
 							auto agent_ptr = _agent_pool.acquire_ptr(result.value()->uid, result.value());
