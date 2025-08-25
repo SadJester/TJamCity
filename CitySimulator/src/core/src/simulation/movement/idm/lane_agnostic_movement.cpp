@@ -22,11 +22,11 @@ namespace {
 	constexpr float T_CROSS = 2.0f;
 	constexpr float T_ALIGN = 0.1f;
 	constexpr float POLITENESS_THRESHOLD = 0.2f;
-	constexpr float TAU = .2f;
-	constexpr float DELTA = 0.0f;
+	constexpr float TAU = .2f;    // desired time clearance to the leader (seconds)
+	constexpr float DELTA = 0.3f; // extra stand-still buffer (metres) that covers vehicle length, perception error, etc.
 	constexpr float MIN_GAP = 2.0f;
 
-	static int VEHICLE_ID = 6222613;
+	static int VEHICLE_ID = 1160320;
 } // namespace
 
 namespace tjs::core::simulation {
@@ -400,31 +400,33 @@ namespace tjs::core::simulation {
 					lead->length, vehicle->length);
 				v_lead = lead->currentSpeed;
 			}
+			//const float dv_front = vehicle->currentSpeed - v_lead;               // closing speed
+			//const float s_star   = idm::desired_gap(vehicle->currentSpeed, dv_front, p_idm);
+			//const bool  front_ok = (gap_front >= std::max(MIN_GAP, s_star));
+
+			const float req_gap = std::max(TAU * vehicle->currentSpeed + DELTA, MIN_GAP);
+			const bool front_ok = (gap_front >= req_gap);
 
 			// rear safety (new follower vs ego as new leader)
 			bool rear_safe = true;
 			if (foll) {
-				float gap_rear = idm::actual_gap((float)vehicle->s_on_lane,
+				const float gap_rear = idm::actual_gap((float)vehicle->s_on_lane,
 					(float)foll->s_on_lane,
 					vehicle->length, foll->length);
-				float a_after = idm::idm_scalar(foll->currentSpeed,
+				const float a_after = idm::idm_scalar(foll->currentSpeed,
 					vehicle->currentSpeed,
 					gap_rear, p_idm);
-				rear_safe = (a_after >= -p_idm.b_comf); // MOBIL safety
+				rear_safe = (a_after >= -p_idm.b_comf);
 			}
 
-			// benefit / politeness
-			float a_old = idm::idm_scalar(vehicle->currentSpeed, v_lead_curr, gap_curr, p_idm);
-			float a_new = idm::idm_scalar(vehicle->currentSpeed, v_lead, gap_front, p_idm);
-			float benefit = a_new - a_old;
+			// --- Benefit / politeness (keep your mandatory override) ---
+			const float a_old = idm::idm_scalar(vehicle->currentSpeed, v_lead_curr, gap_curr, p_idm);
+			const float a_new = idm::idm_scalar(vehicle->currentSpeed, v_lead, gap_front, p_idm);
+			const float benefit = a_new - a_old;
+			const bool polite = (is_mandatory_switch && a_new > -(p_idm.b_comf * 2.0f)) || (benefit > POLITENESS_THRESHOLD);
 
-			bool politeness = is_mandatory_switch ? true : (benefit > POLITENESS_THRESHOLD);
-
-			// simple cut-in guard (front)
-			float req_gap = std::max(TAU * vehicle->currentSpeed + DELTA, MIN_GAP);
-			bool front_ok = (gap_front >= req_gap);
-
-			return front_ok && rear_safe && politeness;
+			const bool ok = front_ok && rear_safe && polite;
+			return ok;
 		}
 
 		void flush_target(Vehicle* v, std::vector<LaneRuntime>& lane_rt) {
