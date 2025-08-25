@@ -469,16 +469,6 @@ namespace tjs::core::simulation {
 				bool shadow;
 			};
 
-			auto _check = [](const LaneRuntime& rt) {
-				float prev = 0.0;
-				for (int i = 1; i < rt.idx.size(); ++i) {
-					if (rt.idx[i]->s_on_lane > rt.idx[i - 1]->s_on_lane) {
-						return i;
-					}
-				}
-				return -1;
-			};
-
 			std::vector<PendingMove> pending_moves;
 			// Suppose that 10% will be moved in one tick
 			pending_moves.reserve(agents.size() / 10);
@@ -522,10 +512,6 @@ namespace tjs::core::simulation {
 
 							// insert shadow
 							pending_moves.push_back(PendingMove { vehicle, rt.static_lane, tgt, true });
-
-							if (int wrong = _check(lane_rt[tgt->index_in_buffer]); wrong != -1) {
-								std::cout << "idx: " << wrong;
-							}
 							continue;
 						}
 					} else if (VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::ST_CROSS)) {
@@ -567,9 +553,6 @@ namespace tjs::core::simulation {
 					if (m.vehicle->lane_target != nullptr) {
 						std::cout << "";
 					}
-				}
-				if (int wrong = _check(lane_rt[m.tgt->index_in_buffer]); wrong != -1) {
-					std::cout << "idx: " << wrong;
 				}
 			}
 
@@ -653,15 +636,6 @@ namespace tjs::core::simulation {
 					/* ----- commit hop ------------------------------------------- */
 					v.s_on_lane = remain;
 					idm::move_index(&v, lane_rt, lane, entry);
-
-					change_mask |= (bit_t)VSB::ST_ALIGN;
-					if (v.lane_target != nullptr || VehicleStateBitsV::has_any(v.state, change_mask, DIV::STATE)) {
-						std::cout << "";
-					}
-
-					if (int wrong = _check(lane_rt[entry->index_in_buffer]); wrong != -1) {
-						std::cout << "idx: " << wrong;
-					}
 
 					lane = entry;
 					v.current_lane = entry;
