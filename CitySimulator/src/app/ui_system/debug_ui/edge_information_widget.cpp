@@ -164,7 +164,14 @@ namespace tjs::ui {
 		for (core::Vehicle* vehicle : rt_lane.idx) {
 			QString vehicleStr;
 			vehicleStr.reserve(50); // Reserve approximate needed size
-			vehicleStr = QString::number(0) + " (" + QString::number(vehicle->uid) + "): " + QString::number(vehicle->s_on_lane);
+			vehicleStr = QString::number(vehicle->uid) + ": " + QString::number(vehicle->s_on_lane);
+			if (vehicle->lane_target != nullptr) {
+				if (vehicle->current_lane == lane) {
+					vehicleStr += " (to: " + QString::number(vehicle->lane_target->get_id()) + "; " + QString::number(vehicle->state) + ")";
+				} else {
+					vehicleStr += " (from: " + QString::number(vehicle->current_lane->get_id()) + "; " + QString::number(vehicle->state) + ")";
+				}
+			}
 			vehicle_info << vehicleStr;
 		}
 

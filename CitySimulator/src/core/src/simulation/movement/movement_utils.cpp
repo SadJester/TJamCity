@@ -32,6 +32,7 @@ namespace tjs::core::simulation {
 		ag.vehicle->error = error;
 		vehicle.s_next = lane->length - 0.01;
 		vehicle.s_on_lane = vehicle.s_next;
+		vehicle.lane_target = nullptr;
 
 		// Stop vehicle at all, for other cases we need more sophisticated calculations
 		// But for now treat that it will be movement further with the same speed as before

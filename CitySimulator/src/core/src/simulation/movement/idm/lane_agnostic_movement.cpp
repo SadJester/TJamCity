@@ -26,7 +26,7 @@ namespace {
 	constexpr float DELTA = 0.0f;
 	constexpr float MIN_GAP = 2.0f;
 
-	static int VEHICLE_ID = 59;
+	static int VEHICLE_ID = 6222613;
 } // namespace
 
 namespace tjs::core::simulation {
@@ -65,7 +65,8 @@ namespace tjs::core::simulation {
 		void move_index(Vehicle* vehicle_ptr,
 			std::vector<LaneRuntime>& lane_rt,
 			const Lane* src,
-			const Lane* tgt) {
+			const Lane* tgt,
+			bool shadow) {
 			// nothing to do
 			if (src == tgt) {
 				return;
@@ -75,7 +76,7 @@ namespace tjs::core::simulation {
 			auto& v_tgt = lane_rt[tgt->index_in_buffer].idx;
 
 			/* ---- 1. O(1) erase from source by swap-and-pop ---------------- */
-			{
+			if (!shadow) {
 				const auto it = std::find(v_src.begin(), v_src.end(), vehicle_ptr);
 				if (it != v_src.end()) {
 					Vehicle* moved = v_src.back();
@@ -105,14 +106,16 @@ namespace tjs::core::simulation {
 			}
 
 			/* ---- 2. O(log N) insert into target, keep sorted -------------- */
-			const double s = vehicle_ptr->s_on_lane;
-			auto it_ins = std::lower_bound(
-				v_tgt.begin(), v_tgt.end(), s,
-				[&](Vehicle* j, double pos) {
-					return j->s_on_lane > pos;
-				});
+			if (std::ranges::find(v_tgt, vehicle_ptr) == v_tgt.end()) {
+				const double s = vehicle_ptr->s_on_lane;
+				auto it_ins = std::lower_bound(
+					v_tgt.begin(), v_tgt.end(), s,
+					[&](Vehicle* j, double pos) {
+						return j->s_on_lane > pos;
+					});
 
-			v_tgt.insert(it_ins, vehicle_ptr);
+				v_tgt.insert(it_ins, vehicle_ptr);
+			}
 		}
 
 		Lane* choose_entry_lane(const Lane* src_lane, const Edge* next_edge, VehicleMovementError& err) {
@@ -267,6 +270,11 @@ namespace tjs::core::simulation {
 						continue;
 					}
 
+					const bool is_shadow = rt.static_lane != vehicle->current_lane && vehicle->lane_target != nullptr;
+					if (is_shadow) {
+						continue;
+					}
+
 					// ─── 1. Gather follower state ────────────────────────────────────
 					const float s_f = static_cast<float>(vehicle->s_on_lane); // [m]
 					const float v_f = vehicle->currentSpeed;                  // [m/s]
@@ -275,6 +283,10 @@ namespace tjs::core::simulation {
 					// ─── 1b. Gather leader state (if any) ────────────────────────────
 					float s_gap = 1e9f;   // sentinel = "free road"
 					float v_leader = v_f; // same speed → Δv = 0
+
+					if (VEHICLE_ID == vehicle->uid) {
+						std::cout << "";
+					}
 
 					if (k > 0) {
 						const Vehicle* leader = idx[k - 1];
@@ -304,6 +316,10 @@ namespace tjs::core::simulation {
 					vehicle->v_next = v_next;
 					vehicle->s_next = s_f + v_f * dt + 0.5f * a * static_cast<float>(dt * dt);
 
+					if (VEHICLE_ID == vehicle->uid && vehicle->v_next < vehicle->currentSpeed) {
+						std::cout << "";
+					}
+
 					// ─── 4. Lane‑change decision (unchanged, but uses new kinematics) ─
 					const float dist_to_node = rt.length - s_f;
 
@@ -320,8 +336,10 @@ namespace tjs::core::simulation {
 
 							if (dist_to_node < prep) {
 								Lane* neigh = (lanes_delta > 0) ? rt.static_lane->left() : rt.static_lane->right();
-
 								if (neigh) {
+									if (vehicle->current_lane->get_id() == 28 && neigh->get_id() == 5) {
+										std::cout << "";
+									}
 									vehicle->lane_target = neigh; // step one lane toward goal
 									VehicleStateBitsV::set_info(vehicle->state, VehicleStateBits::ST_PREPARE, VehicleStateBitsDivision::STATE);
 									vehicle->lane_change_time = 0.0f;
@@ -409,6 +427,18 @@ namespace tjs::core::simulation {
 			return front_ok && rear_safe && politeness;
 		}
 
+		void flush_target(Vehicle* v, std::vector<LaneRuntime>& lane_rt) {
+			if (v->lane_target == nullptr) {
+				return;
+			}
+			auto& rt = lane_rt[v->lane_target->index_in_buffer];
+			auto it = std::ranges::find(rt.idx, v);
+			if (it != rt.idx.end()) {
+				rt.idx.erase(it);
+			}
+			v->lane_target = nullptr;
+		}
+
 		void phase2_commit(
 			TrafficSimulationSystem& system,
 			const std::vector<AgentData*>& agents,
@@ -436,6 +466,17 @@ namespace tjs::core::simulation {
 				Vehicle* vehicle;
 				Lane* src;
 				Lane* tgt;
+				bool shadow;
+			};
+
+			auto _check = [](const LaneRuntime& rt) {
+				float prev = 0.0;
+				for (int i = 1; i < rt.idx.size(); ++i) {
+					if (rt.idx[i]->s_on_lane > rt.idx[i - 1]->s_on_lane) {
+						return i;
+					}
+				}
+				return -1;
 			};
 
 			std::vector<PendingMove> pending_moves;
@@ -445,8 +486,12 @@ namespace tjs::core::simulation {
 			/* ---------------- lateral loop --------------------------------------- */
 			for (const LaneRuntime& rt : lane_rt) {
 				for (Vehicle* vehicle : rt.idx) {
+					const bool is_shadow = rt.static_lane != vehicle->current_lane && vehicle->lane_target != nullptr;
+					if (is_shadow) {
+						continue;
+					}
+
 					if (VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::ST_STOPPED)) {
-						vehicle->lane_target = nullptr;
 						continue;
 					}
 
@@ -455,8 +500,15 @@ namespace tjs::core::simulation {
 						vehicle->lane_change_time += static_cast<float>(dt);
 						bool ready = vehicle->lane_change_time >= T_PREPARE;
 
+						if (VEHICLE_ID == vehicle->uid) {
+							std::cout << "";
+						}
+
 						bool need_switch = ready && check_need_switch(lane_rt, tgt, vehicle, p_idm, true);
 						if (ready && need_switch) {
+							if (VEHICLE_ID == vehicle->uid) {
+								std::cout << "";
+							}
 							vehicle->has_position_changes = true;
 
 							auto& start = vehicle->current_lane->centerLine.front();
@@ -467,17 +519,30 @@ namespace tjs::core::simulation {
 							vehicle->lateral_offset = 0.0f;
 							vehicle->lane_change_time = 0.0f;
 							VehicleStateBitsV::overwrite_info(vehicle->state, VehicleStateBits::ST_CROSS, VehicleStateBitsDivision::STATE);
+
+							// insert shadow
+							pending_moves.push_back(PendingMove { vehicle, rt.static_lane, tgt, true });
+
+							if (int wrong = _check(lane_rt[tgt->index_in_buffer]); wrong != -1) {
+								std::cout << "idx: " << wrong;
+							}
 							continue;
 						}
 					} else if (VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::ST_CROSS)) {
+						if (VEHICLE_ID == vehicle->uid) {
+							std::cout << "";
+						}
 						vehicle->lane_change_time += static_cast<float>(dt);
 						float prog = std::min(vehicle->lane_change_time / T_CROSS, 1.0f);
 						float cos_term = std::sin(static_cast<float>(tjs::core::MathConstants::M_PI) * 0.5f * prog);
 						vehicle->lateral_offset = static_cast<float>(vehicle->lane_change_dir) * static_cast<float>(vehicle->current_lane->width) * cos_term;
 						vehicle->has_position_changes = true;
 						if (prog >= 1.0f) {
-							pending_moves.push_back(PendingMove { vehicle, rt.static_lane, tgt });
-							vehicle->lane_target = nullptr;
+							if (VEHICLE_ID == vehicle->uid) {
+								std::cout << "";
+							}
+							pending_moves.push_back(PendingMove { vehicle, rt.static_lane, tgt, false });
+							flush_target(vehicle, lane_rt);
 
 							vehicle->lateral_offset = 0.0f;
 							vehicle->lane_change_time = 0.0f;
@@ -496,8 +561,16 @@ namespace tjs::core::simulation {
 
 			/* ----------------  Do all moves after scanning--------------------------------------- */
 			for (const auto& m : pending_moves) {
-				idm::move_index(m.vehicle, lane_rt, m.src, m.tgt);
-				m.vehicle->current_lane = m.tgt;
+				idm::move_index(m.vehicle, lane_rt, m.src, m.tgt, m.shadow);
+				if (!m.shadow) {
+					m.vehicle->current_lane = m.tgt;
+					if (m.vehicle->lane_target != nullptr) {
+						std::cout << "";
+					}
+				}
+				if (int wrong = _check(lane_rt[m.tgt->index_in_buffer]); wrong != -1) {
+					std::cout << "idx: " << wrong;
+				}
 			}
 
 			using VSB = VehicleStateBits;
@@ -527,13 +600,14 @@ namespace tjs::core::simulation {
 					&& debug.lane_id == lane->get_id());
 
 				while (remain >= lane->length - 1e-6) {
-					if (i == VEHICLE_ID) {
+					if (v.uid == VEHICLE_ID) {
 						std::cout << "";
 					}
 					remain -= lane->length;
 
 					++ag.path_offset;
 					if (ag.path_offset >= ag.path.size()) {
+						flush_target(&v, lane_rt);
 						stop_moving(i, ag, v, lane, VehicleMovementError::ER_NO_PATH);
 						break;
 					}
@@ -548,6 +622,7 @@ namespace tjs::core::simulation {
 
 					Lane* entry = choose_entry_lane(lane, next_edge, err);
 					if (err != VehicleMovementError::ER_NO_ERROR || !entry) {
+						flush_target(&v, lane_rt);
 						stop_moving(i, ag, v, lane, err);
 						break;
 					}
@@ -578,6 +653,16 @@ namespace tjs::core::simulation {
 					/* ----- commit hop ------------------------------------------- */
 					v.s_on_lane = remain;
 					idm::move_index(&v, lane_rt, lane, entry);
+
+					change_mask |= (bit_t)VSB::ST_ALIGN;
+					if (v.lane_target != nullptr || VehicleStateBitsV::has_any(v.state, change_mask, DIV::STATE)) {
+						std::cout << "";
+					}
+
+					if (int wrong = _check(lane_rt[entry->index_in_buffer]); wrong != -1) {
+						std::cout << "idx: " << wrong;
+					}
+
 					lane = entry;
 					v.current_lane = entry;
 
