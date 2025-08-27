@@ -225,6 +225,25 @@ namespace tjs::core::simulation {
 			return -1; // should not happen if mask!=0 and lanes_count>0
 		}
 
+
+		// Return if vehicle is shadow in lane (behin to change lane)
+		bool is_merging(const Vehicle& vehicle, const Lane& lane) {
+			if (vehicle.lane_target == nullptr) {
+				return false;
+			}
+
+			const uint16_t change_state = static_cast<int>(VehicleStateBits::ST_PREPARE) | static_cast<int>(VehicleStateBits::ST_CROSS);
+			return &lane != vehicle.current_lane && !VehicleStateBitsV::has_any(vehicle.state, change_state, VehicleStateBitsDivision::STATE);
+		}
+
+		// Return if vehicle is wanting to change lane
+		bool is_slot(const Vehicle& vehicle, const Lane& lane) {
+			if (vehicle.lane_target == nullptr) {
+				return false;
+			}
+			return &lane != vehicle.current_lane && !VehicleStateBitsV::has_info(vehicle.state, VehicleStateBits::ST_PREPARE);
+		}
+
 		void phase1_simd(
 			TrafficSimulationSystem& system,
 			const std::vector<AgentData*>& agents,
@@ -270,8 +289,7 @@ namespace tjs::core::simulation {
 						continue;
 					}
 
-					const bool is_shadow = rt.static_lane != vehicle->current_lane && vehicle->lane_target != nullptr;
-					if (is_shadow) {
+					if (is_merging(*vehicle, *rt.static_lane) || is_slot(*vehicle, *rt.static_lane)) {
 						continue;
 					}
 
@@ -288,12 +306,22 @@ namespace tjs::core::simulation {
 						std::cout << "";
 					}
 
-					if (k > 0) {
-						const Vehicle* leader = idx[k - 1];
+					// Find leader in current lane (or check it in coherent lane)
+					int candidate = k - 1;
+					while (candidate >= 0) {
+						const Vehicle* leader = idx[candidate];
+						--candidate;
+						if (is_slot(*leader, *rt.static_lane)) {
+							continue;
+						}
+
 						v_leader = leader->currentSpeed;
 						s_gap = idm::actual_gap(leader->s_on_lane, s_f, leader->length, leader->length);
+						break;
 					}
 
+
+					// check for leader in target lane
 					if (
 						VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::ST_CROSS)
 						&& vehicle->lane_target != nullptr) {
@@ -362,7 +390,7 @@ namespace tjs::core::simulation {
 			}
 		}
 
-		bool check_need_switch(
+		bool check_can_switch(
 			const std::vector<LaneRuntime>& lane_rt,
 			const Lane* tgt,
 			Vehicle* vehicle,
@@ -496,8 +524,13 @@ namespace tjs::core::simulation {
 							std::cout << "";
 						}
 
-						bool need_switch = ready && check_need_switch(lane_rt, tgt, vehicle, p_idm, true);
-						if (ready && need_switch) {
+						// insert shadow
+						if (const auto& rt_tgt = lane_rt[tgt->index_in_buffer]; std::ranges::find(rt_tgt.idx, vehicle) == rt_tgt.idx.end()) {
+							pending_moves.push_back(PendingMove { vehicle, rt.static_lane, tgt, true });	
+						}
+
+						bool can_switch = ready && check_can_switch(lane_rt, tgt, vehicle, p_idm, true);
+						if (ready && can_switch) {
 							if (VEHICLE_ID == vehicle->uid) {
 								std::cout << "";
 							}
@@ -511,9 +544,6 @@ namespace tjs::core::simulation {
 							vehicle->lateral_offset = 0.0f;
 							vehicle->lane_change_time = 0.0f;
 							VehicleStateBitsV::overwrite_info(vehicle->state, VehicleStateBits::ST_CROSS, VehicleStateBitsDivision::STATE);
-
-							// insert shadow
-							pending_moves.push_back(PendingMove { vehicle, rt.static_lane, tgt, true });
 							continue;
 						}
 					} else if (VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::ST_CROSS)) {
