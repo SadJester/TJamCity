@@ -26,7 +26,7 @@ namespace {
 	constexpr float DELTA = 0.3f; // extra stand-still buffer (metres) that covers vehicle length, perception error, etc.
 	constexpr float MIN_GAP = 2.0f;
 
-	static int VEHICLE_ID = 1160320;
+	static int VEHICLE_ID = 587806;
 } // namespace
 
 namespace tjs::core::simulation {
@@ -175,14 +175,27 @@ namespace tjs::core::simulation {
 			return best;
 		}
 
-		inline Vehicle* tgt_leader(const std::vector<Vehicle*>& idx, double s) {
-			auto it = std::lower_bound(idx.begin(), idx.end(), s,
-				[](const Vehicle* v, double pos) { return v->s_on_lane > pos; });
+		inline Vehicle* tgt_leader(const std::vector<Vehicle*>& idx, const Vehicle& self_v) {
+			auto it = std::lower_bound(idx.begin(), idx.end(), self_v.s_on_lane,
+				[&self_v](const Vehicle* v, double pos) {
+					return v->s_on_lane > pos;
+				});
 			return (it != idx.begin()) ? *(it - 1) : nullptr;
 		}
-		inline Vehicle* tgt_follower(const std::vector<Vehicle*>& idx, double s) {
-			auto it = std::lower_bound(idx.begin(), idx.end(), s,
-				[](const Vehicle* v, double pos) { return v->s_on_lane > pos; });
+		inline Vehicle* tgt_follower(const std::vector<Vehicle*>& idx, const Vehicle& self_v) {
+			auto it = std::lower_bound(idx.begin(), idx.end(), self_v.s_on_lane,
+				[](const Vehicle* v, double pos) {
+					return v->s_on_lane > pos;
+				});
+
+			if (it == idx.end()) {
+				return nullptr;
+			}
+
+			if (*it == &self_v) {
+				++it;
+			}
+
 			return (it != idx.end()) ? *it : nullptr;
 		}
 
@@ -225,7 +238,6 @@ namespace tjs::core::simulation {
 			return -1; // should not happen if mask!=0 and lanes_count>0
 		}
 
-
 		// Return if vehicle is shadow in lane (behin to change lane)
 		bool is_merging(const Vehicle& vehicle, const Lane& lane) {
 			if (vehicle.lane_target == nullptr) {
@@ -233,7 +245,7 @@ namespace tjs::core::simulation {
 			}
 
 			const uint16_t change_state = static_cast<int>(VehicleStateBits::ST_PREPARE) | static_cast<int>(VehicleStateBits::ST_CROSS);
-			return &lane != vehicle.current_lane && !VehicleStateBitsV::has_any(vehicle.state, change_state, VehicleStateBitsDivision::STATE);
+			return &lane != vehicle.current_lane && VehicleStateBitsV::has_any(vehicle.state, change_state, VehicleStateBitsDivision::STATE);
 		}
 
 		// Return if vehicle is wanting to change lane
@@ -241,7 +253,7 @@ namespace tjs::core::simulation {
 			if (vehicle.lane_target == nullptr) {
 				return false;
 			}
-			return &lane != vehicle.current_lane && !VehicleStateBitsV::has_info(vehicle.state, VehicleStateBits::ST_PREPARE);
+			return &lane != vehicle.current_lane && VehicleStateBitsV::has_info(vehicle.state, VehicleStateBits::ST_PREPARE);
 		}
 
 		void phase1_simd(
@@ -320,13 +332,25 @@ namespace tjs::core::simulation {
 						break;
 					}
 
+					// try to pass vehicle
+					for (auto it_slot = rt.vehicle_slots.rbegin(); it_slot != rt.vehicle_slots.rend(); ++it_slot) {
+						float gg = (*it_slot)->s_on_lane - s_f;
+						if (gg > 15.0f) {
+							break;
+						}
+						if (gg > 0.0f && gg < 2.0f) {
+							v_leader = (*it_slot)->currentSpeed;
+							s_gap = idm::actual_gap((*it_slot)->s_on_lane, s_f, (*it_slot)->length, (*it_slot)->length);
+							break;
+						}
+					}
 
 					// check for leader in target lane
 					if (
 						VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::ST_CROSS)
 						&& vehicle->lane_target != nullptr) {
 						const auto& tgt_rt = lane_rt[vehicle->lane_target->index_in_buffer];
-						auto tgt_lead = tgt_leader(tgt_rt.idx, vehicle->s_on_lane);
+						auto tgt_lead = tgt_leader(tgt_rt.idx, *vehicle);
 						if (tgt_lead != nullptr) {
 							v_leader = std::min(v_leader, tgt_lead->currentSpeed);
 
@@ -416,8 +440,8 @@ namespace tjs::core::simulation {
 
 			// --- target-lane neighbors ---
 			const auto& idx_tgt = lane_rt[tgt->index_in_buffer].idx;
-			Vehicle* lead = tgt_leader(idx_tgt, vehicle->s_on_lane);
-			Vehicle* foll = tgt_follower(idx_tgt, vehicle->s_on_lane);
+			Vehicle* lead = tgt_leader(idx_tgt, *vehicle);
+			Vehicle* foll = tgt_follower(idx_tgt, *vehicle);
 
 			// front gap (ego vs target-lane leader)
 			float gap_front = std::numeric_limits<float>::infinity();
@@ -466,6 +490,12 @@ namespace tjs::core::simulation {
 			if (it != rt.idx.end()) {
 				rt.idx.erase(it);
 			}
+
+			auto it_slot = std::ranges::find(rt.vehicle_slots, v);
+			if (it_slot != rt.vehicle_slots.end()) {
+				rt.vehicle_slots.erase(it_slot);
+			}
+
 			v->lane_target = nullptr;
 		}
 
@@ -503,6 +533,22 @@ namespace tjs::core::simulation {
 			// Suppose that 10% will be moved in one tick
 			pending_moves.reserve(agents.size() / 10);
 
+			auto _check = [&lane_rt](const Lane& _lane_s) {
+				auto _lane = lane_rt[_lane_s.index_in_buffer];
+				float s = std::numeric_limits<float>::max();
+				for (size_t i = 0; i < _lane.idx.size(); ++i) {
+					auto v = _lane.idx[i];
+					if (VehicleStateBitsV::has_info(v->state, VehicleStateBits::ST_PREPARE)) {
+						continue;
+					}
+					if (v->s_on_lane > s) {
+						return (int)i;
+					}
+					s = v->s_on_lane;
+				}
+				return -1;
+			};
+
 			/* ---------------- lateral loop --------------------------------------- */
 			for (const LaneRuntime& rt : lane_rt) {
 				for (Vehicle* vehicle : rt.idx) {
@@ -525,12 +571,17 @@ namespace tjs::core::simulation {
 						}
 
 						// insert shadow
-						if (const auto& rt_tgt = lane_rt[tgt->index_in_buffer]; std::ranges::find(rt_tgt.idx, vehicle) == rt_tgt.idx.end()) {
-							pending_moves.push_back(PendingMove { vehicle, rt.static_lane, tgt, true });	
+						if (auto& rt_tgt = lane_rt[tgt->index_in_buffer]; std::ranges::find(rt_tgt.vehicle_slots, vehicle) == rt_tgt.vehicle_slots.end()) {
+							auto it_ins = std::lower_bound(rt_tgt.vehicle_slots.begin(), rt_tgt.vehicle_slots.end(),
+								vehicle->s_on_lane, [](Vehicle* v, float s) {
+									return v->s_on_lane > s;
+								});
+							rt_tgt.vehicle_slots.insert(it_ins, vehicle);
 						}
 
 						bool can_switch = ready && check_can_switch(lane_rt, tgt, vehicle, p_idm, true);
 						if (ready && can_switch) {
+							check_can_switch(lane_rt, tgt, vehicle, p_idm, true);
 							if (VEHICLE_ID == vehicle->uid) {
 								std::cout << "";
 							}
@@ -585,6 +636,14 @@ namespace tjs::core::simulation {
 					if (m.vehicle->lane_target != nullptr) {
 						std::cout << "";
 					}
+				}
+				if (int vi = _check(*m.src); vi != -1) {
+					_check(*m.src);
+					std::cout << vi << std::endl;
+				}
+				if (int vi = _check(*m.tgt); vi != -1) {
+					_check(*m.tgt);
+					std::cout << vi << std::endl;
 				}
 			}
 
@@ -668,6 +727,12 @@ namespace tjs::core::simulation {
 					/* ----- commit hop ------------------------------------------- */
 					v.s_on_lane = remain;
 					idm::move_index(&v, lane_rt, lane, entry);
+					if (int vi = _check(*lane); vi != -1) {
+						std::cout << vi << std::endl;
+					}
+					if (int vi = _check(*entry); vi != -1) {
+						std::cout << vi << std::endl;
+					}
 
 					lane = entry;
 					v.current_lane = entry;
