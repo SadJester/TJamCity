@@ -1,11 +1,9 @@
 #pragma once
 
+#include <core/simulation/simulation_types.h>
+
 namespace tjs::core::simulation {
 	class TrafficSimulationSystem;
-
-	ENUM(MovementAlgoType, char,
-		Agent,
-		IDM);
 
 	class IMovementAlgorithm {
 	public:

@@ -11,5 +11,6 @@ namespace tjs::core::simulation {
 		double length;
 		float max_speed;
 		std::vector<Vehicle*> idx;
+		std::vector<Vehicle*> vehicle_slots;
 	};
 } // namespace tjs::core::simulation

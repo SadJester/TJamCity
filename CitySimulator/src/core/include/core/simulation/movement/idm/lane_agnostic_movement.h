@@ -50,7 +50,8 @@ namespace tjs::core::simulation {
 		void move_index(Vehicle* vehicle_ptr,
 			std::vector<LaneRuntime>& lane_rt,
 			const Lane* src,
-			const Lane* tgt);
+			const Lane* tgt,
+			bool shadow = false);
 
 		//------------------------------------------------------------------
 		//  choose_entry_lane

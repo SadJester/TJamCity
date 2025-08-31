@@ -25,13 +25,13 @@ namespace tjs::core::simulation::idm {
 	float desired_gap(const float v_follower,
 		const float delta_v,
 		const idm_params_t& p) noexcept {
-		const float braking_term = (v_follower * delta_v) / (2.0f * std::sqrt(p.a_max * p.b_comf));
-		const float dyn = v_follower * p.t_headway + braking_term;
-		return p.s0 + std::max(0.0f, dyn);
+		const float root = 2.0f * std::sqrt(p.a_max * p.b_comf);
+		const float braking_add = std::max(0.0f, (v_follower * delta_v) / root); // clamp only add-on
+		return p.s0 + v_follower * p.t_headway + braking_add;
 	}
 
 	bool gap_ok(const LaneRuntime& tgt_rt,
-		const Vehicle& vehicle_newcomer,
+		const float newcomer_speed,
 		const double s_new, // tentative bumper pos
 		const float len_new,
 		const idm::idm_params_t& p,
@@ -78,7 +78,7 @@ namespace tjs::core::simulation::idm {
 				static_cast<float>(s_new),
 				j_lead->length, len_new);
 			if (!enough_gap_and_brake(gap, /* follower = newcomer */
-					vehicle_newcomer.currentSpeed, j_lead->currentSpeed)) {
+					newcomer_speed, j_lead->currentSpeed)) {
 				return false;
 			}
 		}
@@ -90,7 +90,7 @@ namespace tjs::core::simulation::idm {
 				static_cast<float>(j_follow->s_on_lane),
 				len_new, j_follow->length);
 			if (!enough_gap_and_brake(gap, /* follower behind */
-					j_follow->currentSpeed, vehicle_newcomer.currentSpeed)) {
+					j_follow->currentSpeed, newcomer_speed)) {
 				return false;
 			}
 		}

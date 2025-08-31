@@ -1,15 +1,29 @@
 
 #pragma once
 
+#if defined(__cpp_lib_hardware_interference_size)
+// available in some libstdc++
 #include <new>
+#else
+namespace portable {
+	constexpr std::size_t hardware_destructive_interference_size = 64;
+	constexpr std::size_t hardware_constructive_interference_size = 64;
+} // namespace portable
+#endif
 
 namespace tjs::common {
 
-
 	namespace _details {
-		template <typename T>
+		using cache_line_size =
+#if defined(__cpp_lib_hardware_interference_size)
+			std::integral_constant<std::size_t, std::hardware_destructive_interference_size>;
+#else
+			std::integral_constant<std::size_t, portable::hardware_destructive_interference_size>;
+#endif
+
+		template<typename T>
 		void* allocate_block(std::size_t count) {
-			constexpr std::size_t hd = std::hardware_destructive_interference_size;
+			constexpr std::size_t hd = cache_line_size::value;
 			// alignment must be a power of two and >= alignof(T)
 			constexpr std::size_t want_align = (hd >= alignof(T)) ? hd : alignof(T);
 			static_assert((want_align & (want_align - 1)) == 0, "alignment must be power of two");
@@ -17,13 +31,13 @@ namespace tjs::common {
 			return ::operator new[](sizeof(T) * count, std::align_val_t(want_align));
 		}
 
-		template <typename T>
+		template<typename T>
 		void deallocate_block(void* p) noexcept {
-			constexpr std::size_t hd = std::hardware_destructive_interference_size;
+			constexpr std::size_t hd = cache_line_size::value;
 			constexpr std::size_t want_align = (hd >= alignof(T)) ? hd : alignof(T);
 			::operator delete[](p, std::align_val_t(want_align));
 		}
-	}
+	} // namespace _details
 
 	// TODO: DON`t skip on review: Need to remove block-size, tls-cache size to constructor parameters
 	template<typename _T, size_t _BlockSize = 65536u, size_t _TLSCacheSize = 1024u>
@@ -296,7 +310,7 @@ namespace tjs::common {
 			T** old = blocks_tbl_.load(std::memory_order_acquire);
 			blocks_cnt_.store(n, std::memory_order_relaxed);
 			blocks_tbl_.store(new_tbl, std::memory_order_release);
-			
+
 			// Retain old table to free on destruction (no hazard to readers)
 			if (old) {
 				blocks_tbl_old_.push_back(old);

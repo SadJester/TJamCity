@@ -16,27 +16,14 @@
 #include <core/simulation/agent/agent_data.h>
 #include <core/simulation/simulation_system.h>
 
-namespace {
-	// TODO: This params should be edited with idm and slowing before crossing
-	constexpr float T_PREPARE = 0.1f;
-	constexpr float T_CROSS = 2.0f;
-	constexpr float T_ALIGN = 0.1f;
-	constexpr float POLITENESS_THRESHOLD = 0.2f;
-	constexpr float TAU = 1.0f;
-	constexpr float DELTA = 1.0f;
-	constexpr float MIN_GAP = 2.0f;
-
-	static int VEHICLE_ID = 59;
-} // namespace
-
 namespace tjs::core::simulation {
 	namespace idm {
 
 		float idm_scalar(const float v_follower,
-			const float v_leader,
+			const float v_desired,
 			const float s_gap,
 			const idm_params_t& p) noexcept {
-			const float delta_v = v_follower - v_leader; // closing speed
+			const float delta_v = v_follower - v_desired; // closing speed
 			const float s_star = desired_gap(v_follower, delta_v, p);
 
 			// Free‑road acceleration and interaction (car‑following) terms
@@ -65,7 +52,8 @@ namespace tjs::core::simulation {
 		void move_index(Vehicle* vehicle_ptr,
 			std::vector<LaneRuntime>& lane_rt,
 			const Lane* src,
-			const Lane* tgt) {
+			const Lane* tgt,
+			bool shadow) {
 			// nothing to do
 			if (src == tgt) {
 				return;
@@ -75,7 +63,7 @@ namespace tjs::core::simulation {
 			auto& v_tgt = lane_rt[tgt->index_in_buffer].idx;
 
 			/* ---- 1. O(1) erase from source by swap-and-pop ---------------- */
-			{
+			if (!shadow) {
 				const auto it = std::find(v_src.begin(), v_src.end(), vehicle_ptr);
 				if (it != v_src.end()) {
 					Vehicle* moved = v_src.back();
@@ -105,14 +93,16 @@ namespace tjs::core::simulation {
 			}
 
 			/* ---- 2. O(log N) insert into target, keep sorted -------------- */
-			const double s = vehicle_ptr->s_on_lane;
-			auto it_ins = std::lower_bound(
-				v_tgt.begin(), v_tgt.end(), s,
-				[&](Vehicle* j, double pos) {
-					return j->s_on_lane > pos;
-				});
+			if (std::ranges::find(v_tgt, vehicle_ptr) == v_tgt.end()) {
+				const double s = vehicle_ptr->s_on_lane;
+				auto it_ins = std::lower_bound(
+					v_tgt.begin(), v_tgt.end(), s,
+					[&](Vehicle* j, double pos) {
+						return j->s_on_lane > pos;
+					});
 
-			v_tgt.insert(it_ins, vehicle_ptr);
+				v_tgt.insert(it_ins, vehicle_ptr);
+			}
 		}
 
 		Lane* choose_entry_lane(const Lane* src_lane, const Edge* next_edge, VehicleMovementError& err) {
@@ -172,6 +162,30 @@ namespace tjs::core::simulation {
 			return best;
 		}
 
+		inline Vehicle* tgt_leader(const std::vector<Vehicle*>& idx, const Vehicle& self_v) {
+			auto it = std::lower_bound(idx.begin(), idx.end(), self_v.s_on_lane,
+				[&self_v](const Vehicle* v, double pos) {
+					return v->s_on_lane > pos;
+				});
+			return (it != idx.begin()) ? *(it - 1) : nullptr;
+		}
+		inline Vehicle* tgt_follower(const std::vector<Vehicle*>& idx, const Vehicle& self_v) {
+			auto it = std::lower_bound(idx.begin(), idx.end(), self_v.s_on_lane,
+				[](const Vehicle* v, double pos) {
+					return v->s_on_lane > pos;
+				});
+
+			if (it == idx.end()) {
+				return nullptr;
+			}
+
+			if (*it == &self_v) {
+				++it;
+			}
+
+			return (it != idx.end()) ? *it : nullptr;
+		}
+
 		// Returns nearest set bit to curr_idx within [0, lanes_count).
 		// If the current bit is set → returns curr_idx. If mask==0 → returns -1.
 		inline int nearest_goal_idx(uint32_t mask, int curr_idx, int lanes_count) noexcept {
@@ -226,7 +240,7 @@ namespace tjs::core::simulation {
 			auto& debug = system.settings().debug_data;
 #endif
 
-			const idm::idm_params_t idm_def {}; // default calibrated parameters
+			idm::idm_params_t idm_def {}; // default calibrated parameters
 
 			/* threaded outer loop over lanes (keep free to add OpenMP/TBB) */
 			// #pragma omp parallel for schedule(dynamic,4)
@@ -256,6 +270,10 @@ namespace tjs::core::simulation {
 						continue;
 					}
 
+					if (vehicle->is_merging(*rt.static_lane)) {
+						continue;
+					}
+
 					// ─── 1. Gather follower state ────────────────────────────────────
 					const float s_f = static_cast<float>(vehicle->s_on_lane); // [m]
 					const float v_f = vehicle->currentSpeed;                  // [m/s]
@@ -265,48 +283,112 @@ namespace tjs::core::simulation {
 					float s_gap = 1e9f;   // sentinel = "free road"
 					float v_leader = v_f; // same speed → Δv = 0
 
+					if (debug.agent_id == vehicle->uid) {
+						std::cout << "";
+					}
+
+					// Find leader in current lane (or check it in coherent lane)
 					if (k > 0) {
 						Vehicle* leader = idx[k - 1];
-						const float s_l = static_cast<float>(leader->s_on_lane);
-						v_leader = leader->currentSpeed;
+						if (debug.agent_id == vehicle->uid) {
+							std::cout << "";
+						}
+						s_gap = idm::actual_gap(leader->s_on_lane, s_f, leader->length, l_f);
+					}
 
-						const float s_l_ctr = static_cast<float>(leader->s_on_lane);
-						const float v_leader = leader->currentSpeed;
-						const float len_leader = leader->length;
+					// try to pass vehicle
+					float a_cooperative = std::numeric_limits<float>::max();
+					if (idm_def.is_cooperating
+						&& VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::ST_FOLLOW)
+						&& !VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::FL_COOLDOWN)) {
+						if (vehicle->cooperation_vehicle == nullptr) {
+							for (auto it_slot = rt.vehicle_slots.rbegin(); it_slot != rt.vehicle_slots.rend(); ++it_slot) {
+								float gg = (*it_slot)->s_on_lane - s_f;
+								if (gg > 15.0f) {
+									break;
+								}
+								if (gg > 0.0f) {
+									vehicle->cooperation_vehicle = *it_slot;
+									vehicle->action_time = 0.0;
+									break;
+								}
+							}
+						}
+					} else {
+						vehicle->cooperation_vehicle = nullptr;
+					}
 
-						s_gap = idm::actual_gap(s_l_ctr, s_f, len_leader, l_f);
+					if (vehicle->cooperation_vehicle != nullptr) {
+						// reset cooperation vehicle if it is not merging in our lane or not in prepare state
+						if (!VehicleStateBitsV::has_info(vehicle->cooperation_vehicle->state, VehicleStateBits::ST_PREPARE) || vehicle->cooperation_vehicle->lane_target != rt.static_lane) {
+							vehicle->cooperation_vehicle = nullptr;
+						} else {
+							vehicle->action_time += dt;
+							if (vehicle->action_time >= idm_def.t_max_coop_time) {
+								vehicle->cooperation_vehicle = nullptr;
+								vehicle->action_time = 0.0;
+								VehicleStateBitsV::set_info(vehicle->state, VehicleStateBits::FL_COOLDOWN, VehicleStateBitsDivision::FLAGS);
+							} else {
+								float merging_gap = idm::actual_gap(
+									vehicle->cooperation_vehicle->s_on_lane, s_f, vehicle->cooperation_vehicle->length, vehicle->cooperation_vehicle->length);
+								a_cooperative = idm::idm_scalar(v_f, vehicle->cooperation_vehicle->currentSpeed, merging_gap, idm_def);
+								a_cooperative = std::max(a_cooperative, -idm_def.a_coop_max);
+							}
+						}
+					}
+
+					// check for leader in target lane
+					if (
+						VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::ST_CROSS)
+						&& vehicle->lane_target != nullptr) {
+						const auto& tgt_rt = lane_rt[vehicle->lane_target->index_in_buffer];
+						auto tgt_lead = tgt_leader(tgt_rt.idx, *vehicle);
+						if (tgt_lead != nullptr) {
+							v_leader = std::min(v_leader, tgt_lead->currentSpeed);
+
+							s_gap = std::min(
+								s_gap,
+								idm::actual_gap(tgt_lead->s_on_lane, s_f, tgt_lead->length, tgt_lead->length));
+						}
 					}
 
 					// ─── 2. IDM acceleration ────────────────────────────────────────
-					const float a = idm::idm_scalar(v_f, v_leader, s_gap, idm_def);
+					const float a_self = idm::idm_scalar(v_f, v_leader, s_gap, idm_def);
+					const float a = std::max(-idm_def.b_hard, std::min(a_self, a_cooperative)); // clamp by hard brake
 
 					// ─── 3. Kinematics update (Euler forward) ────────────────────────
-					const float v_next = std::clamp(v_f + a * static_cast<float>(dt), 0.0f, rt.max_speed);
+					const float v_next = std::clamp(v_f + a * static_cast<float>(dt), 0.0f, rt.max_speed + idm_def.v_limits_violate);
 					vehicle->v_next = v_next;
 					vehicle->s_next = s_f + v_f * dt + 0.5f * a * static_cast<float>(dt * dt);
 
+					if (debug.agent_id == vehicle->uid && vehicle->v_next < vehicle->currentSpeed) {
+						std::cout << "";
+					}
+
 					// ─── 4. Lane‑change decision (unchanged, but uses new kinematics) ─
 					const float dist_to_node = rt.length - s_f;
-					const AgentData& ag = *vehicle->agent;
 
 					const uint16_t change_state = static_cast<int>(VehicleStateBits::ST_PREPARE) | static_cast<int>(VehicleStateBits::ST_CROSS) | static_cast<int>(VehicleStateBits::ST_ALIGN);
 					if (!VehicleStateBitsV::has_any(vehicle->state, change_state, VehicleStateBitsDivision::STATE)) {
 						const int curr_idx = rt.static_lane->index_in_edge; // 0 = right-most
 						const int lanes_cnt = static_cast<int>(rt.static_lane->parent->lanes.size());
-						const uint32_t mask = ag.goal_lane_mask;
+						const uint32_t mask = vehicle->goal_lane_mask;
 						const int goal_idx = nearest_goal_idx(mask, curr_idx, lanes_cnt);
 
 						if (goal_idx >= 0 && goal_idx != curr_idx && !VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::FL_COOLDOWN)) {
 							const int lanes_delta = goal_idx - curr_idx; // +ve ⇒ need to go LEFT
-							const float prep = D_PREP + std::abs(lanes_delta) * D_PREP_PER_LANE;
+							// preparation for one lane and extra 0.8 for each lane above 1
+							const float prep = idm_def.s_preparation + (std::abs(lanes_delta) - 1) * idm_def.s_preparation * 0.8f;
 
 							if (dist_to_node < prep) {
 								Lane* neigh = (lanes_delta > 0) ? rt.static_lane->left() : rt.static_lane->right();
-
 								if (neigh) {
+									if (vehicle->current_lane->get_id() == 28 && neigh->get_id() == 5) {
+										std::cout << "";
+									}
 									vehicle->lane_target = neigh; // step one lane toward goal
 									VehicleStateBitsV::set_info(vehicle->state, VehicleStateBits::ST_PREPARE, VehicleStateBitsDivision::STATE);
-									vehicle->lane_change_time = 0.0f;
+									vehicle->action_time = 0.0;
 								}
 							}
 						}
@@ -314,16 +396,97 @@ namespace tjs::core::simulation {
 
 					// ─── 5. Cool‑down bookkeeping (unchanged) ────────────────────────
 					if (VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::FL_COOLDOWN)) {
-						float t = vehicle->lane_change_time;
-						t += static_cast<float>(dt);
-						if (t > T_MIN) {
+						vehicle->action_time += dt;
+						if (vehicle->action_time > idm_def.t_cooldown) {
 							VehicleStateBitsV::remove_info(vehicle->state, VehicleStateBits::FL_COOLDOWN, VehicleStateBitsDivision::FLAGS);
-							t = 0.f;
+							vehicle->action_time = 0.0f;
 						}
-						vehicle->lane_change_time = t;
 					}
 				}
 			}
+		}
+
+		bool check_can_switch(
+			const std::vector<LaneRuntime>& lane_rt,
+			const Lane* tgt,
+			Vehicle* vehicle,
+			const idm_params_t& p_idm,
+			bool is_mandatory_switch) {
+			// --- current-lane leader (for a_old) ---
+			const auto& idx_curr = lane_rt[vehicle->current_lane->index_in_buffer].idx;
+			Vehicle* curr_lead = nullptr;
+			if (idx_curr.size() > 1) {
+				auto it = std::find(idx_curr.begin(), idx_curr.end(), vehicle);
+				if (it != idx_curr.begin()) {
+					curr_lead = *(it - 1);
+				}
+			}
+			float gap_curr = std::numeric_limits<float>::infinity();
+			float v_lead_curr = vehicle->currentSpeed;
+			if (curr_lead) {
+				gap_curr = idm::actual_gap((float)curr_lead->s_on_lane,
+					(float)vehicle->s_on_lane,
+					curr_lead->length, vehicle->length);
+				v_lead_curr = curr_lead->currentSpeed;
+			}
+
+			// --- target-lane neighbors ---
+			const auto& idx_tgt = lane_rt[tgt->index_in_buffer].idx;
+			Vehicle* lead = tgt_leader(idx_tgt, *vehicle);
+			Vehicle* foll = tgt_follower(idx_tgt, *vehicle);
+
+			// front gap (ego vs target-lane leader)
+			float gap_front = std::numeric_limits<float>::infinity();
+			float v_lead = vehicle->currentSpeed;
+			if (lead) {
+				gap_front = idm::actual_gap((float)lead->s_on_lane,
+					(float)vehicle->s_on_lane,
+					lead->length, vehicle->length);
+				v_lead = lead->currentSpeed;
+			}
+
+			// divide t_headway by coeff to change faster
+			const float req_gap = std::max(p_idm.t_headway * p_idm.t_cross_headway_coeff * vehicle->currentSpeed, p_idm.s0);
+			const bool front_ok = (gap_front >= req_gap);
+
+			// rear safety (new follower vs ego as new leader)
+			bool rear_safe = true;
+			if (foll) {
+				const float gap_rear = idm::actual_gap((float)vehicle->s_on_lane,
+					(float)foll->s_on_lane,
+					vehicle->length, foll->length);
+				const float a_after = idm::idm_scalar(foll->currentSpeed,
+					vehicle->currentSpeed,
+					gap_rear, p_idm);
+				rear_safe = (a_after >= -p_idm.b_comf);
+			}
+
+			// --- Benefit / politeness (keep your mandatory override) ---
+			const float a_old = idm::idm_scalar(vehicle->currentSpeed, v_lead_curr, gap_curr, p_idm);
+			const float a_new = idm::idm_scalar(vehicle->currentSpeed, v_lead, gap_front, p_idm);
+			const float benefit = a_new - a_old;
+			const bool polite = (is_mandatory_switch && a_new > -(p_idm.b_comf * 2.0f)) || (benefit > p_idm.a_politeness_threshold);
+
+			const bool ok = front_ok && rear_safe && polite;
+			return ok;
+		}
+
+		void flush_target(Vehicle* v, std::vector<LaneRuntime>& lane_rt) {
+			if (v->lane_target == nullptr) {
+				return;
+			}
+			auto& rt = lane_rt[v->lane_target->index_in_buffer];
+			auto it = std::ranges::find(rt.idx, v);
+			if (it != rt.idx.end()) {
+				rt.idx.erase(it);
+			}
+
+			auto it_slot = std::ranges::find(rt.vehicle_slots, v);
+			if (it_slot != rt.vehicle_slots.end()) {
+				rt.vehicle_slots.erase(it_slot);
+			}
+
+			v->lane_target = nullptr;
 		}
 
 		void phase2_commit(
@@ -353,68 +516,64 @@ namespace tjs::core::simulation {
 				Vehicle* vehicle;
 				Lane* src;
 				Lane* tgt;
+				bool shadow;
 			};
 
 			std::vector<PendingMove> pending_moves;
 			// Suppose that 10% will be moved in one tick
 			pending_moves.reserve(agents.size() / 10);
 
+			/*auto _check = [&lane_rt](const Lane& _lane_s) {
+				auto _lane = lane_rt[_lane_s.index_in_buffer];
+				float s = std::numeric_limits<float>::max();
+				for (size_t i = 0; i < _lane.idx.size(); ++i) {
+					auto v = _lane.idx[i];
+					if (VehicleStateBitsV::has_info(v->state, VehicleStateBits::ST_PREPARE)) {
+						continue;
+					}
+					if (v->s_on_lane > s) {
+						return (int)i;
+					}
+					s = v->s_on_lane;
+				}
+				return -1;
+			};*/
+
 			/* ---------------- lateral loop --------------------------------------- */
 			for (const LaneRuntime& rt : lane_rt) {
 				for (Vehicle* vehicle : rt.idx) {
+					const bool is_shadow = rt.static_lane != vehicle->current_lane && vehicle->lane_target != nullptr;
+					if (is_shadow) {
+						continue;
+					}
+
 					if (VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::ST_STOPPED)) {
-						vehicle->lane_target = nullptr;
 						continue;
 					}
 
 					Lane* tgt = vehicle->lane_target;
 					if (VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::ST_PREPARE) && tgt) {
-						vehicle->lane_change_time += static_cast<float>(dt);
-						bool ready = vehicle->lane_change_time >= T_PREPARE;
-						bool gap_ok_simple = false;
-						bool politeness = false;
+						vehicle->action_time += dt;
+						bool ready = vehicle->action_time >= p_idm.t_prepare;
 
-						if (ready) {
-							/* ---- leader on target lane ----------------------------------- */
-							const LaneRuntime& tgt_rt = lane_rt[tgt->index_in_buffer];
-							const auto& idx = tgt_rt.idx;
-							auto it = std::lower_bound(idx.begin(), idx.end(), vehicle->s_on_lane,
-								[&](Vehicle* v, double pos) { return v->s_on_lane > pos; });
-							float gap_lead = std::numeric_limits<float>::infinity();
-							float v_lead = vehicle->currentSpeed;
-							if (it != idx.begin()) {
-								Vehicle* j_lead = *(it - 1);
-								gap_lead = idm::actual_gap(static_cast<float>(j_lead->s_on_lane),
-									static_cast<float>(vehicle->s_on_lane),
-									j_lead->length, vehicle->length);
-								v_lead = j_lead->currentSpeed;
-							}
-
-							/* ---- leader on current lane --------------------------------- */
-							const auto& idx_curr = rt.idx;
-							auto it_c = std::find(idx_curr.begin(), idx_curr.end(), vehicle);
-							float gap_curr = std::numeric_limits<float>::infinity();
-							float v_lead_curr = vehicle->currentSpeed;
-							if (it_c != idx_curr.begin()) {
-								Vehicle* j_curr = *(it_c - 1);
-								gap_curr = idm::actual_gap(static_cast<float>(j_curr->s_on_lane),
-									static_cast<float>(vehicle->s_on_lane),
-									j_curr->length, vehicle->length);
-								v_lead_curr = j_curr->currentSpeed;
-							}
-
-							float a_old = idm::idm_scalar(vehicle->currentSpeed, v_lead_curr, gap_curr, p_idm);
-							float a_new = idm::idm_scalar(vehicle->currentSpeed, v_lead, gap_lead, p_idm);
-							const float benefit = a_new - a_old;
-
-							bool mandatory = true;
-							politeness = mandatory ? true : benefit > POLITENESS_THRESHOLD;
-
-							float req_gap = std::max(TAU * vehicle->currentSpeed + DELTA, MIN_GAP);
-							gap_ok_simple = gap_lead >= req_gap;
+						if (debug.agent_id == vehicle->uid) {
+							std::cout << "";
 						}
 
-						if (ready && politeness && gap_ok_simple) {
+						// insert shadow
+						if (auto& rt_tgt = lane_rt[tgt->index_in_buffer]; std::ranges::find(rt_tgt.vehicle_slots, vehicle) == rt_tgt.vehicle_slots.end()) {
+							auto it_ins = std::lower_bound(rt_tgt.vehicle_slots.begin(), rt_tgt.vehicle_slots.end(),
+								vehicle->s_on_lane, [](Vehicle* v, float s) {
+									return v->s_on_lane > s;
+								});
+							rt_tgt.vehicle_slots.insert(it_ins, vehicle);
+						}
+
+						bool can_switch = ready && check_can_switch(lane_rt, tgt, vehicle, p_idm, true);
+						if (ready && can_switch) {
+							if (debug.agent_id == vehicle->uid) {
+								std::cout << "";
+							}
 							vehicle->has_position_changes = true;
 
 							auto& start = vehicle->current_lane->centerLine.front();
@@ -423,30 +582,36 @@ namespace tjs::core::simulation {
 							const bool positive_dir = algo::is_in_first_or_fourth(start, end, start, tgt->centerLine.front());
 							vehicle->lane_change_dir = positive_dir ? 1 : -1;
 							vehicle->lateral_offset = 0.0f;
-							vehicle->lane_change_time = 0.0f;
+							vehicle->action_time = 0.0;
 							VehicleStateBitsV::overwrite_info(vehicle->state, VehicleStateBits::ST_CROSS, VehicleStateBitsDivision::STATE);
 							continue;
 						}
 					} else if (VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::ST_CROSS)) {
-						vehicle->lane_change_time += static_cast<float>(dt);
-						float prog = std::min(vehicle->lane_change_time / T_CROSS, 1.0f);
-						float cos_term = std::sin(static_cast<float>(tjs::core::MathConstants::M_PI) * 0.5f * prog);
-						vehicle->lateral_offset = static_cast<float>(vehicle->lane_change_dir) * static_cast<float>(vehicle->current_lane->width) * cos_term;
+						if (debug.agent_id == vehicle->uid) {
+							std::cout << "";
+						}
+						vehicle->action_time += dt;
+						double prog = std::min(vehicle->action_time / p_idm.t_cross, 1.0);
+						double cos_term = std::sin(tjs::core::MathConstants::M_PI * 0.5 * prog);
+						vehicle->lateral_offset = vehicle->lane_change_dir * vehicle->current_lane->width * cos_term;
 						vehicle->has_position_changes = true;
 						if (prog >= 1.0f) {
-							pending_moves.push_back(PendingMove { vehicle, rt.static_lane, tgt });
-							vehicle->lane_target = nullptr;
+							if (debug.agent_id == vehicle->uid) {
+								std::cout << "";
+							}
+							pending_moves.push_back(PendingMove { vehicle, rt.static_lane, tgt, false });
+							flush_target(vehicle, lane_rt);
 
 							vehicle->lateral_offset = 0.0f;
-							vehicle->lane_change_time = 0.0f;
+							vehicle->action_time = 0.0;
 							VehicleStateBitsV::overwrite_info(vehicle->state, VehicleStateBits::ST_ALIGN, VehicleStateBitsDivision::STATE);
 						}
 					} else if (VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::ST_ALIGN)) {
-						vehicle->lane_change_time += static_cast<float>(dt);
-						if (vehicle->lane_change_time >= T_ALIGN) {
+						vehicle->action_time += dt;
+						if (vehicle->action_time >= p_idm.t_align) {
 							VehicleStateBitsV::overwrite_info(vehicle->state, VehicleStateBits::ST_FOLLOW, VehicleStateBitsDivision::STATE);
 							VehicleStateBitsV::set_info(vehicle->state, VehicleStateBits::FL_COOLDOWN, VehicleStateBitsDivision::FLAGS);
-							vehicle->lane_change_time = 0.0f;
+							vehicle->action_time = 0.0;
 						}
 					}
 				}
@@ -454,8 +619,13 @@ namespace tjs::core::simulation {
 
 			/* ----------------  Do all moves after scanning--------------------------------------- */
 			for (const auto& m : pending_moves) {
-				idm::move_index(m.vehicle, lane_rt, m.src, m.tgt);
-				m.vehicle->current_lane = m.tgt;
+				idm::move_index(m.vehicle, lane_rt, m.src, m.tgt, m.shadow);
+				if (!m.shadow) {
+					m.vehicle->current_lane = m.tgt;
+					if (m.vehicle->lane_target != nullptr) {
+						std::cout << "";
+					}
+				}
 			}
 
 			using VSB = VehicleStateBits;
@@ -485,13 +655,14 @@ namespace tjs::core::simulation {
 					&& debug.lane_id == lane->get_id());
 
 				while (remain >= lane->length - 1e-6) {
-					if (i == VEHICLE_ID) {
+					if (v.uid == debug.agent_id) {
 						std::cout << "";
 					}
 					remain -= lane->length;
 
 					++ag.path_offset;
 					if (ag.path_offset >= ag.path.size()) {
+						flush_target(&v, lane_rt);
 						stop_moving(i, ag, v, lane, VehicleMovementError::ER_NO_PATH);
 						break;
 					}
@@ -506,12 +677,13 @@ namespace tjs::core::simulation {
 
 					Lane* entry = choose_entry_lane(lane, next_edge, err);
 					if (err != VehicleMovementError::ER_NO_ERROR || !entry) {
+						flush_target(&v, lane_rt);
 						stop_moving(i, ag, v, lane, err);
 						break;
 					}
 
 					if (!gap_ok(lane_rt[entry->index_in_buffer],
-							v,
+							v.currentSpeed,
 							remain, v.length,
 							p_idm, dt)) {
 						v.s_on_lane = lane->length - 0.01;
@@ -536,13 +708,15 @@ namespace tjs::core::simulation {
 					/* ----- commit hop ------------------------------------------- */
 					v.s_on_lane = remain;
 					idm::move_index(&v, lane_rt, lane, entry);
+					flush_target(&v, lane_rt);
+
 					lane = entry;
 					v.current_lane = entry;
 
 					if (ag.path_offset < ag.path.size() - 1) {
-						ag.goal_lane_mask = build_goal_mask(*entry->parent, *ag.path[ag.path_offset + 1]);
+						v.goal_lane_mask = build_goal_mask(*entry->parent, *ag.path[ag.path_offset + 1]);
 					} else {
-						ag.goal_lane_mask = 0xFFFF;
+						v.goal_lane_mask = 0xFFFF;
 					}
 					/* ----- SUMO‑style speed clamp ------------------------------ */
 					const auto& tgt_idx = lane_rt[entry->index_in_buffer].idx;

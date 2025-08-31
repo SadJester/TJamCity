@@ -18,6 +18,7 @@ namespace tjs::core {
 		Raceway, Escape, Emergency_Bay, Rest_Area, Services,
 		// Special access roads
 		Bus_Stop, Emergency_Access, Delivery_Access);
+
 	ENUM_FLAG(TurnDirection, char,
 		None = 0,
 		Left = 1 << 0,

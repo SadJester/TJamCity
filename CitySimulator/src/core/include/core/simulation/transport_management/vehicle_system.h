@@ -40,7 +40,7 @@ namespace tjs::core::simulation {
 		void commit();
 
 		// return handle to vehicle
-		std::optional<Vehicle*> create_vehicle(Lane& lane, VehicleType type);
+		std::optional<Vehicle*> create_vehicle(Lane& lane, VehicleType type, float desired_speed);
 		void remove_vehicle(Vehicle* vehicle);
 
 	private:
