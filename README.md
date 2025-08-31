@@ -34,7 +34,10 @@ It is graph with `std::unordered_map<Node*, std::vector<Edge*>>` stored in [Road
 Future plans: support complex junctions and multi-lane geometry.
 
 Example (work-in-progress):
-<details> <summary>Preview</summary> <img src="Docs/data/tjs_agent_simple.gif" alt="OSM parsing demo"/> </details>
+<details>
+    <summary><strong><span style="font-size:1.2em">🚗  Preview</span></strong></summary>
+    <img src="Docs/data/tjs_agent_simple.gif" alt="OSM parsing demo"/>
+</details>
 
 ### Path finding
 - Current implementation: A* search on the road graph.
@@ -50,13 +53,19 @@ Future plans:
 - Introduce **threading** to improve performance and scalability.  
 
 Example:
-<details> <summary>Preview</summary> <img src="Docs/data/tjs_idm_lane_change.gif" alt="Lane changing demo"/> </details>
+<details>
+    <summary><strong><span style="font-size:1.2em">🚗  Preview</span></strong></summary>
+    <img src="Docs/data/tjs_idm_lane_change.gif" alt="Lane changing demo"/>
+</details>
 
 ### Intersections
 There is no tracking of intersections now. It is in nearest plans.
 🚧 Not yet tracked.
 
-<details> <summary>Preview</summary> <img src="Docs/data/tjs_following.gif" alt="Following changing demo"/> </details>
+<details>
+    <summary><strong><span style="font-size:1.2em">🚗  Preview</span></strong></summary>
+    <img src="Docs/data/tjs_following.gif" alt="Following changing demo"/>
+</details>
 
 ### Traffic lights
 🚧 Not yet tracked. Should be after intersections and refactor phase.
