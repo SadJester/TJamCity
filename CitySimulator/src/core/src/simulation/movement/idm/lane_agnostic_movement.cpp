@@ -16,14 +16,6 @@
 #include <core/simulation/agent/agent_data.h>
 #include <core/simulation/simulation_system.h>
 
-namespace {
-	// TODO: This params should be edited with idm and slowing before crossing
-	constexpr float T_ALIGN = 0.1f;
-	constexpr float POLITENESS_THRESHOLD = 0.2f;
-
-	static int VEHICLE_ID = 587806;
-} // namespace
-
 namespace tjs::core::simulation {
 	namespace idm {
 
@@ -291,7 +283,7 @@ namespace tjs::core::simulation {
 					float s_gap = 1e9f;   // sentinel = "free road"
 					float v_leader = v_f; // same speed → Δv = 0
 
-					if (VEHICLE_ID == vehicle->uid) {
+					if (debug.agent_id == vehicle->uid) {
 						std::cout << "";
 					}
 
@@ -371,7 +363,7 @@ namespace tjs::core::simulation {
 					vehicle->v_next = v_next;
 					vehicle->s_next = s_f + v_f * dt + 0.5f * a * static_cast<float>(dt * dt);
 
-					if (VEHICLE_ID == vehicle->uid && vehicle->v_next < vehicle->currentSpeed) {
+					if (debug.agent_id == vehicle->uid && vehicle->v_next < vehicle->currentSpeed) {
 						std::cout << "";
 					}
 
@@ -533,7 +525,7 @@ namespace tjs::core::simulation {
 			// Suppose that 10% will be moved in one tick
 			pending_moves.reserve(agents.size() / 10);
 
-			auto _check = [&lane_rt](const Lane& _lane_s) {
+			/*auto _check = [&lane_rt](const Lane& _lane_s) {
 				auto _lane = lane_rt[_lane_s.index_in_buffer];
 				float s = std::numeric_limits<float>::max();
 				for (size_t i = 0; i < _lane.idx.size(); ++i) {
@@ -547,7 +539,7 @@ namespace tjs::core::simulation {
 					s = v->s_on_lane;
 				}
 				return -1;
-			};
+			};*/
 
 			/* ---------------- lateral loop --------------------------------------- */
 			for (const LaneRuntime& rt : lane_rt) {
@@ -566,7 +558,7 @@ namespace tjs::core::simulation {
 						vehicle->action_time += dt;
 						bool ready = vehicle->action_time >= p_idm.t_prepare;
 
-						if (VEHICLE_ID == vehicle->uid) {
+						if (debug.agent_id == vehicle->uid) {
 							std::cout << "";
 						}
 
@@ -581,7 +573,7 @@ namespace tjs::core::simulation {
 
 						bool can_switch = ready && check_can_switch(lane_rt, tgt, vehicle, p_idm, true);
 						if (ready && can_switch) {
-							if (VEHICLE_ID == vehicle->uid) {
+							if (debug.agent_id == vehicle->uid) {
 								std::cout << "";
 							}
 							vehicle->has_position_changes = true;
@@ -597,7 +589,7 @@ namespace tjs::core::simulation {
 							continue;
 						}
 					} else if (VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::ST_CROSS)) {
-						if (VEHICLE_ID == vehicle->uid) {
+						if (debug.agent_id == vehicle->uid) {
 							std::cout << "";
 						}
 						vehicle->action_time += dt;
@@ -606,7 +598,7 @@ namespace tjs::core::simulation {
 						vehicle->lateral_offset = vehicle->lane_change_dir * vehicle->current_lane->width * cos_term;
 						vehicle->has_position_changes = true;
 						if (prog >= 1.0f) {
-							if (VEHICLE_ID == vehicle->uid) {
+							if (debug.agent_id == vehicle->uid) {
 								std::cout << "";
 							}
 							pending_moves.push_back(PendingMove { vehicle, rt.static_lane, tgt, false });
@@ -635,14 +627,6 @@ namespace tjs::core::simulation {
 					if (m.vehicle->lane_target != nullptr) {
 						std::cout << "";
 					}
-				}
-				if (int vi = _check(*m.src); vi != -1) {
-					_check(*m.src);
-					std::cout << vi << std::endl;
-				}
-				if (int vi = _check(*m.tgt); vi != -1) {
-					_check(*m.tgt);
-					std::cout << vi << std::endl;
 				}
 			}
 
@@ -673,7 +657,7 @@ namespace tjs::core::simulation {
 					&& debug.lane_id == lane->get_id());
 
 				while (remain >= lane->length - 1e-6) {
-					if (v.uid == VEHICLE_ID) {
+					if (v.uid == debug.agent_id) {
 						std::cout << "";
 					}
 					remain -= lane->length;
@@ -727,12 +711,6 @@ namespace tjs::core::simulation {
 					v.s_on_lane = remain;
 					idm::move_index(&v, lane_rt, lane, entry);
 					flush_target(&v, lane_rt);
-					if (int vi = _check(*lane); vi != -1) {
-						std::cout << vi << std::endl;
-					}
-					if (int vi = _check(*entry); vi != -1) {
-						std::cout << vi << std::endl;
-					}
 
 					lane = entry;
 					v.current_lane = entry;
