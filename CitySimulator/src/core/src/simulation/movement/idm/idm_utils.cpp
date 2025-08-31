@@ -25,9 +25,9 @@ namespace tjs::core::simulation::idm {
 	float desired_gap(const float v_follower,
 		const float delta_v,
 		const idm_params_t& p) noexcept {
-		const float braking_term = (v_follower * delta_v) / (2.0f * std::sqrt(p.a_max * p.b_comf));
-		const float dyn = v_follower * p.t_headway + braking_term;
-		return p.s0 + std::max(0.0f, dyn);
+		const float root = 2.0f * std::sqrt(p.a_max * p.b_comf);
+		const float braking_add = std::max(0.0f, (v_follower * delta_v) / root); // clamp only add-on
+		return p.s0 + v_follower * p.t_headway + braking_add;
 	}
 
 	bool gap_ok(const LaneRuntime& tgt_rt,

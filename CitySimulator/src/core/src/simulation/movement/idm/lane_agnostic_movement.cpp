@@ -33,10 +33,10 @@ namespace tjs::core::simulation {
 	namespace idm {
 
 		float idm_scalar(const float v_follower,
-			const float v_leader,
+			const float v_desired,
 			const float s_gap,
 			const idm_params_t& p) noexcept {
-			const float delta_v = v_follower - v_leader; // closing speed
+			const float delta_v = v_follower - v_desired; // closing speed
 			const float s_star = desired_gap(v_follower, delta_v, p);
 
 			// Free‑road acceleration and interaction (car‑following) terms
@@ -248,14 +248,6 @@ namespace tjs::core::simulation {
 			return &lane != vehicle.current_lane && VehicleStateBitsV::has_any(vehicle.state, change_state, VehicleStateBitsDivision::STATE);
 		}
 
-		// Return if vehicle is wanting to change lane
-		bool is_slot(const Vehicle& vehicle, const Lane& lane) {
-			if (vehicle.lane_target == nullptr) {
-				return false;
-			}
-			return &lane != vehicle.current_lane && VehicleStateBitsV::has_info(vehicle.state, VehicleStateBits::ST_PREPARE);
-		}
-
 		void phase1_simd(
 			TrafficSimulationSystem& system,
 			const std::vector<AgentData*>& agents,
@@ -271,7 +263,7 @@ namespace tjs::core::simulation {
 			auto& debug = system.settings().debug_data;
 #endif
 
-			const idm::idm_params_t idm_def {}; // default calibrated parameters
+			idm::idm_params_t idm_def {}; // default calibrated parameters
 
 			/* threaded outer loop over lanes (keep free to add OpenMP/TBB) */
 			// #pragma omp parallel for schedule(dynamic,4)
@@ -289,7 +281,14 @@ namespace tjs::core::simulation {
 				// ---------------------------------------------------------------------
 				for (std::size_t k = 0; k < n; ++k) {
 					Vehicle* vehicle = idx[k]; // follower vehicle pointer
-
+					if (k == 1) {
+						idm_def.a_max = 7.0f;
+						idm_def.delta = 5;
+						idm_def.a_coop_max = 5.0f;
+						idm_def.t_headway = 0.5f;
+						idm_def.s0 = 1.0f;
+						idm_def.v_limits_violate = 5.5f;
+					}
 					TJS_BREAK_IF(
 						debug.movement_phase == SimulationMovementPhase::IDM_Phase1_Vehicle
 						&& debug.lane_id == rt.static_lane->get_id()
@@ -301,7 +300,7 @@ namespace tjs::core::simulation {
 						continue;
 					}
 
-					if (is_merging(*vehicle, *rt.static_lane) || is_slot(*vehicle, *rt.static_lane)) {
+					if (is_merging(*vehicle, *rt.static_lane)) {
 						continue;
 					}
 
@@ -323,9 +322,6 @@ namespace tjs::core::simulation {
 					while (candidate >= 0) {
 						const Vehicle* leader = idx[candidate];
 						--candidate;
-						if (is_slot(*leader, *rt.static_lane)) {
-							continue;
-						}
 
 						v_leader = leader->currentSpeed;
 						s_gap = idm::actual_gap(leader->s_on_lane, s_f, leader->length, leader->length);
@@ -333,15 +329,34 @@ namespace tjs::core::simulation {
 					}
 
 					// try to pass vehicle
-					for (auto it_slot = rt.vehicle_slots.rbegin(); it_slot != rt.vehicle_slots.rend(); ++it_slot) {
-						float gg = (*it_slot)->s_on_lane - s_f;
-						if (gg > 15.0f) {
-							break;
+					// MODEL PARAMETERS
+					Vehicle* merging_v = nullptr;
+					////////
+
+					float a_cooperative = std::numeric_limits<float>::max();
+					if (idm_def.is_cooperating) {
+						if (merging_v == nullptr) {
+							for (auto it_slot = rt.vehicle_slots.rbegin(); it_slot != rt.vehicle_slots.rend(); ++it_slot) {
+								float gg = (*it_slot)->s_on_lane - s_f;
+								if (gg > 15.0f) {
+									break;
+								}
+								if (gg > 0.0f) {
+									merging_v = *it_slot;
+									break;
+								}
+							}
 						}
-						if (gg > 0.0f && gg < 2.0f) {
-							v_leader = (*it_slot)->currentSpeed;
-							s_gap = idm::actual_gap((*it_slot)->s_on_lane, s_f, (*it_slot)->length, (*it_slot)->length);
-							break;
+						if (merging_v != nullptr) {
+							if (!VehicleStateBitsV::has_info(merging_v->state, VehicleStateBits::ST_PREPARE)) {
+								merging_v = nullptr;
+							} else {
+								//v_leader = merging_v->currentSpeed;
+								//s_gap = idm::actual_gap(merging_v->s_on_lane, s_f, merging_v->length, merging_v->length);
+								float merging_gap = idm::actual_gap(merging_v->s_on_lane, s_f, merging_v->length, merging_v->length);
+								a_cooperative = idm::idm_scalar(v_f, merging_v->currentSpeed, merging_gap, idm_def);
+								a_cooperative = std::max(a_cooperative, -idm_def.a_coop_max);
+							}
 						}
 					}
 
@@ -361,10 +376,11 @@ namespace tjs::core::simulation {
 					}
 
 					// ─── 2. IDM acceleration ────────────────────────────────────────
-					const float a = idm::idm_scalar(v_f, v_leader, s_gap, idm_def);
+					const float a_self = idm::idm_scalar(v_f, v_leader, s_gap, idm_def);
+					const float a = std::max(-idm_def.b_hard, std::min(a_self, a_cooperative)); // clamp by hard brake
 
 					// ─── 3. Kinematics update (Euler forward) ────────────────────────
-					const float v_next = std::clamp(v_f + a * static_cast<float>(dt), 0.0f, rt.max_speed);
+					const float v_next = std::clamp(v_f + a * static_cast<float>(dt), 0.0f, rt.max_speed + idm_def.v_limits_violate);
 					vehicle->v_next = v_next;
 					vehicle->s_next = s_f + v_f * dt + 0.5f * a * static_cast<float>(dt * dt);
 
@@ -452,9 +468,6 @@ namespace tjs::core::simulation {
 					lead->length, vehicle->length);
 				v_lead = lead->currentSpeed;
 			}
-			//const float dv_front = vehicle->currentSpeed - v_lead;               // closing speed
-			//const float s_star   = idm::desired_gap(vehicle->currentSpeed, dv_front, p_idm);
-			//const bool  front_ok = (gap_front >= std::max(MIN_GAP, s_star));
 
 			const float req_gap = std::max(TAU * vehicle->currentSpeed + DELTA, MIN_GAP);
 			const bool front_ok = (gap_front >= req_gap);

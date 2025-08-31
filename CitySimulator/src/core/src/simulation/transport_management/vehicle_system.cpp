@@ -66,32 +66,14 @@ namespace tjs::core::simulation {
 		return vehicle_ptr;
 	}
 
-	// TODO: Duplicate function!!!
-	bool is_slot(const Vehicle& vehicle, const Lane& lane) {
-		if (vehicle.lane_target == nullptr) {
-			return false;
-		}
-		return &lane != vehicle.current_lane && VehicleStateBitsV::has_info(vehicle.state, VehicleStateBits::ST_PREPARE);
-	}
-
 	bool allowed_on_lane(const LaneRuntime& lane, float v_length, float v_speed, float dt) {
 		if (lane.idx.empty()) {
 			return true;
 		}
 
 		// 2 meters from bumper
-		int candidate = static_cast<int>(lane.idx.size() - 1);
-
-		while (candidate != 0) {
-			const Vehicle* leader = lane.idx[candidate];
-			--candidate;
-			if (is_slot(*leader, *lane.static_lane)) {
-				continue;
-			}
-			return idm::gap_ok(lane, v_speed, v_length / 2.0f, v_length, {}, dt);
-		}
-
-		return true;
+		Vehicle* leader = lane.idx.back();
+		return idm::gap_ok(lane, v_speed, v_length / 2.0f, v_length, {}, dt);
 	}
 
 	VehicleSystem::VehicleSystem(TrafficSimulationSystem& system)
