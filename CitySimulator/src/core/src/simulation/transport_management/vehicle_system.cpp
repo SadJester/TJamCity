@@ -65,7 +65,6 @@ namespace tjs::core::simulation {
 		vehicle.current_lane->vehicles.push_back(&vehicle);
 		lane_rt[lane.index_in_buffer].idx.push_back(&vehicle);
 		vehicle.has_position_changes = false;
-		vehicle.lane_change_dir = 0;
 
 		return vehicle_ptr;
 	}
@@ -76,7 +75,6 @@ namespace tjs::core::simulation {
 		}
 
 		// 2 meters from bumper
-		Vehicle* leader = lane.idx.back();
 		return idm::gap_ok(lane, v_speed, v_length / 2.0f, v_length, {}, dt);
 	}
 
