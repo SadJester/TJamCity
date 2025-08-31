@@ -288,14 +288,12 @@ namespace tjs::core::simulation {
 					}
 
 					// Find leader in current lane (or check it in coherent lane)
-					int candidate = k - 1;
-					while (candidate >= 0) {
-						const Vehicle* leader = idx[candidate];
-						--candidate;
-
-						v_leader = leader->currentSpeed;
-						s_gap = idm::actual_gap(leader->s_on_lane, s_f, leader->length, leader->length);
-						break;
+					if (k > 0) {
+						Vehicle* leader = idx[k - 1];
+						if (debug.agent_id == vehicle->uid) {
+							std::cout << "";
+						}
+						s_gap = idm::actual_gap(leader->s_on_lane, s_f, leader->length, l_f);
 					}
 
 					// try to pass vehicle
