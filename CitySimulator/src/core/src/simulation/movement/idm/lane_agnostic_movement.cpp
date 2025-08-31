@@ -18,13 +18,8 @@
 
 namespace {
 	// TODO: This params should be edited with idm and slowing before crossing
-	constexpr float T_PREPARE = 0.1f;
-	constexpr float T_CROSS = 2.0f;
 	constexpr float T_ALIGN = 0.1f;
 	constexpr float POLITENESS_THRESHOLD = 0.2f;
-	constexpr float TAU = .2f;    // desired time clearance to the leader (seconds)
-	constexpr float DELTA = 0.3f; // extra stand-still buffer (metres) that covers vehicle length, perception error, etc.
-	constexpr float MIN_GAP = 2.0f;
 
 	static int VEHICLE_ID = 587806;
 } // namespace
@@ -238,16 +233,6 @@ namespace tjs::core::simulation {
 			return -1; // should not happen if mask!=0 and lanes_count>0
 		}
 
-		// Return if vehicle is shadow in lane (behin to change lane)
-		bool is_merging(const Vehicle& vehicle, const Lane& lane) {
-			if (vehicle.lane_target == nullptr) {
-				return false;
-			}
-
-			const uint16_t change_state = static_cast<int>(VehicleStateBits::ST_PREPARE) | static_cast<int>(VehicleStateBits::ST_CROSS);
-			return &lane != vehicle.current_lane && VehicleStateBitsV::has_any(vehicle.state, change_state, VehicleStateBitsDivision::STATE);
-		}
-
 		void phase1_simd(
 			TrafficSimulationSystem& system,
 			const std::vector<AgentData*>& agents,
@@ -281,14 +266,7 @@ namespace tjs::core::simulation {
 				// ---------------------------------------------------------------------
 				for (std::size_t k = 0; k < n; ++k) {
 					Vehicle* vehicle = idx[k]; // follower vehicle pointer
-					if (k == 1) {
-						idm_def.a_max = 7.0f;
-						idm_def.delta = 5;
-						idm_def.a_coop_max = 5.0f;
-						idm_def.t_headway = 0.5f;
-						idm_def.s0 = 1.0f;
-						idm_def.v_limits_violate = 5.5f;
-					}
+
 					TJS_BREAK_IF(
 						debug.movement_phase == SimulationMovementPhase::IDM_Phase1_Vehicle
 						&& debug.lane_id == rt.static_lane->get_id()
@@ -300,7 +278,7 @@ namespace tjs::core::simulation {
 						continue;
 					}
 
-					if (is_merging(*vehicle, *rt.static_lane)) {
+					if (vehicle->is_merging(*rt.static_lane)) {
 						continue;
 					}
 
@@ -329,32 +307,41 @@ namespace tjs::core::simulation {
 					}
 
 					// try to pass vehicle
-					// MODEL PARAMETERS
-					Vehicle* merging_v = nullptr;
-					////////
-
 					float a_cooperative = std::numeric_limits<float>::max();
-					if (idm_def.is_cooperating) {
-						if (merging_v == nullptr) {
+					if (idm_def.is_cooperating
+						&& VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::ST_FOLLOW)
+						&& !VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::FL_COOLDOWN)) {
+						if (vehicle->cooperation_vehicle == nullptr) {
 							for (auto it_slot = rt.vehicle_slots.rbegin(); it_slot != rt.vehicle_slots.rend(); ++it_slot) {
 								float gg = (*it_slot)->s_on_lane - s_f;
 								if (gg > 15.0f) {
 									break;
 								}
 								if (gg > 0.0f) {
-									merging_v = *it_slot;
+									vehicle->cooperation_vehicle = *it_slot;
+									vehicle->action_time = 0.0;
 									break;
 								}
 							}
 						}
-						if (merging_v != nullptr) {
-							if (!VehicleStateBitsV::has_info(merging_v->state, VehicleStateBits::ST_PREPARE)) {
-								merging_v = nullptr;
+					} else {
+						vehicle->cooperation_vehicle = nullptr;
+					}
+
+					if (vehicle->cooperation_vehicle != nullptr) {
+						// reset cooperation vehicle if it is not merging in our lane or not in prepare state
+						if (!VehicleStateBitsV::has_info(vehicle->cooperation_vehicle->state, VehicleStateBits::ST_PREPARE) || vehicle->cooperation_vehicle->lane_target != rt.static_lane) {
+							vehicle->cooperation_vehicle = nullptr;
+						} else {
+							vehicle->action_time += dt;
+							if (vehicle->action_time >= idm_def.t_max_coop_time) {
+								vehicle->cooperation_vehicle = nullptr;
+								vehicle->action_time = 0.0;
+								VehicleStateBitsV::set_info(vehicle->state, VehicleStateBits::FL_COOLDOWN, VehicleStateBitsDivision::FLAGS);
 							} else {
-								//v_leader = merging_v->currentSpeed;
-								//s_gap = idm::actual_gap(merging_v->s_on_lane, s_f, merging_v->length, merging_v->length);
-								float merging_gap = idm::actual_gap(merging_v->s_on_lane, s_f, merging_v->length, merging_v->length);
-								a_cooperative = idm::idm_scalar(v_f, merging_v->currentSpeed, merging_gap, idm_def);
+								float merging_gap = idm::actual_gap(
+									vehicle->cooperation_vehicle->s_on_lane, s_f, vehicle->cooperation_vehicle->length, vehicle->cooperation_vehicle->length);
+								a_cooperative = idm::idm_scalar(v_f, vehicle->cooperation_vehicle->currentSpeed, merging_gap, idm_def);
 								a_cooperative = std::max(a_cooperative, -idm_def.a_coop_max);
 							}
 						}
@@ -400,7 +387,8 @@ namespace tjs::core::simulation {
 
 						if (goal_idx >= 0 && goal_idx != curr_idx && !VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::FL_COOLDOWN)) {
 							const int lanes_delta = goal_idx - curr_idx; // +ve ⇒ need to go LEFT
-							const float prep = D_PREP + std::abs(lanes_delta) * D_PREP_PER_LANE;
+							// preparation for one lane and extra 0.8 for each lane above 1
+							const float prep = idm_def.s_preparation + (std::abs(lanes_delta) - 1) * idm_def.s_preparation * 0.8f;
 
 							if (dist_to_node < prep) {
 								Lane* neigh = (lanes_delta > 0) ? rt.static_lane->left() : rt.static_lane->right();
@@ -410,7 +398,7 @@ namespace tjs::core::simulation {
 									}
 									vehicle->lane_target = neigh; // step one lane toward goal
 									VehicleStateBitsV::set_info(vehicle->state, VehicleStateBits::ST_PREPARE, VehicleStateBitsDivision::STATE);
-									vehicle->lane_change_time = 0.0f;
+									vehicle->action_time = 0.0;
 								}
 							}
 						}
@@ -418,13 +406,11 @@ namespace tjs::core::simulation {
 
 					// ─── 5. Cool‑down bookkeeping (unchanged) ────────────────────────
 					if (VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::FL_COOLDOWN)) {
-						float t = vehicle->lane_change_time;
-						t += static_cast<float>(dt);
-						if (t > T_MIN) {
+						vehicle->action_time += dt;
+						if (vehicle->action_time > idm_def.t_cooldown) {
 							VehicleStateBitsV::remove_info(vehicle->state, VehicleStateBits::FL_COOLDOWN, VehicleStateBitsDivision::FLAGS);
-							t = 0.f;
+							vehicle->action_time = 0.0f;
 						}
-						vehicle->lane_change_time = t;
 					}
 				}
 			}
@@ -469,7 +455,8 @@ namespace tjs::core::simulation {
 				v_lead = lead->currentSpeed;
 			}
 
-			const float req_gap = std::max(TAU * vehicle->currentSpeed + DELTA, MIN_GAP);
+			// divide t_headway by coeff to change faster
+			const float req_gap = std::max(p_idm.t_headway * p_idm.t_cross_headway_coeff * vehicle->currentSpeed, p_idm.s0);
 			const bool front_ok = (gap_front >= req_gap);
 
 			// rear safety (new follower vs ego as new leader)
@@ -488,7 +475,7 @@ namespace tjs::core::simulation {
 			const float a_old = idm::idm_scalar(vehicle->currentSpeed, v_lead_curr, gap_curr, p_idm);
 			const float a_new = idm::idm_scalar(vehicle->currentSpeed, v_lead, gap_front, p_idm);
 			const float benefit = a_new - a_old;
-			const bool polite = (is_mandatory_switch && a_new > -(p_idm.b_comf * 2.0f)) || (benefit > POLITENESS_THRESHOLD);
+			const bool polite = (is_mandatory_switch && a_new > -(p_idm.b_comf * 2.0f)) || (benefit > p_idm.a_politeness_threshold);
 
 			const bool ok = front_ok && rear_safe && polite;
 			return ok;
@@ -576,8 +563,8 @@ namespace tjs::core::simulation {
 
 					Lane* tgt = vehicle->lane_target;
 					if (VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::ST_PREPARE) && tgt) {
-						vehicle->lane_change_time += static_cast<float>(dt);
-						bool ready = vehicle->lane_change_time >= T_PREPARE;
+						vehicle->action_time += dt;
+						bool ready = vehicle->action_time >= p_idm.t_prepare;
 
 						if (VEHICLE_ID == vehicle->uid) {
 							std::cout << "";
@@ -594,7 +581,6 @@ namespace tjs::core::simulation {
 
 						bool can_switch = ready && check_can_switch(lane_rt, tgt, vehicle, p_idm, true);
 						if (ready && can_switch) {
-							check_can_switch(lane_rt, tgt, vehicle, p_idm, true);
 							if (VEHICLE_ID == vehicle->uid) {
 								std::cout << "";
 							}
@@ -606,7 +592,7 @@ namespace tjs::core::simulation {
 							const bool positive_dir = algo::is_in_first_or_fourth(start, end, start, tgt->centerLine.front());
 							vehicle->lane_change_dir = positive_dir ? 1 : -1;
 							vehicle->lateral_offset = 0.0f;
-							vehicle->lane_change_time = 0.0f;
+							vehicle->action_time = 0.0;
 							VehicleStateBitsV::overwrite_info(vehicle->state, VehicleStateBits::ST_CROSS, VehicleStateBitsDivision::STATE);
 							continue;
 						}
@@ -614,10 +600,10 @@ namespace tjs::core::simulation {
 						if (VEHICLE_ID == vehicle->uid) {
 							std::cout << "";
 						}
-						vehicle->lane_change_time += static_cast<float>(dt);
-						float prog = std::min(vehicle->lane_change_time / T_CROSS, 1.0f);
-						float cos_term = std::sin(static_cast<float>(tjs::core::MathConstants::M_PI) * 0.5f * prog);
-						vehicle->lateral_offset = static_cast<float>(vehicle->lane_change_dir) * static_cast<float>(vehicle->current_lane->width) * cos_term;
+						vehicle->action_time += dt;
+						double prog = std::min(vehicle->action_time / p_idm.t_cross, 1.0);
+						double cos_term = std::sin(tjs::core::MathConstants::M_PI * 0.5 * prog);
+						vehicle->lateral_offset = vehicle->lane_change_dir * vehicle->current_lane->width * cos_term;
 						vehicle->has_position_changes = true;
 						if (prog >= 1.0f) {
 							if (VEHICLE_ID == vehicle->uid) {
@@ -627,15 +613,15 @@ namespace tjs::core::simulation {
 							flush_target(vehicle, lane_rt);
 
 							vehicle->lateral_offset = 0.0f;
-							vehicle->lane_change_time = 0.0f;
+							vehicle->action_time = 0.0;
 							VehicleStateBitsV::overwrite_info(vehicle->state, VehicleStateBits::ST_ALIGN, VehicleStateBitsDivision::STATE);
 						}
 					} else if (VehicleStateBitsV::has_info(vehicle->state, VehicleStateBits::ST_ALIGN)) {
-						vehicle->lane_change_time += static_cast<float>(dt);
-						if (vehicle->lane_change_time >= T_ALIGN) {
+						vehicle->action_time += dt;
+						if (vehicle->action_time >= p_idm.t_align) {
 							VehicleStateBitsV::overwrite_info(vehicle->state, VehicleStateBits::ST_FOLLOW, VehicleStateBitsDivision::STATE);
 							VehicleStateBitsV::set_info(vehicle->state, VehicleStateBits::FL_COOLDOWN, VehicleStateBitsDivision::FLAGS);
-							vehicle->lane_change_time = 0.0f;
+							vehicle->action_time = 0.0;
 						}
 					}
 				}
@@ -740,6 +726,7 @@ namespace tjs::core::simulation {
 					/* ----- commit hop ------------------------------------------- */
 					v.s_on_lane = remain;
 					idm::move_index(&v, lane_rt, lane, entry);
+					flush_target(&v, lane_rt);
 					if (int vi = _check(*lane); vi != -1) {
 						std::cout << vi << std::endl;
 					}

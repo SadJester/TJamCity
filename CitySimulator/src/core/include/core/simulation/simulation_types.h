@@ -13,4 +13,8 @@ namespace tjs::core {
 		GoalNodeId,
 		Profile);
 
+	ENUM(MovementAlgoType, char,
+		Agent,
+		IDM);
+
 } // namespace tjs::core

@@ -44,7 +44,7 @@ namespace tjs::core {
 		int steps_on_update = DEFAULT_STEPS_ON_UPDATE;
 		double step_delta_sec = DEFAULT_FIXED_STEP_SEC;
 		bool simulation_paused = true;
-		simulation::MovementAlgoType movement_algo = simulation::MovementAlgoType::IDM;
+		MovementAlgoType movement_algo = MovementAlgoType::IDM;
 		simulation::GeneratorType generator_type = simulation::GeneratorType::Bulk;
 		std::vector<simulation::AgentTask> spawn_requests;
 

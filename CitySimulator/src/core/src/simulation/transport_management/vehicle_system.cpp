@@ -56,12 +56,16 @@ namespace tjs::core::simulation {
 		vehicle.s_next = 0.0;
 		vehicle.v_next = 0.0f;
 		vehicle.lane_target = nullptr;
-		vehicle.lane_change_time = 0.0f;
+		vehicle.action_time = 0.0f;
 		vehicle.lane_change_dir = 0;
+		vehicle.idx_in_lane = vehicle.current_lane->vehicles.size();
+		vehicle.idx_in_target_lane = 0;
 
 		// we know that this is the last vehicle in the lane (allow_on_lane)
 		vehicle.current_lane->vehicles.push_back(&vehicle);
 		lane_rt[lane.index_in_buffer].idx.push_back(&vehicle);
+		vehicle.has_position_changes = false;
+		vehicle.lane_change_dir = 0;
 
 		return vehicle_ptr;
 	}
@@ -168,6 +172,11 @@ namespace tjs::core::simulation {
 				if (it != idx.end()) {
 					idx.erase(it);
 				}
+			}
+
+			if (vehicle->cooperation_vehicle) {
+				vehicle->cooperation_vehicle->cooperation_vehicle = nullptr;
+				vehicle->cooperation_vehicle = nullptr;
 			}
 		}
 

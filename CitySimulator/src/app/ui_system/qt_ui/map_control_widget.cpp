@@ -195,8 +195,8 @@ namespace tjs {
 			QHBoxLayout* algoLayout = new QHBoxLayout();
 			QLabel* algoLabel = new QLabel("Movement Algo:", this);
 			_movementAlgoCombo = new QComboBox(this);
-			_movementAlgoCombo->addItem("Agent", static_cast<int>(core::simulation::MovementAlgoType::Agent));
-			_movementAlgoCombo->addItem("IDM", static_cast<int>(core::simulation::MovementAlgoType::IDM));
+			_movementAlgoCombo->addItem("Agent", static_cast<int>(core::MovementAlgoType::Agent));
+			_movementAlgoCombo->addItem("IDM", static_cast<int>(core::MovementAlgoType::IDM));
 			_movementAlgoCombo->setCurrentIndex(static_cast<int>(_application.settings().simulationSettings.movement_algo));
 			algoLayout->addWidget(algoLabel);
 			algoLayout->addWidget(_movementAlgoCombo);
@@ -258,7 +258,7 @@ namespace tjs {
 				QOverload<int>::of(&QComboBox::currentIndexChanged),
 				[this](int index) {
 					_application.settings().simulationSettings.movement_algo =
-						static_cast<core::simulation::MovementAlgoType>(index);
+						static_cast<core::MovementAlgoType>(index);
 				});
 
 			connect(_regenerateVehiclesButton, &QPushButton::clicked, [this]() {
@@ -520,9 +520,9 @@ namespace tjs {
 				_populationLabel->setStyleSheet("color: green;");
 			} else {
 				_populationLabel->setText(QString("Generation: %2/%3 (%1 in last step)")
-											  .arg(event.generated)
-											  .arg(event.current)
-											  .arg(generator_type == core::simulation::GeneratorType::Bulk ? event.total : 0));
+						.arg(event.generated)
+						.arg(event.current)
+						.arg(generator_type == core::simulation::GeneratorType::Bulk ? event.total : 0));
 				_populationLabel->setStyleSheet("color: blue;");
 			}
 		}

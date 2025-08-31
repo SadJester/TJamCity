@@ -15,7 +15,7 @@ namespace tjs::core::simulation {
 		lane.clear();
 		lane_target.clear();
 		lane_after.clear();
-		lane_change_time.clear();
+		action_time.clear();
 		lane_change_dir.clear();
 		flags.clear();
 		uids.clear();
@@ -32,7 +32,7 @@ namespace tjs::core::simulation {
 		lane.reserve(count);
 		lane_target.reserve(count);
 		lane_after.reserve(count);
-		lane_change_time.reserve(count);
+		action_time.reserve(count);
 		lane_change_dir.reserve(count);
 		flags.reserve(count);
 		uids.reserve(count);
@@ -49,7 +49,7 @@ namespace tjs::core::simulation {
 		lane.push_back(vehicle.current_lane);
 		lane_target.push_back(nullptr);
 		lane_after.push_back(nullptr);
-		lane_change_time.push_back(0.0f);
+		action_time.push_back(0.0f);
 		lane_change_dir.push_back(0);
 		flags.push_back(vehicle.state);
 		uids.push_back(vehicle.uid);
