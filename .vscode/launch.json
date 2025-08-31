@@ -5,7 +5,7 @@
             "name": "(Win) [Debug] TJC_TJamSimulator",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/cs/bin/Debug/TJC_TJamSimulator",
+            "program": "${workspaceFolder}/build/Debug/bin/TJC_TJamSimulator",
             "args": [],
             "environment": [
                 {
@@ -22,7 +22,7 @@
             "name": "(Win) [Release] TJC_TJamSimulator",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/cs/bin/Release/TJC_TJamSimulator",
+            "program": "${workspaceFolder}/build/Release/bin/TJC_TJamSimulator",
             "args": [],
             "environment": [
                 {
@@ -39,7 +39,7 @@
             "name": "(Win) [UnitTests][Debug] TJC_Core_tests",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/cs/bin/Debug/core.Tests.exe",
+            "program": "${workspaceFolder}/build/Debug/bin/core.Tests.exe",
             "args": [],
             "environment": [
                 {
@@ -56,7 +56,7 @@
             "name": "(Win) [UnitTests][Debug] TJS_Common_tests",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/cs/bin/Debug/common.Tests.exe",
+            "program": "${workspaceFolder}/build/Debug/bin/common.Tests.exe",
             "args": [],
             "environment": [
                 {
@@ -73,7 +73,24 @@
             "name": "(Win) [UnitTests][Release] TJC_Core_tests",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/cs/bin/Release/core.Tests.exe",
+            "program": "${workspaceFolder}/build/Release/bin/core.Tests.exe",
+            "args": [],
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "${env:PATH};C:\\Qt\\6.9.0\\msvc2022_64\\bin"
+                }
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "preLaunchTask": "cs_win_build_release"
+        },
+        {
+            "name": "(Win) [UnitTests][Release] TJC_Common_tests",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/Release/bin/common.Tests.exe",
             "args": [],
             "environment": [
                 {

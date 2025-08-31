@@ -36,8 +36,8 @@ namespace tjs::visualization {
 
 	void VehicleRenderer::render(IRenderer& renderer) {
 		TJS_TRACY_NAMED("VehicleRenderer_Render");
-		for (auto& vehicle : _application.simulationSystem().vehicle_system().vehicles()) {
-			render(renderer, vehicle);
+		for (auto vehicle : _application.simulationSystem().vehicle_system().vehicles()) {
+			render(renderer, *vehicle);
 		}
 	}
 

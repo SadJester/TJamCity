@@ -80,6 +80,7 @@ namespace tjs::core::algo {
 			Coordinates end = offset_coordinate(end_node->coordinates, heading, lateral_offset);
 
 			lane.centerLine = { start, end };
+			lane.rotation_angle = static_cast<float>(atan2(end.y - start.y, end.x - start.x));
 			lane.length = euclidean_distance(start, end);
 
 			// ----------------------------------------------------------------//

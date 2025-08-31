@@ -12,3 +12,5 @@
 #include <optional>
 #include <functional>
 #include <utility>
+
+#include <common/definitions.h>

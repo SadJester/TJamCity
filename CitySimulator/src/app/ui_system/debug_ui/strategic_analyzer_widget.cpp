@@ -26,8 +26,8 @@ namespace tjs::ui {
 		const auto& agents = _application.simulationSystem().agents();
 		for (size_t i = 0; i < agents.size(); ++i) {
 			const auto& agent = agents[i];
-			if (agent.stucked) {
-				_list->addItem(QString("[%1] Agent %2").arg(i).arg(agent.id));
+			if (agent->stucked) {
+				_list->addItem(QString("[%1] Agent %2").arg(i).arg(agent->id));
 			}
 		}
 	}

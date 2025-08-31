@@ -6,6 +6,12 @@
 #include <core/random_generator.h>
 #include <core/events/vehicle_population_events.h>
 
+#include <core/simulation/agent/agent_generator.h>
+
+#include <core/simulation/time_module.h>
+
+#include <core/simulation/movement/idm/idm_utils.h>
+
 //TODO[simulation]: Probably must move from here while moving further
 #include <core/data_layer/data_types.h>
 #include <core/data_layer/world_data.h>
@@ -15,8 +21,68 @@
 
 namespace tjs::core::simulation {
 
+	// Helper function to create vehicle with ObjectPool
+	Vehicle* create_vehicle_impl(
+		VehicleSystem::VehiclePool& vehicle_pool,
+		Lane& lane,
+		std::vector<LaneRuntime>& lane_rt,
+		const VehicleConfig& config,
+		VehicleType type,
+		float desired_speed) {
+		auto vehicle_ptr = vehicle_pool.acquire_ptr();
+		if (!vehicle_ptr) {
+			return nullptr;
+		}
+
+		Vehicle& vehicle = *vehicle_ptr;
+		// TODO[simulation]: correct UID
+		vehicle.uid = RandomGenerator::get().next_int(1, 10000000);
+		vehicle.type = type;
+
+		vehicle.length = config.length;
+		vehicle.width = config.width;
+		vehicle.currentSpeed = desired_speed;
+		vehicle.maxSpeed = RandomGenerator::get().next_float(40, 100.0f);
+		vehicle.coordinates = lane.parent->start_node->coordinates;
+		vehicle.currentSegmentIndex = 0;
+		vehicle.current_lane = &lane;
+		vehicle.s_on_lane = vehicle.length / 2.0f;
+		vehicle.lateral_offset = 0.0;
+		vehicle.goal_lane_mask = 0;
+		VehicleStateBitsV::set_info(vehicle.state, VehicleStateBits::ST_STOPPED, VehicleStateBitsDivision::STATE);
+		vehicle.previous_state = vehicle.state;
+		vehicle.error = VehicleMovementError::ER_NO_ERROR;
+
+		vehicle.s_next = 0.0;
+		vehicle.v_next = 0.0f;
+		vehicle.lane_target = nullptr;
+		vehicle.action_time = 0.0f;
+		vehicle.lane_change_dir = 0;
+		vehicle.idx_in_lane = vehicle.current_lane->vehicles.size();
+		vehicle.idx_in_target_lane = 0;
+
+		// we know that this is the last vehicle in the lane (allow_on_lane)
+		vehicle.current_lane->vehicles.push_back(&vehicle);
+		lane_rt[lane.index_in_buffer].idx.push_back(&vehicle);
+		vehicle.has_position_changes = false;
+
+		return vehicle_ptr;
+	}
+
+	bool allowed_on_lane(const LaneRuntime& lane, float v_length, float v_speed, float dt) {
+		if (lane.idx.empty()) {
+			return true;
+		}
+
+		// 2 meters from bumper
+		return idm::gap_ok(lane, v_speed, v_length / 2.0f, v_length, {}, dt);
+	}
+
 	VehicleSystem::VehicleSystem(TrafficSimulationSystem& system)
 		: _system(system) {
+	}
+
+	VehicleSystem::~VehicleSystem() {
 	}
 
 	void VehicleSystem::initialize() {
@@ -47,164 +113,73 @@ namespace tjs::core::simulation {
 			}
 		}
 
-		_creation_state = CreationState::InProgress;
-		_creation_ticks = 0;
-		_buffers.clear();
-		_vehicles.clear();
-		_vehicles.reserve(_system.settings().vehiclesCount);
-		_buffers.reserve(_system.settings().vehiclesCount);
+		// Reserve capacity in the object pool
+		_vehicle_pool.clear();
+		_vehicle_pool.reserve(_system.settings().vehiclesCount);
 	}
 
 	void VehicleSystem::release() {
-	}
-
-	static core::Coordinates lane_position(const Lane& lane, double s) {
-		if (lane.centerLine.empty()) {
-			return {};
-		}
-		const auto& start = lane.centerLine.front();
-		const auto& end = lane.centerLine.back();
-		if (s <= 0.0) {
-			return start;
-		}
-		if (lane.length <= 1e-6) {
-			return end;
-		}
-		double fraction = s / lane.length;
-		Coordinates result {};
-		result.x = start.x + fraction * (end.x - start.x);
-		result.y = start.y + fraction * (end.y - start.y);
-		return result;
-	}
-
-	static float lane_rotation(const Lane& lane) {
-		if (lane.centerLine.empty()) {
-			return 0.0f;
-		}
-		const auto& start = lane.centerLine.front();
-		const auto& end = lane.centerLine.back();
-		return static_cast<float>(atan2(end.y - start.y, end.x - start.x));
+		// ObjectPool will automatically clean up when destroyed
 	}
 
 	void VehicleSystem::commit() {
-		for (size_t i = 0; i < _vehicles.size(); ++i) {
-			Vehicle& v = _vehicles[i];
-
-			const bool has_changes = 
-				v.current_lane != _buffers.lane[i] 
-				|| v.s_on_lane != _buffers.s_curr[i]
-				|| v.lateral_offset != _buffers.lateral_off[i];
-
-			v.current_lane = _buffers.lane[i];
-			v.currentSpeed = _buffers.v_curr[i];
-			v.s_on_lane = _buffers.s_curr[i];
-			v.lateral_offset = _buffers.lateral_off[i];
-			v.previous_state = v.state;
-			v.state = _buffers.flags[i];
-			
-			if (has_changes && v.current_lane) {
-				v.coordinates = lane_position(*v.current_lane, v.s_on_lane);
-				v.rotationAngle = lane_rotation(*v.current_lane);
-			}
-		}
-
 		for (LaneRuntime& rt : _lane_runtime) {
 			Lane& lane = *rt.static_lane;
 			auto& idx = rt.idx;
 			lane.vehicles.resize(idx.size());
 			for (std::size_t i = 0; i < idx.size(); ++i) {
-				lane.vehicles[i] = &_vehicles[idx[i]];
+				lane.vehicles[i] = idx[i];
 			}
 		}
 	}
 
-	void VehicleSystem::create_vehicle() {
+	std::optional<Vehicle*> VehicleSystem::create_vehicle(Lane& lane, VehicleType type, float desired_speed) {
+		auto it_config = _vehicle_configs.find(type);
+		if (it_config == _vehicle_configs.end()) {
+			// TODO[simulation]: log Vehicle type configuration not found
+			it_config = _vehicle_configs.begin();
+		}
+
+		const auto& config = it_config->second;
+		const auto& lr = _lane_runtime[lane.index_in_buffer];
+		double dt = _system.timeModule().state().fixed_dt();
+		if (!allowed_on_lane(lr, config.length, desired_speed, dt)) {
+			// TODO[simulation]: log no allowed on lane
+			return {};
+		}
+		return create_vehicle_impl(_vehicle_pool, lane, _lane_runtime, config, type, desired_speed);
 	}
 
-	size_t VehicleSystem::populate() {
-		if (_system.worldData().segments().empty()) {
-			return 0;
-		}
-
-		auto& settings = _system.settings();
-		size_t created = 0;
-		auto& segment = _system.worldData().segments()[0];
-
-		const size_t max_attempts = 100;
-		size_t attempts = 0;
-		while (_vehicles.size() < settings.vehiclesCount && attempts < max_attempts) {
-			auto& edges = segment->road_network->edges;
-			auto& edge = edges[RandomGenerator::get().next_int(0, edges.size() - 1)];
-			Lane* lane = &edge.lanes[0];
-
-			bool allowed = lane->vehicles.empty() || lane->vehicles.back()->s_on_lane > 20.0;
-			if (!allowed) {
-				++attempts;
-				continue;
-			}
-
-			Vehicle vehicle {};
-			vehicle.uid = RandomGenerator::get().next_int(1, 10000000);
-			vehicle.type = RandomGenerator::get().next_enum<VehicleType>();
-
-			auto it_config = _vehicle_configs.find(vehicle.type);
-			if (it_config == _vehicle_configs.end()) {
-				it_config = _vehicle_configs.begin();
-			}
-
-			vehicle.length = it_config->second.length;
-			vehicle.width = it_config->second.width;
-			vehicle.currentSpeed = 0;
-			vehicle.maxSpeed = RandomGenerator::get().next_float(40, 100.0f);
-			vehicle.coordinates = edge.start_node->coordinates;
-			vehicle.currentSegmentIndex = 0;
-			vehicle.current_lane = lane;
-			vehicle.s_on_lane = 0.0;
-			vehicle.lateral_offset = 0.0;
-			VehicleStateBitsV::set_info(vehicle.state, VehicleStateBits::ST_STOPPED, VehicleStateBitsDivision::STATE);
-			vehicle.previous_state = vehicle.state;
-			vehicle.error = VehicleMovementError::ER_NO_ERROR;
-
-			_vehicles.push_back(vehicle);
-			insert_vehicle_sorted(*vehicle.current_lane, &_vehicles.back());
-
-			_lane_runtime[lane->index_in_buffer].idx.push_back(_vehicles.size() - 1);
-
-			_buffers.add_vehicle(vehicle);
-			++created;
-		}
-
-		if (_vehicles.size() >= settings.vehiclesCount) {
-			_creation_state = CreationState::Completed;
-		}
-
-		return created;
+	void VehicleSystem::update() {
+		_vehicle_pool.update_objects();
 	}
 
-	size_t VehicleSystem::update() {
-		if (_creation_state != CreationState::InProgress) {
-			return 0;
+	void VehicleSystem::remove_vehicle(Vehicle* vehicle) {
+		if (!vehicle) {
+			return;
 		}
 
-		size_t created = populate();
-		++_creation_ticks;
-		if (_creation_ticks > 1000 && _creation_state != CreationState::Completed) {
-			_creation_state = CreationState::Error;
+		// Remove from lane
+		if (vehicle->current_lane) {
+			core::remove_vehicle(*vehicle->current_lane, vehicle);
+
+			// Remove from lane runtime
+			if (vehicle->current_lane->index_in_buffer < _lane_runtime.size()) {
+				auto& idx = _lane_runtime[vehicle->current_lane->index_in_buffer].idx;
+				auto it = std::find(idx.begin(), idx.end(), vehicle);
+				if (it != idx.end()) {
+					idx.erase(it);
+				}
+			}
+
+			if (vehicle->cooperation_vehicle) {
+				vehicle->cooperation_vehicle->cooperation_vehicle = nullptr;
+				vehicle->cooperation_vehicle = nullptr;
+			}
 		}
 
-		bool need_send = created > 0 || _creation_state == CreationState::Error || _creation_state == CreationState::Completed;
-		if (need_send) {
-			_system.message_dispatcher().handle_message(
-				core::events::VehiclesPopulated {
-					created,
-					_vehicles.size(),
-					_system.settings().vehiclesCount,
-					_creation_ticks,
-					_creation_state == CreationState::Error },
-				"vehicle_system");
-		}
-
-		return created;
+		// Release back to pool
+		_vehicle_pool.release(vehicle);
 	}
 
 } // namespace tjs::core::simulation

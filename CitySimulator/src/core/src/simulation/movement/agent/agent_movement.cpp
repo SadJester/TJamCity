@@ -20,12 +20,10 @@ namespace tjs::core::simulation {
 
 	void AgentMovementAlgo::update() {
 		auto& agents = _system.agents();
-		auto& buf = _system.vehicle_system().vehicle_buffers();
 
 		for (size_t i = 0; i < agents.size(); ++i) {
-			movement_details::update_agent(i, agents[i], _system);
-			agents[i].vehicle->previous_state = agents[i].vehicle->state;
-			agents[i].vehicle->state = buf.flags[i];
+			movement_details::update_agent(i, *agents[i], _system);
+			agents[i]->vehicle->previous_state = agents[i]->vehicle->state;
 		}
 	}
 
@@ -137,7 +135,6 @@ namespace tjs::core::simulation {
 		}
 
 		void advance_vehicle(size_t i, AgentData& agent, TrafficSimulationSystem& system) {
-			VehicleBuffers& buf = system.vehicle_system().vehicle_buffers();
 			Vehicle& vehicle = *agent.vehicle;
 			double delta_time = system.timeModule().state().fixed_dt();
 			double speed_mps = vehicle.currentSpeed * 1000.0 / 3600.0;
@@ -157,7 +154,7 @@ namespace tjs::core::simulation {
 				}
 
 				if (agent.path_offset >= agent.path.size()) {
-					stop_moving(i, agent, buf, lane, VehicleMovementError::ER_NO_PATH);
+					stop_moving(i, agent, vehicle, lane, VehicleMovementError::ER_NO_PATH);
 					break;
 				}
 
@@ -200,7 +197,7 @@ namespace tjs::core::simulation {
 					++agent.path_offset;
 					insert_vehicle_sorted(*vehicle.current_lane, &vehicle);
 				} else {
-					stop_moving(i, agent, buf, lane,
+					stop_moving(i, agent, vehicle, lane,
 						outgoing.empty() ? VehicleMovementError::ER_NO_OUTGOING_CONNECTION : VehicleMovementError::ER_NO_NEXT_LANE);
 					break;
 				}

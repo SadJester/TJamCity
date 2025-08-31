@@ -20,4 +20,10 @@ namespace tjs::core::algo {
 		const Coordinates& origin,
 		double heading_degrees,
 		double lateral_offset_meters);
+
+	// Returns if vector (move_p2 - move_p1) is in first or fourth quadrant of axis aligned
+	// with (axis_p2 - axis_p1)
+	// TODO[math]: Should be rewritten as a part of math module near Coordinates
+	bool is_in_first_or_fourth(const Coordinates& axis_p1, const Coordinates& axis_p2,
+		const Coordinates& move_p1, const Coordinates& move_p2);
 } // namespace tjs::core::algo

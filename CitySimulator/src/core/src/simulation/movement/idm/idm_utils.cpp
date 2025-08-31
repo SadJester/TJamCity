@@ -1,6 +1,7 @@
 #include <core/stdafx.h>
 
 #include <core/simulation/movement/idm/idm_utils.h>
+#include <core/data_layer/vehicle.h>
 
 namespace tjs::core::simulation::idm {
 	float safe_entry_speed(const float v_leader, const float gap, const double dt) noexcept {
@@ -24,26 +25,23 @@ namespace tjs::core::simulation::idm {
 	float desired_gap(const float v_follower,
 		const float delta_v,
 		const idm_params_t& p) noexcept {
-		const float braking_term = (v_follower * delta_v) / (2.0f * std::sqrt(p.a_max * p.b_comf));
-		const float dyn = v_follower * p.t_headway + braking_term;
-		return p.s0 + std::max(0.0f, dyn);
+		const float root = 2.0f * std::sqrt(p.a_max * p.b_comf);
+		const float braking_add = std::max(0.0f, (v_follower * delta_v) / root); // clamp only add-on
+		return p.s0 + v_follower * p.t_headway + braking_add;
 	}
 
 	bool gap_ok(const LaneRuntime& tgt_rt,
-		const std::vector<double>& s_curr,
-		const std::vector<float>& length,
-		const std::vector<float>& v_curr,
+		const float newcomer_speed,
 		const double s_new, // tentative bumper pos
 		const float len_new,
 		const idm::idm_params_t& p,
-		const double dt,
-		const std::size_t row_newcomer) {
+		const double dt) {
 		const auto& idx = tgt_rt.idx; // descending s_curr
 
 		// Find insertion point (same as before)
 		auto it = std::lower_bound(idx.begin(), idx.end(), s_new,
-			[&](std::size_t j, double pos) {
-				return s_curr[j] > pos;
+			[&](Vehicle* vehicle, double pos) {
+				return vehicle->s_on_lane > pos;
 			});
 
 		auto enough_gap_and_brake = [&](float gap,
@@ -75,24 +73,24 @@ namespace tjs::core::simulation::idm {
 
 		/* ---------- leader gap ------------------------------------------------- */
 		if (it != idx.begin()) {
-			std::size_t j_lead = *(it - 1);
-			float gap = idm::actual_gap(static_cast<float>(s_curr[j_lead]),
+			Vehicle* j_lead = *(it - 1);
+			float gap = idm::actual_gap(static_cast<float>(j_lead->s_on_lane),
 				static_cast<float>(s_new),
-				length[j_lead], len_new);
+				j_lead->length, len_new);
 			if (!enough_gap_and_brake(gap, /* follower = newcomer */
-					v_curr[row_newcomer], v_curr[j_lead])) {
+					newcomer_speed, j_lead->currentSpeed)) {
 				return false;
 			}
 		}
 
 		/* ---------- follower (vehicle behind newcomer) ------------------------- */
 		if (it != idx.end()) {
-			std::size_t j_follow = *it;
+			Vehicle* j_follow = *it;
 			float gap = idm::actual_gap(static_cast<float>(s_new),
-				static_cast<float>(s_curr[j_follow]),
-				len_new, length[j_follow]);
+				static_cast<float>(j_follow->s_on_lane),
+				len_new, j_follow->length);
 			if (!enough_gap_and_brake(gap, /* follower behind */
-					v_curr[j_follow], v_curr[row_newcomer])) {
+					j_follow->currentSpeed, newcomer_speed)) {
 				return false;
 			}
 		}

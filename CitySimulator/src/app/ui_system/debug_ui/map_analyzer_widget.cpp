@@ -28,7 +28,7 @@ namespace tjs::ui {
 	}
 
 	void MapAnalyzerWidget::updateInfo() {
-		auto* debug = _application.stores().get_entry<core::simulation::SimulationDebugData>();
+		auto* debug = &_application.settings().simulationSettings.debug_data;
 		if (!debug || !debug->selectedNode) {
 			_nodeId->setText("Node: none");
 			_coords->setText("Coords: -");

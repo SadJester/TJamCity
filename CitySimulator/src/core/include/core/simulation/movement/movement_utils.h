@@ -7,6 +7,7 @@ namespace tjs::core {
 	struct Lane;
 	struct Edge;
 	struct AgentData;
+	struct Vehicle;
 } // namespace tjs::core
 
 namespace tjs::core::simulation {
@@ -15,5 +16,5 @@ namespace tjs::core::simulation {
 	// exit into `next_edge` according to LaneLink table.
 	// ------------------------------------------------------------------
 	uint32_t build_goal_mask(const Edge& curr_edge, const Edge& next_edge);
-	void stop_moving(size_t i, AgentData& ag, VehicleBuffers& buf, Lane* lane, VehicleMovementError error);
+	void stop_moving(size_t i, AgentData& ag, Vehicle& vehicle, Lane* lane, VehicleMovementError error);
 } // namespace tjs::core::simulation

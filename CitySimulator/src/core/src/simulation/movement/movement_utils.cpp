@@ -19,27 +19,26 @@ namespace tjs::core::simulation {
 				const LaneLink& link = *h;
 				if (link.to && link.to->parent == &next_edge) {
 					mask |= (1u << from_idx); // mark this *source* lane
-					break;                    // no need to scan others
 				}
 			}
 		}
 		return mask; // 0 means “none of the lanes reach next_edge” → error
 	}
 
-	void stop_moving(size_t i, AgentData& ag, VehicleBuffers& buf, Lane* lane, VehicleMovementError error) {
-		VehicleStateBitsV::set_info(buf.flags[i], VehicleStateBits::ST_STOPPED, VehicleStateBitsDivision::STATE);
-		VehicleStateBitsV::set_info(buf.flags[i], VehicleStateBits::FL_ERROR, VehicleStateBitsDivision::FLAGS);
+	void stop_moving(size_t i, AgentData& ag, Vehicle& vehicle, Lane* lane, VehicleMovementError error) {
+		VehicleStateBitsV::set_info(vehicle.state, VehicleStateBits::ST_STOPPED, VehicleStateBitsDivision::STATE);
+		VehicleStateBitsV::set_info(vehicle.state, VehicleStateBits::FL_ERROR, VehicleStateBitsDivision::FLAGS);
 
 		ag.vehicle->error = error;
-		buf.s_curr[i] = lane->length - 0.01;
-		buf.s_next[i] = buf.s_curr[i];
-		buf.v_next[i] = buf.v_curr[i];
+		vehicle.s_next = lane->length - 0.01;
+		vehicle.s_on_lane = vehicle.s_next;
+		vehicle.lane_target = nullptr;
 
 		// Stop vehicle at all, for other cases we need more sophisticated calculations
 		// But for now treat that it will be movement further with the same speed as before
 		if (lane->outgoing_connections.empty()) {
-			buf.v_curr[i] = 0.0f;
-			buf.v_next[i] = 0.0f;
+			vehicle.v_next = 0.0f;
+			vehicle.currentSpeed = 0.0f;
 		}
 	}
 

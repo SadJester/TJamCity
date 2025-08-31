@@ -4,6 +4,7 @@
 
 #include <core/simulation/simulation_system.h>
 #include <core/simulation/transport_management/vehicle_system.h>
+#include <core/data_layer/vehicle.h>
 
 #include <core/data_layer/world_data.h>
 #include <core/data_layer/enums.h>
@@ -158,14 +159,20 @@ namespace tjs::ui {
 
 		QStringList vehicle_info;
 		const auto& lanes = _application.simulationSystem().vehicle_system().lane_runtime();
-		const auto& s_curr = _application.simulationSystem().vehicle_system().vehicle_buffers().s_curr;
-		const auto& vehicles = _application.simulationSystem().vehicle_system().vehicles();
 		const auto& rt_lane = lanes[lane->index_in_buffer];
-		for (int idx : rt_lane.idx) {
-			vehicle_info << QString("%1 (%2): %3")
-								.arg(idx)
-								.arg(vehicles[idx].uid)
-								.arg(s_curr[idx]);
+		vehicle_info.reserve(rt_lane.idx.size());
+		for (core::Vehicle* vehicle : rt_lane.idx) {
+			QString vehicleStr;
+			vehicleStr.reserve(50); // Reserve approximate needed size
+			vehicleStr = QString::number(vehicle->uid) + ": " + QString::number(vehicle->s_on_lane);
+			if (vehicle->lane_target != nullptr) {
+				if (vehicle->current_lane == lane) {
+					vehicleStr += " (to: " + QString::number(vehicle->lane_target->get_id()) + "; " + QString::number(vehicle->state) + ")";
+				} else {
+					vehicleStr += " (from: " + QString::number(vehicle->current_lane->get_id()) + "; " + QString::number(vehicle->state) + ")";
+				}
+			}
+			vehicle_info << vehicleStr;
 		}
 
 		QString text = QString("Lane %1\nWidth: %2\nTurn: %3\nOutgoing: %4\nIncoming: %5\nVehicles: %6")

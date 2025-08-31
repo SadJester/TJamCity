@@ -3,8 +3,8 @@
 #include <core/simulation/transport_management/vehicle_state.h>
 
 #include <core/data_layer/vehicle.h>
-
 #include <core/simulation/movement/idm/lane_agnostic_movement.h>
+#include <common/object_pool.h>
 
 namespace tjs::core::simulation {
 	class TrafficSimulationSystem;
@@ -18,33 +18,19 @@ namespace tjs::core::simulation {
 	class VehicleSystem {
 	public:
 		using VehicleConfigs = std::unordered_map<VehicleType, VehicleConfig>;
-		using Vehicles = std::vector<Vehicle>;
-		enum class CreationState {
-			InProgress,
-			Completed,
-			Error
-		};
+		using VehiclePool = tjs::common::ObjectPoolExt<Vehicle>;
+		using VehiclePtr = VehiclePool::pooled_ptr;
 
 	public:
 		explicit VehicleSystem(TrafficSimulationSystem& system);
+		virtual ~VehicleSystem();
 
 		void initialize();
 		void release();
+		void update();
 
-		// TODO[simulation]: here must be some profile
-		size_t populate();
-		size_t update();
-
-		CreationState creation_state() const noexcept {
-			return _creation_state;
-		}
-
-		VehicleBuffers& vehicle_buffers() {
-			return _buffers;
-		}
-
-		Vehicles& vehicles() {
-			return _vehicles;
+		const std::vector<Vehicle*>& vehicles() {
+			return _vehicle_pool.objects();
 		}
 
 		const VehicleConfigs& vehicle_configs() const {
@@ -53,19 +39,17 @@ namespace tjs::core::simulation {
 
 		void commit();
 
-		void create_vehicle();
+		// return handle to vehicle
+		std::optional<Vehicle*> create_vehicle(Lane& lane, VehicleType type, float desired_speed);
+		void remove_vehicle(Vehicle* vehicle);
 
 	private:
 		TrafficSimulationSystem& _system;
 
 		VehicleConfigs _vehicle_configs;
-		VehicleBuffers _buffers;
-		Vehicles _vehicles;
+		VehiclePool _vehicle_pool;
 
 		std::vector<LaneRuntime> _lane_runtime;
-
-		CreationState _creation_state = CreationState::InProgress;
-		size_t _creation_ticks = 0;
 
 	public:
 		std::vector<LaneRuntime>& lane_runtime() {
