@@ -33,11 +33,7 @@ Inspired by [SUMO](https://www.eclipse.org/sumo/), PTV Vissim, and Apollo.
 It is graph with `std::unordered_map<Node*, std::vector<Edge*>>` stored in [RoadNetwork](CitySimulator/src/core/include/core/data_layer/road_network.h)
 Future plans: support complex junctions and multi-lane geometry.
 
-Example (work-in-progress):
-<details>
-    <summary><strong><span style="font-size:1.2em">🚗  Preview</span></strong></summary>
-    <img src="Docs/data/tjs_agent_simple.gif" alt="OSM parsing demo"/>
-</details>
+<img src="Docs/data/tjs_agent_simple.gif" alt="OSM parsing demo"/>
 
 ### Path finding
 - Current implementation: A* search on the road graph.
@@ -52,23 +48,17 @@ Future plans:
 - Refactor for **cleaner FSM state changes** and add unit tests.  
 - Introduce **threading** to improve performance and scalability.  
 
-Example:
-<details>
-    <summary><strong><span style="font-size:1.2em">🚗  Preview</span></strong></summary>
-    <img src="Docs/data/tjs_idm_lane_change.gif" alt="Lane changing demo"/>
-</details>
+<img src="Docs/data/tjs_idm_lane_change.gif" alt="Lane changing demo"/>
 
 ### Intersections
-There is no tracking of intersections now. It is in nearest plans.
 🚧 Not yet tracked.
+There is no tracking of intersections now. It is in nearest plans.
 
-<details>
-    <summary><strong><span style="font-size:1.2em">🚗  Preview</span></strong></summary>
-    <img src="Docs/data/tjs_following.gif" alt="Following changing demo"/>
-</details>
+<img src="Docs/data/tjs_following.gif" alt="Following changing demo"/>
 
 ### Traffic lights
-🚧 Not yet tracked. Should be after intersections and refactor phase.
+🚧 Not yet tracked.
+Should be after intersections and refactor phase.
 
 ### Agent movement model
 Naive agent model: vehicles just move along lanes without collision checks. Funny, but not usable. Work in progress toward realistic movement.
