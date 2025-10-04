@@ -2,7 +2,7 @@
 
 #include <common/sync/message.h>
 
-using namespace tjs;
+using namespace tjs::common;
 
 namespace {
     struct small_trivial {

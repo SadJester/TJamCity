@@ -1,6 +1,6 @@
 #pragma once
 
-namespace tjs::sync
+namespace tjs::common::sync
 {
     constexpr size_t default_buffer_size = ((3 * sizeof(std::uint32_t) + alignof(std::max_align_t) - 1) / alignof(std::max_align_t)) * alignof(std::max_align_t);
     template <typename msg_types, size_t buffer_size = default_buffer_size>
