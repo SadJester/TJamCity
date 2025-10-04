@@ -2,8 +2,9 @@
 
 namespace tjs::sync
 {
-    template <typename msg_types, size_t buffer_size>
-    // requires enum | integral
+    constexpr size_t default_buffer_size = ((3 * sizeof(std::uint32_t) + alignof(std::max_align_t) - 1) / alignof(std::max_align_t)) * alignof(std::max_align_t);
+    template <typename msg_types, size_t buffer_size = default_buffer_size>
+    requires std::is_integral_v<msg_types> || std::is_enum_v<msg_types>
     struct message final {
     public:
         message(msg_types msg_type) noexcept;
@@ -61,22 +62,26 @@ namespace tjs::sync
 
 
     template <typename msg_types, size_t buffer_size>
+    requires std::is_integral_v<msg_types> || std::is_enum_v<msg_types>
     message<msg_types, buffer_size>::message(msg_types msg_type) noexcept
         : _msg_type(msg_type) {
     }
     
     template <typename msg_types, size_t buffer_size>
+    requires std::is_integral_v<msg_types> || std::is_enum_v<msg_types>
     message<msg_types, buffer_size>::message(message&& other) noexcept {
         move_from(std::move(other));
     }
     
     template <typename msg_types, size_t buffer_size>
+    requires std::is_integral_v<msg_types> || std::is_enum_v<msg_types>
     message<msg_types, buffer_size>& message<msg_types, buffer_size>::operator = (message<msg_types, buffer_size>&& other) noexcept {
         move_from(std::move(other));
         return *this;
     }
 
     template <typename msg_types, size_t buffer_size>
+    requires std::is_integral_v<msg_types> || std::is_enum_v<msg_types>
     template <typename T>
     message<msg_types, buffer_size>::message(msg_types msg_type, T&& payload)
         : _msg_type(msg_type) {
@@ -85,11 +90,13 @@ namespace tjs::sync
     }
 
     template <typename msg_types, size_t buffer_size>
+    requires std::is_integral_v<msg_types> || std::is_enum_v<msg_types>
     message<msg_types, buffer_size>::~message() {
         reset();
     }
 
     template <typename msg_types, size_t buffer_size>
+    requires std::is_integral_v<msg_types> || std::is_enum_v<msg_types>
     void message<msg_types, buffer_size>::reset() {
         if (!_ptr) {
             return;
@@ -107,6 +114,7 @@ namespace tjs::sync
     }
 
     template <typename msg_types, size_t buffer_size>
+    requires std::is_integral_v<msg_types> || std::is_enum_v<msg_types>
     template <typename T, typename... Args>
     T& message<msg_types, buffer_size>::emplace(Args&&... args) {
         using U = std::remove_reference_t<T>;
@@ -119,7 +127,7 @@ namespace tjs::sync
         _type = &typeid(U);
     #endif
 
-        if (need < buffer_size && align < alignof(std::max_align_t)) {
+        if constexpr (need < buffer_size && align < alignof(std::max_align_t)) {
             _ptr = _inline_buffer;
             _heap = false;
             _destroy = [](void* p) {
@@ -143,6 +151,7 @@ namespace tjs::sync
 
 
     template <typename msg_types, size_t buffer_size>
+    requires std::is_integral_v<msg_types> || std::is_enum_v<msg_types>
     void message<msg_types, buffer_size>::move_from(message<msg_types, buffer_size>&& other) noexcept {
         if (this == &other) {
             return;
