@@ -3,10 +3,14 @@
 # Define the source files for the core library
 file(GLOB_RECURSE CORE_SOURCES
     "src/*.cpp"
+    "include/*.h"
 )
 
 # Create a static library named TJC_Core
 add_library(TJC_Core STATIC ${CORE_SOURCES})
+
+# Organize source files into Visual Studio folders
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${CORE_SOURCES})
 
 # Specify the include directories for core
 target_include_directories(TJC_Core PRIVATE

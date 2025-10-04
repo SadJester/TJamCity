@@ -9,7 +9,7 @@ namespace tjs::common::sync
         Ring buffer queue:
         * have readers per thread 
     */
-    template <typename msg_types, size_t capacity = 1024, size_t msg_buffer_size = default_buffer_size>
+    /*template <typename msg_types, size_t capacity = 1024, size_t msg_buffer_size = default_buffer_size>
     requires std::is_integral_v<msg_types> || std::is_enum_v<msg_types>
     class spmc_queue {
     public:
@@ -57,7 +57,7 @@ namespace tjs::common::sync
         friend class spmc_queue::Reader;
         std::atomic<uint64_t> _current_idx;
         message_t _messages[capacity];
-    };
+    };*/
 
 } // namespace tjs::common
 

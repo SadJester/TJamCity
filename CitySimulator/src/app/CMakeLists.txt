@@ -2,13 +2,15 @@
 
 # Define the source files for the app
 file(GLOB_RECURSE APP_SOURCES
-    "main.cpp"
     "*.cpp"
     "*.h"
 )
 
 # Add executable target with the TJC_ prefix
 add_library(TJC_TJamApp STATIC ${APP_SOURCES})
+
+# Organize source files into Visual Studio folders
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${APP_SOURCES})
 
 # add dependencies
 find_package(Qt6 6.8.3 REQUIRED COMPONENTS Core Gui Widgets)
