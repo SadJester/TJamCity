@@ -2,6 +2,7 @@
 
 #include <core/simulation/transport_management/vehicle_state.h>
 #include <core/simulation/simulation_types.h>
+#include <core/data_layer/vehicle_definitions.h>
 
 #include <core/simulation/movement/idm/idm_params.h>
 
@@ -10,20 +11,6 @@ namespace tjs::core {
 	struct WayInfo;
 	struct Lane;
 	struct AgentData;
-
-	enum class VehicleType : char {
-		SimpleCar,
-		SmallTruck,
-		BigTruck,
-		Ambulance,
-		PoliceCar,
-		FireTrack,
-
-		Count
-	};
-
-	ENUM(VehicleState, uint8_t,
-		Undefined, PendingMove, Moving, Stopped);
 
 	struct ProfileInfo {
 		MovementAlgoType algo;

@@ -6,6 +6,8 @@
 #include <core/simulation/movement/idm/lane_agnostic_movement.h>
 #include <common/object_pool.h>
 
+#include <core/simulation/transport_management/vehicle_shared_state.h>
+
 namespace tjs::core::simulation {
 	class TrafficSimulationSystem;
 
@@ -43,6 +45,14 @@ namespace tjs::core::simulation {
 		std::optional<Vehicle*> create_vehicle(Lane& lane, VehicleType type, float desired_speed);
 		void remove_vehicle(Vehicle* vehicle);
 
+		VehicleShared& vehicle_state() {
+			return _shared_state;
+		}
+
+		std::vector<LaneRuntime>& lane_runtime() {
+			return _lane_runtime;
+		}
+
 	private:
 		TrafficSimulationSystem& _system;
 
@@ -51,10 +61,7 @@ namespace tjs::core::simulation {
 
 		std::vector<LaneRuntime> _lane_runtime;
 
-	public:
-		std::vector<LaneRuntime>& lane_runtime() {
-			return _lane_runtime;
-		}
+		VehicleShared _shared_state;
 	};
 
 } // namespace tjs::core::simulation
