@@ -66,6 +66,7 @@ namespace tjs::core::simulation {
 			Vehicle& v = *vs.vehicles()[i];
 			if (v.has_position_changes && v.current_lane) {
 				v.has_position_changes = false;
+				v.dirty = true;
 				v.coordinates = lane_position(*v.current_lane, v.s_on_lane, v.lateral_offset);
 				v.rotationAngle = v.current_lane->rotation_angle;
 			}

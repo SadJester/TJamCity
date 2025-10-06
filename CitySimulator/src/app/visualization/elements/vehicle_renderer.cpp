@@ -22,6 +22,8 @@ namespace tjs::visualization {
 		: SceneNode("VehicleRenderer")
 		, _application(application)
 		, _mapRendererData(*application.stores().get_entry<core::model::MapRendererData>()) {
+
+		_connection = _application.simulationSystem().vehicle_system().vehicle_state().connect();
 	}
 
 	VehicleRenderer::~VehicleRenderer() {
@@ -36,9 +38,14 @@ namespace tjs::visualization {
 
 	void VehicleRenderer::render(IRenderer& renderer) {
 		TJS_TRACY_NAMED("VehicleRenderer_Render");
-		for (auto vehicle : _application.simulationSystem().vehicle_system().vehicles()) {
+		/*for (auto vehicle : _application.simulationSystem().vehicle_system().vehicles()) {
 			render(renderer, *vehicle);
-		}
+		}*/
+
+		_connection.read([this, &renderer](const core::VehicleState1& state, uint32_t idx) {
+			render(renderer, state);
+		});
+
 	}
 
 	struct VehicleRenderSettings {
@@ -61,7 +68,7 @@ namespace tjs::visualization {
 		}
 	};
 
-	void VehicleRenderer::render(IRenderer& renderer, const core::Vehicle& vehicle) {
+	void VehicleRenderer::render(IRenderer& renderer, const core::VehicleState1& vehicle) {
 		const float metersPerPixel = _mapRendererData.metersPerPixel;
 
 		// Get the settings for the vehicle based on its type
@@ -97,7 +104,7 @@ namespace tjs::visualization {
 			{ { screenX - lengthInPixels / 2.0f, screenY + widthInPixels / 2.0f }, settings.color, { 0.f, 0.f } }  // top-left
 		};
 
-		const float angle = -vehicle.rotationAngle;
+		const float angle = -vehicle.rotation_angle;
 		for (auto& v : vertices) {
 			// Translate to origin, rotate, then translate back
 			float dx = v.position.x - screenX;

@@ -57,6 +57,7 @@ namespace tjs::core {
 		// ---- 1‑byte group ----
 		int8_t lane_change_dir;
 		bool has_position_changes;
+		bool dirty;
 
 		// Return if vehicle is shadow in lane (behin to change lane)
 		bool is_merging(const Lane& lane) const;

@@ -60,8 +60,11 @@ namespace tjs::common::sync
         };
 
     public:
+        // TODO: make connection destructor
         struct connection {
         public:
+            connection() = default;
+
             // Calls fn only for dirty elements for THIS reader, then clears the bit
             template<typename Callable>
             requires std::is_invocable_v<Callable, const T&, uint32_t>
@@ -125,7 +128,7 @@ namespace tjs::common::sync
             }
 
         private:            
-            const uint64_t _reader_bit;
+            uint64_t _reader_bit;
             shared_state* _owner;
             uint32_t _reader_id;
         };

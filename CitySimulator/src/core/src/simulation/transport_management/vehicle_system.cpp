@@ -65,6 +65,7 @@ namespace tjs::core::simulation {
 		vehicle.current_lane->vehicles.push_back(&vehicle);
 		lane_rt[lane.index_in_buffer].idx.push_back(&vehicle);
 		vehicle.has_position_changes = false;
+		vehicle.dirty = true;
 
 		return vehicle_ptr;
 	}
@@ -116,6 +117,7 @@ namespace tjs::core::simulation {
 		// Reserve capacity in the object pool
 		_vehicle_pool.clear();
 		_vehicle_pool.reserve(_system.settings().vehiclesCount);
+		_shared_state.resize(_system.settings().vehiclesCount);
 	}
 
 	void VehicleSystem::release() {
@@ -152,6 +154,34 @@ namespace tjs::core::simulation {
 
 	void VehicleSystem::update() {
 		_vehicle_pool.update_objects();
+
+		auto& objects = _vehicle_pool.objects();
+		auto _write_fn = [&objects](VehicleState1& shared_object, uint32_t index) -> bool {
+			auto& vehicle = objects[index];
+			const bool was_dirty = vehicle->dirty;
+			vehicle->dirty = false;
+
+			shared_object.uid = vehicle->uid;
+			shared_object.s_on_lane = vehicle->s_on_lane;
+			shared_object.lateral_offset = vehicle->lateral_offset;
+			
+			shared_object.coordinates = vehicle->coordinates;
+			shared_object.current_lane = vehicle->current_lane;
+			shared_object.agent = vehicle->agent;
+			
+			shared_object.current_speed = vehicle->currentSpeed;
+			shared_object.rotation_angle = vehicle->rotationAngle;
+			shared_object.length = vehicle->length;
+			shared_object.width = vehicle->width;
+			shared_object.max_speed = vehicle->maxSpeed;
+
+			shared_object.type = vehicle->type;
+			shared_object.state = vehicle->state;
+
+
+			return was_dirty;
+		};
+		_shared_state.write(_write_fn, objects.size(), true);
 	}
 
 	void VehicleSystem::remove_vehicle(Vehicle* vehicle) {

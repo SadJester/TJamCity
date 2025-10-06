@@ -24,6 +24,7 @@ namespace tjs::core::simulation {
 		for (size_t i = 0; i < agents.size(); ++i) {
 			movement_details::update_agent(i, *agents[i], _system);
 			agents[i]->vehicle->previous_state = agents[i]->vehicle->state;
+			agents[i]->vehicle->dirty = true;
 		}
 	}
 
