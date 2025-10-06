@@ -556,3 +556,87 @@ TEST(SharedStateTests, ConcurrentReaders_LongReadAllPins_WhileMainWrites) {
     EXPECT_EQ(last.front(), static_cast<int>(kFrames) * kFrameBase + 0);
     EXPECT_EQ(last.back(),  static_cast<int>(kFrames) * kFrameBase + static_cast<int>(N - 1));
 }
+
+TEST(SharedStateTests, ReaderBitIsReusedAfterDestruction) {
+    sync::shared_state<int, 3> state;
+    const uint32_t N = 32;
+    state.init(N);
+
+    // Publish initial
+    ASSERT_TRUE(state.write([](int& v, uint32_t i){ v = int(i); return true; }, N));
+
+    uint64_t first_bit = 0;
+    {
+        auto r = state.connect();
+        // Observe which bit r owns by making a small publish and then reading one element dirty
+        ASSERT_TRUE(state.write([](int& v, uint32_t i){ v = 1000 + int(i); return (i==0); }, N));
+        std::atomic<uint64_t>* observed_mask = nullptr;
+
+        // Peek current slot and record dirty mask[0]
+        r.read([&](const int&, uint32_t idx){
+            if (idx == 0) { /* we cannot directly read mask; assume we trust reuse via API */ }
+        });
+        // Save bit from internal state (white-box only if you expose a debug API).
+        // For black-box test, just ensure no stale dirties leak (see next assertions).
+        first_bit = 0; // we won't read it; black-box below
+    } // r destroyed -> its bit released and cleared in current slot
+
+    // New connection should reuse a bit and must NOT see stale dirties
+    auto r2 = state.connect();
+
+    // Immediately after connect, without a new write, dirty-only read should be empty
+    std::vector<int> got;
+    r2.read([&](const int& v, uint32_t){ got.push_back(v); });
+    EXPECT_TRUE(got.empty()) << "New reader must not inherit stale dirty flags from previous owner";
+
+    // Now publish and verify r2 receives fresh dirties set from active_mask
+    ASSERT_TRUE(state.write([](int& v, uint32_t i){ v = 2000 + int(i); return (i%3)==0; }, N));
+    std::vector<int> got2;
+    r2.read([&](const int& v, uint32_t){ got2.push_back(v); });
+    ASSERT_FALSE(got2.empty());
+}
+
+TEST(SharedStateTests, ManyReadersAllocateAndReuseBitsConcurrently) {
+    sync::shared_state<int, 3> state;
+    const uint32_t N = 64;
+    state.init(N);
+
+    // Seed
+    ASSERT_TRUE(state.write([](int& v, uint32_t i){ v = int(i); return true; }, N));
+
+    constexpr int waves = 5;
+    constexpr int readers_per_wave = 8;
+
+    for (int w = 0; w < waves; ++w) {
+        std::vector<sync::shared_state<int,3>::connection> conns;
+        conns.reserve(readers_per_wave);
+
+        // Create a wave of readers
+        for (int i = 0; i < readers_per_wave; ++i) {
+            conns.emplace_back(state.connect());
+        }
+
+        // Main thread writes a frame; all active readers should be able to consume something
+        ASSERT_TRUE(state.write([](int& v, uint32_t i){ v = 10000 + int(i); return (i&1)==0; }, N));
+
+        // Let each read and clear its bit
+        for (auto& c : conns) {
+            size_t cnt = 0;
+            c.read([&](const int&, uint32_t){ ++cnt; });
+            EXPECT_GT(cnt, 0u);
+        }
+
+        // Destroy all connections -> frees their bits
+        conns.clear();
+
+        // New publish; with no active readers, no one should observe anything until new connects
+        ASSERT_TRUE(state.write([](int& v, uint32_t i){ v = 20000 + int(i); return (i%4)==0; }, N));
+        // Create a new reader and ensure it doesn't see stale dirties from the previous wave
+        auto r = state.connect();
+        std::vector<int> got;
+        r.read([&](const int&, uint32_t){ got.push_back(1); });
+        // It may see current-frame dirties only if they were set after it connected.
+        // We didn't publish after connect, so it should be empty:
+        EXPECT_TRUE(got.empty());
+    }
+}

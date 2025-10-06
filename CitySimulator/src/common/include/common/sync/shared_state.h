@@ -8,6 +8,7 @@ namespace tjs::common::sync
     private:
         static constexpr uint32_t max_readers = 63;
         static constexpr uint64_t all_readers_mask = (max_readers >= 64) ? ~0ULL : ((1ULL << max_readers) - 1ULL);
+        static constexpr uint64_t limit_mask = (max_readers >= 64) ? ~0ULL : ((1ULL << max_readers) - 1ULL);
 
         struct element {
             T element;
@@ -60,10 +61,39 @@ namespace tjs::common::sync
         };
 
     public:
-        // TODO: make connection destructor
-        struct connection {
+        struct connection final {
         public:
             connection() = default;
+            ~connection() {
+                _reset();
+            }
+
+            connection(const connection&) = delete;
+            connection& operator=(const connection&) = delete;
+
+            connection(connection&& o) noexcept
+                : _owner(o._owner),
+                _reader_id(o._reader_id)
+                , _reader_bit(o._reader_bit) {
+                o._owner = nullptr;
+                o._reader_bit = 0;
+                o._reader_id = UINT32_MAX;
+            }
+        
+            connection& operator=(connection&& o) noexcept {
+                if (this == &o) {
+                    return *this;
+                }
+
+                _reset();
+                _owner = o._owner;
+                _reader_id = o._reader_id;
+                _reader_bit = o._reader_bit;
+                o._owner = nullptr;
+                o._reader_bit = 0;
+                o._reader_id = UINT32_MAX;
+                return *this;
+            }
 
             // Calls fn only for dirty elements for THIS reader, then clears the bit
             template<typename Callable>
@@ -101,8 +131,8 @@ namespace tjs::common::sync
 
         private:
             friend class shared_state;
-            connection(shared_state* owner, uint32_t reader_id)
-                : _reader_bit((reader_id < max_readers) ? (1ULL << reader_id) : (1ULL << (max_readers - 1)))
+            connection(shared_state* owner, uint32_t reader_id, uint64_t bit)
+                : _reader_bit(bit)
                 , _owner(owner)
                 , _reader_id(reader_id) {
             }
@@ -124,6 +154,22 @@ namespace tjs::common::sync
                         return guard{ &s };
                     }
                     s.refcnt.fetch_sub(1, std::memory_order_acq_rel);
+                }
+            }
+
+            void _reset() {
+                if (!_owner || _reader_bit == 0) {
+                    return;
+                }
+
+                _owner->_active_mask.fetch_and(~_reader_bit, std::memory_order_acq_rel);
+
+                auto g = _acquire();
+                auto slot = g.get();
+                uint32_t count = slot->current_size.load(std::memory_order_relaxed);
+                for (uint32_t i = 0; i < count; ++i) {
+                    auto& e = slot->data[i];
+                    std::atomic_ref<uint64_t>(e.dirty).fetch_and(~_reader_bit, std::memory_order_acq_rel);
                 }
             }
 
@@ -210,8 +256,14 @@ namespace tjs::common::sync
         }
 
         connection connect() {
-            const uint32_t id = _next_reader_id.fetch_add(1, std::memory_order_acq_rel);
-            return connection {this, id };
+            while (true) {
+                auto connection_opt = _try_connect();
+                if (connection_opt.has_value()) {
+                    return std::move(*connection_opt);
+                }
+                std::this_thread::yield();
+            }
+
         }
 
     private:
@@ -228,12 +280,54 @@ namespace tjs::common::sync
             return UINT16_MAX;
         }
 
+        std::optional<connection> _try_connect() {
+            uint64_t cur = _active_mask.load(std::memory_order_acquire);
+            uint64_t inv = ~cur & limit_mask;
+
+            if (inv == 0) {
+                // No free reader slots left
+                throw std::exception{ "shared_state: no free reader bits" };
+            }
+            uint32_t id = 0;
+            for (; id < max_readers; ++id) {
+                if (inv & (1ULL << id))
+                    break;
+            }
+            const uint64_t bit = (1ULL << id);
+            uint64_t desired = cur | bit;
+
+            if (_active_mask.compare_exchange_weak(
+                cur, desired,
+                std::memory_order_acq_rel,
+                std::memory_order_acquire
+            )) {
+                // Successfully allocated bit 'id'
+                connection c{ this, id, bit };
+
+                // Clean currently published slot to avoid inheriting stale dirties
+                {
+                    auto g = c._acquire();
+                    slot& s = *g.get();
+                    uint32_t count = s.current_size.load(std::memory_order_relaxed);
+                    for (uint32_t i = 0; i < count; ++i) {
+                        auto& e = s.data[i];
+                        std::atomic_ref<uint64_t>(e.dirty).fetch_and(~bit, std::memory_order_acq_rel);
+                    }
+                }
+
+                return c;
+            }
+            return {};
+        }
+
     private:
         friend guard connection::_acquire() const;
 
         std::atomic<uint16_t> _public_idx{0};
         std::array<slot, slots_count> _slots;
+
         std::atomic<uint32_t> _next_reader_id{0};
         std::atomic<uint64_t> _epoch{0};
+        std::atomic<uint64_t> _active_mask{0};
     };
 } // namespace tjs::common::sync
