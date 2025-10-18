@@ -18,6 +18,44 @@ namespace {
         explicit big_aligned(int x_) : x(x_), pad{} {}
     };
     static_assert(alignof(big_aligned) >= 64, "expected over-aligned type");
+
+    struct DtorCounted {
+        static inline std::atomic<int> live{0};
+        static inline std::atomic<int> destroyed{0};
+        int v{};
+        explicit DtorCounted(int vv=0) : v(vv) { ++live; }
+        DtorCounted(const DtorCounted&) = delete;
+        DtorCounted& operator=(const DtorCounted&) = delete;
+        DtorCounted(DtorCounted&& o) noexcept : v(o.v) { ++live; o.v = 0; }
+        DtorCounted& operator=(DtorCounted&& o) noexcept {
+            if (this != &o) v = o.v;
+            return *this;
+        }
+        ~DtorCounted() { ++destroyed; --live; }
+    };
+
+    // Move-only payload to verify perfect forwarding
+    struct MoveOnly {
+        std::unique_ptr<int> p;
+        explicit MoveOnly(std::unique_ptr<int>&& q) : p(std::move(q)) {}
+        MoveOnly(MoveOnly&&) noexcept = default;
+        MoveOnly& operator=(MoveOnly&&) noexcept = default;
+        MoveOnly(const MoveOnly&) = delete;
+        MoveOnly& operator=(const MoveOnly&) = delete;
+    };
+
+
+    // Slightly large object (to force heap) — size chosen in tests vs buffer size
+    template <std::size_t N>
+    struct Big {
+        char bytes[N];
+        int mark{};
+        explicit Big(int m=0) : bytes{}, mark(m) {}
+    };
+
+    enum class msg_kind : char { 
+        A=1, B=2, C=3, D=4
+    };
 }
 
 
@@ -151,3 +189,68 @@ TEST(SyncMessageTests, Emplace_OnEmpty_Works_Heap) {
     auto addr = reinterpret_cast<std::uintptr_t>(&m.get<big_aligned>());
     EXPECT_EQ(addr % 64, 0u);
 }
+
+
+TEST(SyncMessageTests, InlineSmallObjectAndTypeUpdates) {
+    // Use a small inline buffer so SmallPod fits inline
+    using Msg = sync::message<msg_kind, /*buffer_size*/ 64>;
+
+    {
+        Msg m{msg_kind::A};
+        auto& s = m.replace<small_trivial>(msg_kind::B, 3);
+        EXPECT_EQ(m.type(), msg_kind::B);
+        EXPECT_EQ(s.v, 3);
+
+        // Replace inline with another inline type — previous should be destroyed
+        auto& t = m.replace<small_trivial>(msg_kind::C, 10);
+        EXPECT_EQ(m.type(), msg_kind::C);
+        EXPECT_EQ(t.v, 10);
+
+        // Accessors
+        const auto& cref = m.get<small_trivial>();
+        EXPECT_EQ(cref.v, 10);
+    }
+    // No explicit leak checks here; just compilation/runtime sanity for inline path
+}
+
+TEST(SyncMessageTests, HeapForLargeObjectAndDestructorRuns) {
+    using Msg = sync::message<msg_kind, /*buffer_size*/ 64>;
+
+    DtorCounted::live = 0;
+    DtorCounted::destroyed = 0;
+
+    {
+        Msg m{msg_kind::A};
+
+        // First place a DtorCounted inline (fits in 64)
+        auto& d = m.replace<DtorCounted>(msg_kind::B, 42);
+        EXPECT_EQ(d.v, 42);
+
+        // Now force a heap allocation by using Big<256> ( > 64 )
+        auto& b = m.replace<Big<256>>(msg_kind::C, 99);
+        EXPECT_EQ(m.type(), msg_kind::C);
+        EXPECT_EQ(b.mark, 99);
+
+        // The DtorCounted should have been destroyed when replaced
+        EXPECT_EQ(DtorCounted::live.load(), 0);
+        EXPECT_EQ(DtorCounted::destroyed.load(), 1);
+    }
+    // On scope exit, the Big<256> should be destroyed
+    // (we can't count its dtors; we just ensure no crashes and prior counters are balanced)
+}
+
+TEST(SyncMessageTests, PerfectForwardingMoveOnly) {
+    using Msg = sync::message<msg_kind, /*buffer_size*/ 64>;
+
+    Msg m{msg_kind::A};
+
+    auto& mo = m.replace<MoveOnly>(msg_kind::D, std::make_unique<int>(123));
+    ASSERT_TRUE(mo.p);
+    EXPECT_EQ(*mo.p, 123);
+
+    // Replace again with another move-only to ensure previous is destroyed correctly
+    auto& mo2 = m.replace<MoveOnly>(msg_kind::B, std::make_unique<int>(456));
+    ASSERT_TRUE(mo2.p);
+    EXPECT_EQ(*mo2.p, 456);
+}
+

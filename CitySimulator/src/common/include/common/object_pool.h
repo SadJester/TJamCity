@@ -7,7 +7,6 @@
 #else
 namespace portable {
 	constexpr std::size_t hardware_destructive_interference_size = 64;
-	constexpr std::size_t hardware_constructive_interference_size = 64;
 } // namespace portable
 #endif
 

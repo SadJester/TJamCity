@@ -1,6 +1,7 @@
 #pragma once
 
 #include <common/sync/message.h>
+#include <mutex>
 
 
 namespace tjs::common::sync
@@ -9,55 +10,93 @@ namespace tjs::common::sync
         Ring buffer queue:
         * have readers per thread 
     */
-    /*template <typename msg_types, size_t capacity = 1024, size_t msg_buffer_size = default_buffer_size>
-    requires std::is_integral_v<msg_types> || std::is_enum_v<msg_types>
+    template <typename msg_types, size_t capacity = 1024, size_t msg_buffer_size = default_buffer_size>
+    requires (
+        (std::is_integral_v<msg_types> || std::is_enum_v<msg_types>)
+        && (capacity != 0 && (capacity & (capacity - 1)) == 0)
+    )
     class spmc_queue {
+    private:
+        static constexpr size_t power_2_mask = capacity - 1;
+
     public:
         using message_t = message<msg_types, msg_buffer_size>;
 
-
         struct reader {
         public:
-            reader(spmc_queue* q, int start_idx)
+            reader(spmc_queue* q, uint64_t start_idx) noexcept
                 : _queue(q)
                 , _read_idx(start_idx)
             {}
 
-            const message_t& read() {
+            template <typename Callable>
+            requires std::is_invocable_v<Callable, const message_t&>
+            bool read(Callable&& fn) {
+                const uint64_t tail = _queue->_current_idx.load(std::memory_order_acquire);
+                if (tail - _read_idx >= capacity) {
+                    _read_idx = tail - capacity + 1;
+                }
 
+                if (_read_idx == tail) {
+                    return false;
+                }
+
+                const size_t idx = _read_idx & power_2_mask;
+                fn(_queue->_messages[idx]);
+                ++_read_idx;
+                return true;
             }
 
             template <typename Callable>
-            requires std::is_invocable_v<Callable, const message_t&)
-            void* read_all(Callable&&) {
-                
+            requires std::is_invocable_v<Callable, const message_t&>
+            size_t read_all(Callable&& fn) {
+                size_t count = 0;
+                while (read(fn)) {
+                    ++count;
+                }
+                return count;
+            }
+
+            uint64_t position() const noexcept{
+                return _read_idx;
             }
 
         private:
             spmc_queue* _queue;
-            int _read_idx;
+            uint64_t _read_idx;
         };
 
-        template <typename T>
-        void push(msg_types msg_type, T&& payload) {
-            const int idx = _current_idx.load(std::memory_order_relaxed);
-            _current_idx.fetch_add(std::memory_order_release);
-            _message[idx] = {msg_type, std::move(payload)};
+    public:
+        spmc_queue()
+            : _messages(std::make_unique<message_t[]>(capacity)) {
+            _current_idx.store(0, std::memory_order_relaxed);
         }
 
+        template <typename T, typename... Args>
+        void push(msg_types msg_type, Args&&... payload) {
+            const uint64_t tail = _current_idx.load(std::memory_order_relaxed);
 
+            const size_t idx = static_cast<size_t>(tail) & power_2_mask;
+
+            _messages[idx].replace<T>(msg_type, std::forward<Args>(payload)...);
+            
+            _current_idx.store(tail + 1, std::memory_order_release);
+        }
+
+        reader connect() noexcept {
+            const uint64_t tail = _current_idx.load(std::memory_order_acquire);
+            return reader{this, tail};
+        }
+
+        uint64_t current_idx() const noexcept {
+            return _current_idx.load(std::memory_order_relaxed);
+        }
 
     private:
-        struct slot {
-            message_t message;
-            std::atomic<uint32_t> seq;
-        };
-
-    private:
-        friend class spmc_queue::Reader;
-        std::atomic<uint64_t> _current_idx;
-        message_t _messages[capacity];
-    };*/
+        friend class spmc_queue::reader;
+        alignas(64) std::atomic<uint64_t> _current_idx{0};
+        std::unique_ptr<message_t[]> _messages;
+    };
 
 } // namespace tjs::common
 

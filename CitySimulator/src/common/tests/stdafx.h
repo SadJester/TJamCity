@@ -12,4 +12,5 @@
 #include <array>
 #include <string>
 #include <thread>
+#include <barrier>
 #include <algorithm>

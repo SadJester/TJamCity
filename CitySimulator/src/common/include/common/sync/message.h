@@ -7,6 +7,7 @@ namespace tjs::common::sync
     requires std::is_integral_v<msg_types> || std::is_enum_v<msg_types>
     struct message final {
     public:
+        message() noexcept = default;
         message(msg_types msg_type) noexcept;
         message(message&& other) noexcept;
         message& operator = (message&& other) noexcept;
@@ -19,8 +20,18 @@ namespace tjs::common::sync
 
         ~message();
         
+        bool is_empty() const noexcept {
+            return _ptr == nullptr;
+        }
+
         template <typename T, typename... Args>
         T& emplace(Args&&... args);
+
+        template <typename T, typename... Args>
+        T& replace(msg_types msg_type, Args&&... args) {
+            _msg_type = msg_type;
+            return emplace<T>(std::forward<Args>(args)...);
+        }
 
         msg_types type() const {
             return _msg_type;
@@ -127,7 +138,7 @@ namespace tjs::common::sync
         _type = &typeid(U);
     #endif
 
-        if constexpr (need < buffer_size && align < alignof(std::max_align_t)) {
+        if constexpr (need <= buffer_size && align <= alignof(std::max_align_t)) {
             _ptr = _inline_buffer;
             _heap = false;
             _destroy = [](void* p) {
