@@ -11,6 +11,8 @@
 #include <core/data_layer/world_data.h>
 #include <core/simulation/simulation_system.h>
 
+#include <common/system/threaded_system.h>
+
 namespace tjs {
 	Application::Application(int& argc, char** argv)
 		: _commandLine(argc, argv) {
@@ -45,8 +47,80 @@ namespace tjs {
 		_logic_modules.init();
 	}
 
+
+	class TestThreadedSys : public common::system::threaded_system {
+	public:
+		using self_type = TestThreadedSys;
+
+		void _update_impl() override {
+			using namespace std::chrono_literals;
+			std::this_thread::sleep_for(10ms);
+		}
+
+
+		virtual void _initialize_self_impl() {
+			std::cout << "[Sys] Self init" << std::endl;
+		}
+        virtual void _initialize_impl() {
+			std::cout << "[Sys] Post init" << std::endl;
+		}
+        virtual void _release_impl() {
+			std::cout << "[Sys] Release impl" << std::endl;
+		}
+
+		virtual void _release_self_impl() {
+			std::cout << "[Sys] Release self impl" << std::endl;
+		}
+
+		std::atomic<int> x = 1;
+	};
+
+	class TestThreadedSys1 : public common::system::threaded_system {
+	public:
+		using self_type = TestThreadedSys1;
+
+		TestThreadedSys1(TestThreadedSys& sys1)
+			: _s(sys1) {
+
+		}
+
+		void _update_impl() override {
+			using namespace std::chrono_literals;
+			std::this_thread::sleep_for(10ms);
+
+			if (!x) {
+				x = true;
+				_s.x = 5;
+			}
+		}
+
+		virtual void _initialize_self_impl() {
+			std::cout << "[Sys1] Self init" << std::endl;
+		}
+        virtual void _initialize_impl() {
+			std::cout << "[Sys1] Post init" << std::endl;
+		}
+        virtual void _release_impl() {
+			std::cout << "[Sys1] Release impl" << std::endl;
+		}
+
+		virtual void _release_self_impl() {
+			std::cout << "[Sys1] Release self impl" << std::endl;
+		}
+
+
+
+		bool x = false;
+		TestThreadedSys& _s;
+	};
+
+
 	void Application::run() {
 		using duration = FrameStats::duration;
+
+		auto& sys1 = _systems.create<TestThreadedSys>();
+		auto& sys2 = _systems.create<TestThreadedSys1>(sys1);
+		_systems.start();
 
 		const int targetFPS = _settings.render.targetFPS;
 		const duration targetFrameTime(1.0 / targetFPS);
@@ -122,6 +196,15 @@ namespace tjs {
 				std::this_thread::sleep_for(std::chrono::duration_cast<std::chrono::milliseconds>(sleepTime));
 			}
 		}
+
+		_systems.finalize();
+
+		_sceneSystem.reset();
+		_uiSystem.reset();
+		_renderer->release();
+		_simulationSystem->release();
+
+		_systems.join();
 
 		// Save settings before quit
 		_settings.save();

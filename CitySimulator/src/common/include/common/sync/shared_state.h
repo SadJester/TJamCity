@@ -171,12 +171,15 @@ namespace tjs::common::sync
                     auto& e = slot->data[i];
                     std::atomic_ref<uint64_t>(e.dirty).fetch_and(~_reader_bit, std::memory_order_acq_rel);
                 }
+
+                _owner = nullptr;
+                _reader_bit = 0;
             }
 
         private:            
-            uint64_t _reader_bit;
-            shared_state* _owner;
-            uint32_t _reader_id;
+            uint64_t _reader_bit{ 0 };
+            shared_state* _owner{ nullptr };
+            uint32_t _reader_id{ 0 };
         };
     
     public:

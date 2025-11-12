@@ -6,6 +6,7 @@
 #include <logic/logic_base.h>
 
 #include <common/message_dispatcher/message_dispatcher.h>
+#include <common/system/system_holder.h>
 
 namespace tjs {
 
@@ -165,6 +166,10 @@ namespace tjs {
 			return _message_dispatcher;
 		}
 
+		common::system::system_holder& systems() {
+			return _systems;
+		}
+
 	private:
 		CommandLine _commandLine;
 		bool _isFinished = false;
@@ -182,6 +187,8 @@ namespace tjs {
 		std::unique_ptr<visualization::SceneSystem> _sceneSystem;
 		std::unique_ptr<core::WorldData> _worldData;
 		std::unique_ptr<core::simulation::TrafficSimulationSystem> _simulationSystem;
+
+		common::system::system_holder _systems;
 
 		LogicHandler _logic_modules;
 	};

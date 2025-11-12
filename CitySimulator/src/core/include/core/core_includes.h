@@ -26,5 +26,7 @@
 #include <core/map_math/coordinates.h>
 #include <core/data_layer/enums.h>
 
+#include <common/common_includes.h>
+
 // TODO: algo error handling
 #include <stdexcept>
