@@ -43,9 +43,7 @@ namespace tjs::common::system {
 
     public:
         virtual ~threaded_system() {
-            if (_thread.joinable()) {
-                _thread.join();
-            }
+            join();
         }
 
         lossless_queue& mandatory_queue() {
@@ -88,6 +86,12 @@ namespace tjs::common::system {
             _update_impl();
 
             // update stats
+        }
+
+        void join() {
+             if (_thread.joinable()) {
+                _thread.join();
+            }
         }
 
     protected:

@@ -142,13 +142,8 @@ namespace tjs {
 			return *_uiSystem;
 		}
 
-		IRenderer& renderer() {
-			return *_renderer;
-		}
-
-		visualization::SceneSystem& sceneSystem() {
-			return *_sceneSystem;
-		}
+		IRenderer& renderer();
+		visualization::SceneSystem& sceneSystem();
 
 		core::simulation::TrafficSimulationSystem& simulationSystem() {
 			return *_simulationSystem;
@@ -183,8 +178,9 @@ namespace tjs {
 
 		// Systems
 		std::unique_ptr<IRenderer> _renderer;
-		std::unique_ptr<UISystem> _uiSystem;
 		std::unique_ptr<visualization::SceneSystem> _sceneSystem;
+
+		std::unique_ptr<UISystem> _uiSystem;
 		std::unique_ptr<core::WorldData> _worldData;
 		std::unique_ptr<core::simulation::TrafficSimulationSystem> _simulationSystem;
 

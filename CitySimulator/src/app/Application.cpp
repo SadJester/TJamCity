@@ -13,6 +13,81 @@
 
 #include <common/system/threaded_system.h>
 
+
+/// 
+#include <render/render_constants.h>
+#include <visualization/scene_creator.h>
+
+
+namespace tjs {
+	class TestRenderingSystem : public common::system::threaded_system {
+	public:
+		using self_type = TestRenderingSystem;
+
+		TestRenderingSystem(
+			Application& app,
+			std::unique_ptr<IRenderer>&& renderer,
+			std::unique_ptr<visualization::SceneSystem>&& sceneSystem
+		)
+			: _app(app)
+			, _renderer(std::move(renderer))
+			, _sceneSystem(std::move(sceneSystem)) {
+		}
+
+		virtual void _initialize_self_impl() {
+			std::cout << "[Sys] Self init" << std::endl;
+
+			_renderer->initialize();
+			_sceneSystem->initialize();
+
+			// TODO: Will move to user settings in some time
+			_renderer->set_clear_color(tjs::render::RenderConstants::BASE_CLEAR_COLOR);
+		}
+
+        virtual void _initialize_impl() {
+			std::cout << "[Sys] Initialize impl" << std::endl;
+
+			visualization::prepareScene(*_sceneSystem, _app);
+		}
+
+		void _update_impl() override {
+			_renderer->update();
+			_sceneSystem->update();
+
+			// Rendering
+			_renderer->begin_frame();
+			_sceneSystem->render(*_renderer);
+			_renderer->end_frame();
+		}
+
+        virtual void _release_impl() {
+			std::cout << "[Sys] Release impl" << std::endl;
+		}
+
+		virtual void _release_self_impl() {
+			std::cout << "[Sys] Release self impl" << std::endl;
+
+			_sceneSystem.reset();
+			_renderer->release();
+
+			_renderer.reset();
+		}
+
+		IRenderer& renderer() {
+			return *_renderer;
+		}
+
+		visualization::SceneSystem& sceneSystem() {
+			return *_sceneSystem;
+		}
+
+		Application& _app;
+		std::unique_ptr<IRenderer> _renderer;
+		std::unique_ptr<visualization::SceneSystem> _sceneSystem;
+	};
+}
+
+
 namespace tjs {
 	Application::Application(int& argc, char** argv)
 		: _commandLine(argc, argv) {
@@ -39,8 +114,6 @@ namespace tjs {
 
 	void Application::initialize() {
 		_uiSystem->initialize();
-		_renderer->initialize();
-		_sceneSystem->initialize();
 		_simulationSystem->initialize();
 
 		_models_store.init();
@@ -48,78 +121,15 @@ namespace tjs {
 	}
 
 
-	class TestThreadedSys : public common::system::threaded_system {
-	public:
-		using self_type = TestThreadedSys;
-
-		void _update_impl() override {
-			using namespace std::chrono_literals;
-			std::this_thread::sleep_for(10ms);
-		}
-
-
-		virtual void _initialize_self_impl() {
-			std::cout << "[Sys] Self init" << std::endl;
-		}
-        virtual void _initialize_impl() {
-			std::cout << "[Sys] Post init" << std::endl;
-		}
-        virtual void _release_impl() {
-			std::cout << "[Sys] Release impl" << std::endl;
-		}
-
-		virtual void _release_self_impl() {
-			std::cout << "[Sys] Release self impl" << std::endl;
-		}
-
-		std::atomic<int> x = 1;
-	};
-
-	class TestThreadedSys1 : public common::system::threaded_system {
-	public:
-		using self_type = TestThreadedSys1;
-
-		TestThreadedSys1(TestThreadedSys& sys1)
-			: _s(sys1) {
-
-		}
-
-		void _update_impl() override {
-			using namespace std::chrono_literals;
-			std::this_thread::sleep_for(10ms);
-
-			if (!x) {
-				x = true;
-				_s.x = 5;
-			}
-		}
-
-		virtual void _initialize_self_impl() {
-			std::cout << "[Sys1] Self init" << std::endl;
-		}
-        virtual void _initialize_impl() {
-			std::cout << "[Sys1] Post init" << std::endl;
-		}
-        virtual void _release_impl() {
-			std::cout << "[Sys1] Release impl" << std::endl;
-		}
-
-		virtual void _release_self_impl() {
-			std::cout << "[Sys1] Release self impl" << std::endl;
-		}
-
-
-
-		bool x = false;
-		TestThreadedSys& _s;
-	};
-
-
 	void Application::run() {
 		using duration = FrameStats::duration;
 
-		auto& sys1 = _systems.create<TestThreadedSys>();
-		auto& sys2 = _systems.create<TestThreadedSys1>(sys1);
+		_systems.create<TestRenderingSystem>(
+			*this,
+			std::move(_renderer),
+			std::move(_sceneSystem)
+		);
+
 		_systems.start();
 
 		const int targetFPS = _settings.render.targetFPS;
@@ -149,17 +159,17 @@ namespace tjs {
 
 			// Run the update and draw operations
 			_uiSystem->update();
-			_renderer->update();
-			_sceneSystem->update();
+			//_renderer->update();
+			//_sceneSystem->update();
 
 			auto systems_end = std::chrono::high_resolution_clock::now();
 			_frameStats.systems_update().update(
 				std::chrono::duration_cast<std::chrono::duration<double>>(systems_end - simulation_end).count());
 
 			// Rendering
-			_renderer->begin_frame();
-			_sceneSystem->render(*_renderer);
-			_renderer->end_frame();
+			//_renderer->begin_frame();
+			//_sceneSystem->render(*_renderer);
+			//_renderer->end_frame();
 
 			auto rendering_end = std::chrono::high_resolution_clock::now();
 			_frameStats.render_time().update(
@@ -199,12 +209,10 @@ namespace tjs {
 
 		_systems.finalize();
 
+		_systems.join();
+
 		_sceneSystem.reset();
 		_uiSystem.reset();
-		_renderer->release();
-		_simulationSystem->release();
-
-		_systems.join();
 
 		// Save settings before quit
 		_settings.save();
@@ -212,5 +220,14 @@ namespace tjs {
 		_logic_modules.release();
 		_models_store.release();
 	}
+
+	IRenderer& Application::renderer() {
+		return _systems.get<TestRenderingSystem>()->renderer();
+	}
+
+	visualization::SceneSystem& Application::sceneSystem() {
+		return _systems.get<TestRenderingSystem>()->sceneSystem();
+	}
+
 
 } // namespace tjs

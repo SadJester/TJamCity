@@ -11,9 +11,7 @@
 #include <Application.h>
 
 namespace tjs::visualization {
-	void prepareScene(tjs::Application& app) {
-		auto& sceneSystem = app.sceneSystem();
-
+	void prepareScene(SceneSystem& sceneSystem, Application& app) {
 		auto scene = sceneSystem.createScene("General", 0);
 		if (scene == nullptr) {
 			return;

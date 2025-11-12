@@ -55,7 +55,7 @@ namespace tjs {
 		application.load_settings();
 
 		setup_store_models(application);
-		setup_logic(application);
+		//setup_logic(application);
 
 		auto worldData = std::make_unique<tjs::core::WorldData>();
 		auto simulationSystem = std::make_unique<core::simulation::TrafficSimulationSystem>(
@@ -69,10 +69,6 @@ namespace tjs {
 			std::move(simulationSystem));
 
 		application.initialize();
-
-		// TODO: Will move to user settings in some time
-		application.renderer().set_clear_color(tjs::render::RenderConstants::BASE_CLEAR_COLOR);
-		tjs::visualization::prepareScene(application);
 
 		// Open first map that was opened earlier
 		open_map_simulation_reinit(application.settings().general.selectedFile, application);

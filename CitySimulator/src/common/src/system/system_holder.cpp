@@ -26,7 +26,7 @@ namespace tjs::common::system {
 
     void system_holder::join() {
         for (auto& sys_pair : _systems) {
-            sys_pair.second.reset();
+            sys_pair.second->join();
         }
 
         _systems.clear();

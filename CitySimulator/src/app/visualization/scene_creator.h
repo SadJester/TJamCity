@@ -2,8 +2,10 @@
 
 namespace tjs {
 	class Application;
-} // namespace tjs
+}
 
 namespace tjs::visualization {
-	void prepareScene(tjs::Application& app);
+	class SceneSystem;
+
+	void prepareScene(SceneSystem& sceneSystem, Application& app);
 } // namespace tjs::visualization
