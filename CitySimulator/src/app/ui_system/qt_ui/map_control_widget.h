@@ -13,6 +13,8 @@
 #include <events/map_events.h>
 #include <core/events/vehicle_population_events.h>
 
+#include <data/map_renderer_data.h>
+
 namespace tjs {
 	class Application;
 
@@ -50,6 +52,8 @@ namespace tjs {
 
 		private:
 			Application& _application;
+
+			core::model::MapRendererShared::connection _connection;
 
 			// Temporary button, will erase it after refactoring
 			QPushButton* _updateButton = nullptr;

@@ -36,6 +36,7 @@ namespace tjs {
 	void setup_store_models(Application& app) {
 		app.stores().create<core::model::VehicleAnalyzeData>();
 		app.stores().create<core::model::MapRendererData>();
+		app.stores().create<core::model::MapRendererShared>();
 		app.stores().create<core::model::PersistentRenderData>();
 		app.stores().create<core::model::RenderMetricsData>();
 	}

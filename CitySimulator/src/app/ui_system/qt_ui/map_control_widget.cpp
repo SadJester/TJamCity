@@ -466,13 +466,20 @@ namespace tjs {
 		}
 
 		void MapControlWidget::UpdateLabels() {
-			auto render_data = _application.stores().get_entry<core::model::MapRendererData>();
-			if (!render_data) {
+			auto shared = _application.stores().get_entry<core::model::MapRendererShared>();
+			if (!shared) {
 				return;
 			}
 
-			_zoomLevel->setText(QString("Meters per pixel: %1").arg(render_data->metersPerPixel));
-			_screenCenter->setText(QString("Center: %1, %2").arg(render_data->screen_center.x).arg(render_data->screen_center.y));
+			if (_connection.empty()) {
+				// TODO{threads}: move connection to initialize method
+				_connection = shared->connect();
+			}
+
+			_connection.read([this](const core::model::MapRendererData& render_data) {
+				_zoomLevel->setText(QString("Meters per pixel: %1").arg(render_data.metersPerPixel));
+				_screenCenter->setText(QString("Center: %1, %2").arg(render_data.screen_center.x).arg(render_data.screen_center.y));
+			});
 		}
 
 		void MapControlWidget::onUpdate() {

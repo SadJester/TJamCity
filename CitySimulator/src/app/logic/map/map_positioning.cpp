@@ -147,6 +147,16 @@ namespace tjs::app::logic {
 		auto& general_settings = _application.settings().general;
 		general_settings.screen_center = render_data->screen_center;
 		general_settings.zoomLevel = render_data->metersPerPixel;
+
+
+		auto shared = _application.stores().get_entry<core::model::MapRendererShared>();
+		// TODO{threads}: hack for now
+		core::model::MapRendererData& data = shared->operator*();
+		data.screen_center = render_data->screen_center;
+		data.metersPerPixel = render_data->metersPerPixel;
+		shared->publish();
+
+		// TODO{threads}: SPMC
 		_application.message_dispatcher().handle_message(events::MapPositioningChanged {}, "map");
 	}
 

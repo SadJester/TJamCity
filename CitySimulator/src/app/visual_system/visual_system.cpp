@@ -79,6 +79,7 @@ namespace tjs::visualization
         _logic_modules.create<app::logic::VehicleTargeting>(_app);
 		_logic_modules.create<app::logic::LanesSelector>(_app);
 		_logic_modules.create<app::logic::MapPositioning>(_app);
+        _logic_modules.init();
     }
 
     void VisualSystem::_setup_scene() {

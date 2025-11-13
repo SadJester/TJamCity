@@ -3,6 +3,8 @@
 #include <core/store_models/idata_model.h>
 #include <render/render_primitives.h>
 
+#include <common/sync/shared_state.h>
+
 namespace tjs::core {
 	struct Lane;
 } // namespace tjs::core
@@ -46,6 +48,21 @@ namespace tjs::core::model {
 
 		void reinit() override {
 			selected_lane = nullptr;
+		}
+
+		static void sync(MapRendererData& dst, const MapRendererData& src);
+	};
+
+	struct MapRendererShared : public IDataModel, common::sync::shared_data<MapRendererData, 3> {
+		static std::type_index get_type() {
+			return typeid(MapRendererShared);
+		}
+
+		MapRendererShared() = default;
+
+		void reinit() override {
+			MapRendererData& data = this->operator*();
+			data.reinit();
 		}
 	};
 

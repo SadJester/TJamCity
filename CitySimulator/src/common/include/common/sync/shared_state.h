@@ -107,6 +107,10 @@ namespace tjs::common::sync
                 return *this;
             }
 
+            bool empty() const {
+                return !_owner || _reader_bit == 0;
+            }
+
             // Calls fn only for dirty elements for THIS reader, then clears the bit
             template<typename Callable>
             requires is_array_slot && std::is_invocable_v<Callable, const T&, uint32_t>
@@ -195,7 +199,7 @@ namespace tjs::common::sync
             }
 
             void _reset() {
-                if (!_owner || _reader_bit == 0) {
+                if (empty()) {
                     return;
                 }
 
@@ -409,9 +413,17 @@ namespace tjs::common::sync
             return &_original_data;
         }
 
+        shareable_type& operator * () {
+            return _original_data;
+        }
+
+        const shareable_type& operator * () const {
+            return _original_data;
+        }
+
         void publish() {
             _shared_state.write([this](shareable_type& data) {
-                shareable_type::sync(_original_data, data);
+                shareable_type::sync(data, _original_data);
             });
         }
 
