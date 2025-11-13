@@ -4,6 +4,7 @@
 namespace tjs::common::system
 {
     class threaded_system;
+    class system_holder_delegate;
 
     template <typename T>
     concept has_self_type =
@@ -48,13 +49,27 @@ namespace tjs::common::system
             return it != _systems.end() ? static_cast<_system*>(it->second.get()) : nullptr;
 		}
 
-        void start();
+        void start(system_holder_delegate& delegate);
         void finalize();
         void join();
 
     private:
         std::unordered_map<std::type_index, system_ptr> _systems;
-        std::optional<std::barrier<>> _sync_point;
+
+
+        struct __barrier_callback {
+            std::function<void()> fn;
+
+            void operator() () noexcept {
+                if (fn) {
+                    fn();
+                }
+            }
+        };
+
+        std::optional<std::barrier<__barrier_callback>> _sync_point;
+
+        std::atomic_bool _finalized{false};
     };
 
 } // namespace tjs::common::system

@@ -16,7 +16,7 @@ namespace tjs::visualization {
 
 	void Scene::setPriority(int priority) {
 		_priority = priority;
-		_sceneSystem.sortScenes();
+		_sceneSystem.sort_scenes();
 	}
 
 	void Scene::addNode(std::unique_ptr<SceneNode> node) {

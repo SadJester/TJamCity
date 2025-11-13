@@ -13,79 +13,7 @@
 
 #include <common/system/threaded_system.h>
 
-
-/// 
-#include <render/render_constants.h>
-#include <visualization/scene_creator.h>
-
-
-namespace tjs {
-	class TestRenderingSystem : public common::system::threaded_system {
-	public:
-		using self_type = TestRenderingSystem;
-
-		TestRenderingSystem(
-			Application& app,
-			std::unique_ptr<IRenderer>&& renderer,
-			std::unique_ptr<visualization::SceneSystem>&& sceneSystem
-		)
-			: _app(app)
-			, _renderer(std::move(renderer))
-			, _sceneSystem(std::move(sceneSystem)) {
-		}
-
-		virtual void _initialize_self_impl() {
-			std::cout << "[Sys] Self init" << std::endl;
-
-			_renderer->initialize();
-			_sceneSystem->initialize();
-
-			// TODO: Will move to user settings in some time
-			_renderer->set_clear_color(tjs::render::RenderConstants::BASE_CLEAR_COLOR);
-		}
-
-        virtual void _initialize_impl() {
-			std::cout << "[Sys] Initialize impl" << std::endl;
-
-			visualization::prepareScene(*_sceneSystem, _app);
-		}
-
-		void _update_impl() override {
-			_renderer->update();
-			_sceneSystem->update();
-
-			// Rendering
-			_renderer->begin_frame();
-			_sceneSystem->render(*_renderer);
-			_renderer->end_frame();
-		}
-
-        virtual void _release_impl() {
-			std::cout << "[Sys] Release impl" << std::endl;
-		}
-
-		virtual void _release_self_impl() {
-			std::cout << "[Sys] Release self impl" << std::endl;
-
-			_sceneSystem.reset();
-			_renderer->release();
-
-			_renderer.reset();
-		}
-
-		IRenderer& renderer() {
-			return *_renderer;
-		}
-
-		visualization::SceneSystem& sceneSystem() {
-			return *_sceneSystem;
-		}
-
-		Application& _app;
-		std::unique_ptr<IRenderer> _renderer;
-		std::unique_ptr<visualization::SceneSystem> _sceneSystem;
-	};
-}
+#include <visual_system/visual_system.h>
 
 
 namespace tjs {
@@ -98,14 +26,10 @@ namespace tjs {
 	}
 
 	void Application::setup(
-		std::unique_ptr<IRenderer>&& renderer,
 		std::unique_ptr<UISystem>&& uiSystem,
-		std::unique_ptr<visualization::SceneSystem>&& sceneSystem,
 		std::unique_ptr<core::WorldData>&& worldData,
 		std::unique_ptr<core::simulation::TrafficSimulationSystem>&& simulationSystem) {
-		_renderer = std::move(renderer);
 		_uiSystem = std::move(uiSystem);
-		_sceneSystem = std::move(sceneSystem);
 		_worldData = std::move(worldData);
 		_simulationSystem = std::move(simulationSystem);
 
@@ -121,16 +45,10 @@ namespace tjs {
 	}
 
 
-	void Application::run() {
+	void Application::run(common::system::system_holder_delegate& delegate) {
 		using duration = FrameStats::duration;
 
-		_systems.create<TestRenderingSystem>(
-			*this,
-			std::move(_renderer),
-			std::move(_sceneSystem)
-		);
-
-		_systems.start();
+		_systems.start(delegate);
 
 		const int targetFPS = _settings.render.targetFPS;
 		const duration targetFrameTime(1.0 / targetFPS);
@@ -208,10 +126,8 @@ namespace tjs {
 		}
 
 		_systems.finalize();
-
 		_systems.join();
 
-		_sceneSystem.reset();
 		_uiSystem.reset();
 
 		// Save settings before quit
@@ -222,11 +138,11 @@ namespace tjs {
 	}
 
 	IRenderer& Application::renderer() {
-		return _systems.get<TestRenderingSystem>()->renderer();
+		return _systems.get<visualization::VisualSystem>()->renderer();
 	}
 
 	visualization::SceneSystem& Application::sceneSystem() {
-		return _systems.get<TestRenderingSystem>()->sceneSystem();
+		return _systems.get<visualization::VisualSystem>()->scene_system();
 	}
 
 

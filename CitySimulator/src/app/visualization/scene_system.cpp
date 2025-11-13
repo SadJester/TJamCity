@@ -11,25 +11,25 @@ namespace tjs::visualization {
 	SceneSystem::~SceneSystem() {
 	}
 
-	Scene* SceneSystem::createScene(std::string name, int priority) {
-		auto scene = getScene(name);
+	Scene* SceneSystem::create_scene(std::string name, int priority) {
+		auto scene = get_scene(name);
 		if (scene != nullptr) {
 			return {};
 		}
 
 		_scenes.emplace_back(std::make_unique<Scene>(*this, name, priority));
-		sortScenes();
+		sort_scenes();
 		return _scenes.back().get();
 	}
 
-	bool SceneSystem::removeScene(std::string_view name) {
+	bool SceneSystem::remove_scene(std::string_view name) {
 		std::erase_if(_scenes, [name](const auto& scene) {
 			return scene->getName() == name;
 		});
 		return false;
 	}
 
-	Scene* SceneSystem::getScene(std::string_view name) {
+	Scene* SceneSystem::get_scene(std::string_view name) {
 		auto it = std::ranges::find_if(_scenes, [name](const auto& scene) {
 			return scene->getName() == name;
 		});
@@ -39,7 +39,7 @@ namespace tjs::visualization {
 		return nullptr;
 	}
 
-	void SceneSystem::sortScenes() {
+	void SceneSystem::sort_scenes() {
 		std::ranges::sort(_scenes, [](const auto& a, const auto& b) {
 			return a->getPrioirity() > b->getPrioirity();
 		});

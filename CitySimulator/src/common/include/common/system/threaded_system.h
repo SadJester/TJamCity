@@ -54,7 +54,8 @@ namespace tjs::common::system {
             return _optional_queue;
         }
 
-        void start(std::barrier<>& sync_point) {
+        template <typename _barrier>
+        void start(_barrier& sync_point) {
             _thread = std::thread([this, &sync_point]() {
                 _initialize_self_impl();
                 sync_point.arrive_and_wait();
@@ -97,6 +98,7 @@ namespace tjs::common::system {
     protected:
         void create_lossless_reader(threaded_system& other_sys) {}
 
+    private:
         // To initialize self resources
         virtual void _initialize_self_impl() {}
         // Initialize after all systems::_initialize_self were called (so all resources must be ready)

@@ -120,14 +120,12 @@ namespace tjs {
 
 		void load_settings();
 		void setup(
-			std::unique_ptr<IRenderer>&& renderer,
 			std::unique_ptr<UISystem>&& uiSystem,
-			std::unique_ptr<visualization::SceneSystem>&& sceneSystem,
 			std::unique_ptr<core::WorldData>&& worldData,
 			std::unique_ptr<core::simulation::TrafficSimulationSystem>&& simulationSystem);
 
 		void initialize();
-		void run();
+		void run(common::system::system_holder_delegate& delegate);
 
 		// System getters
 		UserSettings& settings() {
@@ -177,9 +175,6 @@ namespace tjs {
 		common::MessageDispatcher _message_dispatcher;
 
 		// Systems
-		std::unique_ptr<IRenderer> _renderer;
-		std::unique_ptr<visualization::SceneSystem> _sceneSystem;
-
 		std::unique_ptr<UISystem> _uiSystem;
 		std::unique_ptr<core::WorldData> _worldData;
 		std::unique_ptr<core::simulation::TrafficSimulationSystem> _simulationSystem;

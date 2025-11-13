@@ -27,14 +27,14 @@ namespace tjs::visualization {
 		void update();
 		void render(IRenderer& renderer);
 
-		void sortScenes();
+		void sort_scenes();
 
 		const Scenes& getScenes() const {
 			return _scenes;
 		}
-		Scene* createScene(std::string name, int priority = 0);
-		bool removeScene(std::string_view name);
-		Scene* getScene(std::string_view name);
+		Scene* create_scene(std::string name, int priority = 0);
+		bool remove_scene(std::string_view name);
+		Scene* get_scene(std::string_view name);
 
 	private:
 		Application& _application;
