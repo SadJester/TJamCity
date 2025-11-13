@@ -2,7 +2,7 @@
 
 namespace tjs::common::sync
 {
-    template <typename T, uint16_t slots_count = 2u>
+    template <typename T, uint16_t slots_count = 2u, bool is_array_slot = true>
     requires (slots_count >= 2)
     class shared_state {
     private:
@@ -16,10 +16,22 @@ namespace tjs::common::sync
             uint64_t dirty{0};
         };
 
-        struct slot {
+        template <bool single_element>
+        struct slot_storage;
+
+        template <>
+        struct slot_storage<true> {
+            T element;
+        };
+
+        template <>
+        struct slot_storage<false> {
             std::vector<element> data;
-            std::atomic<uint32_t> refcnt{0};
             std::atomic<uint32_t> current_size{0};
+        };
+
+        struct slot : slot_storage<!is_array_slot> {
+            std::atomic<uint32_t> refcnt{0};
         };
 
         struct guard {
@@ -97,10 +109,11 @@ namespace tjs::common::sync
 
             // Calls fn only for dirty elements for THIS reader, then clears the bit
             template<typename Callable>
-            requires std::is_invocable_v<Callable, const T&, uint32_t>
+            requires is_array_slot && std::is_invocable_v<Callable, const T&, uint32_t>
             void read_all(Callable&& fn) const {
                 guard g = _acquire(); // pin slot
                 auto& slot = *g.get();
+
                 uint32_t count = slot.current_size.load(std::memory_order_relaxed);
 
                 for (uint32_t i = 0; i < count; ++i) {
@@ -112,7 +125,7 @@ namespace tjs::common::sync
 
             // Reads all elements
             template<typename Callable>
-            requires std::is_invocable_v<Callable, const T&, uint32_t>
+            requires is_array_slot && std::is_invocable_v<Callable, const T&, uint32_t>
             void read(Callable&& fn) const {
                 guard g = _acquire(); // pin slot
                 auto& slot = *g.get();
@@ -129,6 +142,16 @@ namespace tjs::common::sync
                 }
             }
 
+            // Read element if it is not array storage
+            template<typename Callable>
+            requires !is_array_slot && std::is_invocable_v<Callable, const T&>
+            void read(Callable&& fn) const {
+                guard g = _acquire(); // pin slot
+                auto& slot = *g.get();
+
+                fn(slot.element);
+            }
+
         private:
             friend class shared_state;
             connection(shared_state* owner, uint32_t reader_id, uint64_t bit)
@@ -138,22 +161,36 @@ namespace tjs::common::sync
             }
 
             guard _acquire() const {
-                for (;;) {
-                    const uint64_t e = _owner->_epoch.load(std::memory_order_acquire);
-                    if (e & 1) { // writer paused acquisitions
-                        std::this_thread::yield();
-                        continue;
-                    }
+                if constexpr (is_array_slot) {
+                    for (;;) {
+                        const uint64_t e = _owner->_epoch.load(std::memory_order_acquire);
+                        if (e & 1) { // writer paused acquisitions
+                            std::this_thread::yield();
+                            continue;
+                        }
 
-                    const uint16_t i = _owner->_public_idx.load(std::memory_order_acquire);
-                    slot& s = _owner->_slots[i];
-                    s.refcnt.fetch_add(1, std::memory_order_acq_rel);
-                    const uint16_t i2 = _owner->_public_idx.load(std::memory_order_acquire);
-                    uint64_t e2 = _owner->_epoch.load(std::memory_order_acquire);
-                    if (i == i2 && e == e2) {
-                        return guard{ &s };
+                        const uint16_t i = _owner->_public_idx.load(std::memory_order_acquire);
+                        slot& s = _owner->_slots[i];
+                        s.refcnt.fetch_add(1, std::memory_order_acq_rel);
+                        const uint16_t i2 = _owner->_public_idx.load(std::memory_order_acquire);
+                        uint64_t e2 = _owner->_epoch.load(std::memory_order_acquire);
+                        if (i == i2 && e == e2) {
+                            return guard{ &s };
+                        }
+                        s.refcnt.fetch_sub(1, std::memory_order_acq_rel);
                     }
-                    s.refcnt.fetch_sub(1, std::memory_order_acq_rel);
+                }
+                else {
+                    for (;;) {
+                        const uint16_t i = _owner->_public_idx.load(std::memory_order_acquire);
+                        slot& s = _owner->_slots[i];
+                        s.refcnt.fetch_add(1, std::memory_order_acq_rel);
+                        const uint16_t i2 = _owner->_public_idx.load(std::memory_order_acquire);
+                        if (i == i2) {
+                            return guard{ &s };
+                        }
+                        s.refcnt.fetch_sub(1, std::memory_order_acq_rel);
+                    }
                 }
             }
 
@@ -164,12 +201,14 @@ namespace tjs::common::sync
 
                 _owner->_active_mask.fetch_and(~_reader_bit, std::memory_order_acq_rel);
 
-                auto g = _acquire();
-                auto slot = g.get();
-                uint32_t count = slot->current_size.load(std::memory_order_relaxed);
-                for (uint32_t i = 0; i < count; ++i) {
-                    auto& e = slot->data[i];
-                    std::atomic_ref<uint64_t>(e.dirty).fetch_and(~_reader_bit, std::memory_order_acq_rel);
+                if constexpr (is_array_slot) {
+                    auto g = _acquire();
+                    auto slot = g.get();
+                    uint32_t count = slot->current_size.load(std::memory_order_relaxed);
+                    for (uint32_t i = 0; i < count; ++i) {
+                        auto& e = slot->data[i];
+                        std::atomic_ref<uint64_t>(e.dirty).fetch_and(~_reader_bit, std::memory_order_acq_rel);
+                    }
                 }
 
                 _owner = nullptr;
@@ -183,7 +222,7 @@ namespace tjs::common::sync
         };
     
     public:
-        void init(size_t slot_capacity) {
+        void init(size_t slot_capacity) requires is_array_slot {
             for (size_t i = 0; i < slots_count; ++i) {
                 _slots[i].data.resize(slot_capacity);
                 _slots[i].current_size.store(0, std::memory_order_relaxed);
@@ -194,7 +233,7 @@ namespace tjs::common::sync
             _public_idx.store(0, std::memory_order_relaxed);
         }
 
-        void resize(size_t slot_capacity) {
+        void resize(size_t slot_capacity) requires is_array_slot {
             // Change epoch to odd and paired connection::_acquire will skip acquisition for odds
             _epoch.fetch_add(1, std::memory_order_acq_rel);
 
@@ -232,7 +271,7 @@ namespace tjs::common::sync
         // Full-pass write: mutate the next slot, then publish atomically.
         // if wait_for_free_slot -> wait for any slot free for usage, if false - return
         template <typename Callable>
-        requires std::is_invocable_r_v<bool, Callable, T&, uint32_t>
+        requires is_array_slot && std::is_invocable_r_v<bool, Callable, T&, uint32_t>
         bool write(Callable&& fn, uint32_t count, bool wait_for_free_slot = true) {
             const uint16_t next = _next_write_slot(wait_for_free_slot);
             if (next == UINT16_MAX) {
@@ -258,6 +297,22 @@ namespace tjs::common::sync
             return true;
         }
 
+        // mutate the next slot, then publish atomically.
+        // if wait_for_free_slot -> wait for any slot free for usage, if false - return
+        template <typename Callable>
+        requires !is_array_slot && std::is_invocable_r_v<void, Callable, T&>
+        bool write(Callable&& fn, bool wait_for_free_slot = true) {
+            const uint16_t next = _next_write_slot(wait_for_free_slot);
+            if (next == UINT16_MAX) {
+                return false;
+            }
+
+            fn(_slots[next].element);
+            _public_idx.store(next, std::memory_order_release);
+
+            return true;
+        }
+
         connection connect() {
             while (true) {
                 auto connection_opt = _try_connect();
@@ -266,7 +321,6 @@ namespace tjs::common::sync
                 }
                 std::this_thread::yield();
             }
-
         }
 
     private:
@@ -308,6 +362,7 @@ namespace tjs::common::sync
                 connection c{ this, id, bit };
 
                 // Clean currently published slot to avoid inheriting stale dirties
+                if constexpr (is_array_slot)
                 {
                     auto g = c._acquire();
                     slot& s = *g.get();
@@ -330,7 +385,43 @@ namespace tjs::common::sync
         std::array<slot, slots_count> _slots;
 
         std::atomic<uint32_t> _next_reader_id{0};
-        std::atomic<uint64_t> _epoch{0};
+        std::atomic<uint64_t> _epoch{0}; // use only with is_array_slot
         std::atomic<uint64_t> _active_mask{0};
     };
+
+    template <typename shareable_type, uint16_t slots_count = 2u>
+        requires (
+            std::is_default_constructible_v<shareable_type> &&
+            requires {
+                { shareable_type::sync(std::declval<shareable_type&>(), std::declval<const shareable_type&>()) }
+                    -> std::same_as<void>;
+            }
+        )
+    class shared_data {
+    public:
+        using connection = typename sync::shared_state<shareable_type, slots_count, false>::connection;
+    public:
+        shareable_type* operator -> () {
+            return &_original_data;
+        }
+
+        const shareable_type* operator -> () const {
+            return &_original_data;
+        }
+
+        void publish() {
+            _shared_state.write([this](shareable_type& data) {
+                shareable_type::sync(_original_data, data);
+            });
+        }
+
+        connection connect() {
+            return _shared_state.connect();
+        }
+
+    private:
+        shareable_type _original_data;
+        sync::shared_state<shareable_type, slots_count, false> _shared_state;
+    };
+
 } // namespace tjs::common::sync

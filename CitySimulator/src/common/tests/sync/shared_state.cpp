@@ -640,3 +640,583 @@ TEST(SharedStateTests, ManyReadersAllocateAndReuseBitsConcurrently) {
         EXPECT_TRUE(got.empty());
     }
 }
+
+TEST(SharedStateTests, SingleElement_BasicWriteThenRead) {
+    // Non-array storage: single element per slot.
+    sync::shared_state<int, 2, false> state;
+
+    // Connect a reader before any writes; it should see whatever is last published.
+    auto r = state.connect();
+
+    // First publish
+    ASSERT_TRUE(state.write([](int& v) {
+        v = 42;
+    }));
+
+    int got = -1;
+    r.read([&](const int& v) {
+        got = v;
+    });
+    EXPECT_EQ(got, 42);
+
+    // Second publish should overwrite the value; reader should see the new one.
+    ASSERT_TRUE(state.write([](int& v) {
+        v = 77;
+    }));
+
+    got = -1;
+    r.read([&](const int& v) {
+        got = v;
+    });
+    EXPECT_EQ(got, 77);
+}
+
+TEST(SharedStateTests, SingleElement_MultipleReadersSeeLatestValue) {
+    // Triple buffer, non-array.
+    sync::shared_state<int, 3, false> state;
+
+    // Publish initial value before any readers exist.
+    ASSERT_TRUE(state.write([](int& v) {
+        v = 10;
+    }));
+
+    auto r1 = state.connect();
+    auto r2 = state.connect();
+
+    int v1 = -1;
+    int v2 = -1;
+
+    r1.read([&](const int& v) { v1 = v; });
+    r2.read([&](const int& v) { v2 = v; });
+
+    EXPECT_EQ(v1, 10);
+    EXPECT_EQ(v2, 10);
+
+    // New publish after readers exist; both should now observe the new value.
+    ASSERT_TRUE(state.write([](int& v) {
+        v = 1234;
+    }));
+
+    v1 = v2 = -1;
+    r1.read([&](const int& v) { v1 = v; });
+    r2.read([&](const int& v) { v2 = v; });
+
+    EXPECT_EQ(v1, 1234);
+    EXPECT_EQ(v2, 1234);
+}
+
+TEST(SharedStateTests, SingleElement_WriterProgressWithPinnedReader_TripleBuffer) {
+    // Even with a reader frequently pinning slots, the writer should make progress
+    // thanks to triple buffering.
+    sync::shared_state<int, 3, false> state;
+
+    constexpr int kFrames = 200;
+
+    // Seed an initial value so the reader has something to acquire.
+    ASSERT_TRUE(state.write([](int& v) {
+        v = 0;
+    }));
+
+    auto r = state.connect();
+
+    std::atomic<bool> stop_reader{false};
+    std::atomic<int>  last_seen{-1};
+    std::atomic<int>  frames_written{0};
+
+    std::thread reader([&]{
+        while (!stop_reader.load(std::memory_order_acquire)) {
+            r.read([&](const int& v) {
+                last_seen.store(v, std::memory_order_relaxed);
+                // Simulate a bit of work while holding the guard
+                std::this_thread::yield();
+            });
+        }
+    });
+
+    // Writer publishes a sequence of frame ids as scalar values.
+    for (int f = 1; f <= kFrames; ++f) {
+        ASSERT_TRUE(state.write([&](int& v) {
+            v = f;
+        }, /*wait_for_free_slot=*/true));
+        frames_written.fetch_add(1, std::memory_order_relaxed);
+        if ((f % 8) == 0) std::this_thread::yield();
+    }
+
+    // Give the reader a moment to see the last frame.
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    stop_reader.store(true, std::memory_order_release);
+    reader.join();
+
+    EXPECT_EQ(frames_written.load(std::memory_order_relaxed), kFrames);
+
+    // A fresh reader must see the last published frame exactly.
+    auto r2 = state.connect();
+    int final = -1;
+    r2.read([&](const int& v) {
+        final = v;
+    });
+
+    EXPECT_EQ(final, kFrames);
+}
+
+TEST(SharedStateTests, SingleElement_ReaderBitsAreReusedAfterDestruction) {
+    // In non-array mode there are no per-element dirty flags, but the reader bit
+    // allocation / reuse via _active_mask must still work correctly.
+    sync::shared_state<int, 2, false> state;
+
+    // Publish a baseline value.
+    ASSERT_TRUE(state.write([](int& v) {
+        v = 100;
+    }));
+
+    // Create and destroy more readers than max_readers (63) to ensure bits are reused
+    // and we don't exhaust the bitmask.
+    constexpr int kTotalConnections = 100;
+
+    int expected = 100;
+
+    for (int i = 0; i < kTotalConnections; ++i) {
+        // New scope so connection is destroyed at the end of iteration.
+        {
+            auto c = state.connect();
+            int got = -1;
+            c.read([&got](const int& v) {
+                got = v;
+            });
+            EXPECT_EQ(got, expected);
+        }
+
+        // Update the value occasionally, the next connection must see the latest one.
+        if ((i % 10) == 9) {
+            expected = 200 + i;
+            ASSERT_TRUE(state.write([expected](int& v) {
+                v = expected;
+            }));
+        }
+    }
+
+    // Final sanity: latest value visible to a fresh connection.
+    auto r = state.connect();
+    int last = -1;
+    r.read([&](const int& v) {
+        last = v;
+    });
+    EXPECT_NE(last, 100); // should have been updated at least once
+}
+
+
+TEST(SharedStateTests, Concurrency_SingleElement_ManyReadersWhileMainWrites) {
+    // Non-array, triple buffer.
+    sync::shared_state<int, 3, false> state;
+
+    constexpr uint32_t kReaders = 6;
+    constexpr uint32_t kFrames  = 200;
+
+    // Seed initial value so readers have something to acquire.
+    ASSERT_TRUE(state.write([](int& v) {
+        v = 0;
+    }));
+
+    std::vector<sync::shared_state<int,3,false>::connection> conns;
+    conns.reserve(kReaders);
+    for (uint32_t i = 0; i < kReaders; ++i) {
+        conns.emplace_back(state.connect());
+    }
+
+    std::atomic<bool> stop{false};
+    std::atomic<uint64_t> total_reads{0};
+    std::vector<std::atomic<int>> last_seen(kReaders);
+    for (auto& x : last_seen) {
+        x.store(-1, std::memory_order_relaxed);
+    }
+
+    std::vector<std::thread> readers;
+    readers.reserve(kReaders);
+    for (uint32_t r = 0; r < kReaders; ++r) {
+        readers.emplace_back([&, r]{
+            auto& c = conns[r];
+            while (!stop.load(std::memory_order_acquire)) {
+                c.read([&](const int& v){
+                    last_seen[r].store(v, std::memory_order_relaxed);
+                    total_reads.fetch_add(1, std::memory_order_relaxed);
+                    if ((v & 0x0F) == 0) {
+                        std::this_thread::yield();
+                    }
+                });
+            }
+        });
+    }
+
+    // Main thread publishes frames as increasing integers.
+    for (uint32_t f = 1; f <= kFrames; ++f) {
+        bool ok = state.write([&](int& v){
+            v = static_cast<int>(f);
+        }, /*wait_for_free_slot=*/true);
+        ASSERT_TRUE(ok);
+        if ((f % 8) == 0) {
+            std::this_thread::yield();
+        }
+    }
+
+    // Give readers a chance to see the last frame.
+    std::this_thread::sleep_for(std::chrono::milliseconds(30));
+    stop.store(true, std::memory_order_release);
+    for (auto& th : readers) th.join();
+
+    EXPECT_GT(total_reads.load(std::memory_order_relaxed), 0u);
+
+    // Readers should have observed some frame in [0, kFrames].
+    for (uint32_t r = 0; r < kReaders; ++r) {
+        int v = last_seen[r].load(std::memory_order_relaxed);
+        EXPECT_GE(v, 0);
+        EXPECT_LE(v, static_cast<int>(kFrames));
+    }
+
+    // Final snapshot must be the last frame.
+    auto rc = state.connect();
+    int final = -1;
+    rc.read([&](const int& v){
+        final = v;
+    });
+    EXPECT_EQ(final, static_cast<int>(kFrames));
+}
+
+TEST(SharedStateTests, Concurrency_SingleElement_LongReadPins_WhileMainWrites) {
+    // Readers perform expensive work inside the read() callback (holding a pin),
+    // while the writer keeps publishing.
+    sync::shared_state<int, 3, false> state;
+
+    constexpr uint32_t kReaders = 4;
+    constexpr uint32_t kFrames  = 150;
+
+    // Seed initial value.
+    ASSERT_TRUE(state.write([](int& v){
+        v = 0;
+    }));
+
+    std::vector<sync::shared_state<int,3,false>::connection> conns;
+    conns.reserve(kReaders);
+    for (uint32_t i = 0; i < kReaders; ++i) {
+        conns.emplace_back(state.connect());
+    }
+
+    std::atomic<bool> stop{false};
+    std::atomic<uint64_t> pinned_reads{0};
+
+    std::vector<std::thread> readers;
+    readers.reserve(kReaders);
+    for (uint32_t r = 0; r < kReaders; ++r) {
+        readers.emplace_back([&, r]{
+            auto& c = conns[r];
+            while (!stop.load(std::memory_order_acquire)) {
+                c.read([&](const int& v){
+                    (void)v;
+                    // Simulate relatively heavy work while holding the guard.
+                    for (int i = 0; i < 200; ++i) {
+                        if ((i & 0x3F) == 0) {
+                            std::this_thread::yield();
+                        }
+                    }
+                });
+                pinned_reads.fetch_add(1, std::memory_order_relaxed);
+                if (r & 1) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                }
+            }
+        });
+    }
+
+    // Writer publishes monotonically increasing values.
+    for (uint32_t f = 1; f <= kFrames; ++f) {
+        ASSERT_TRUE(state.write([&](int& v){
+            v = static_cast<int>(f);
+        }, /*wait_for_free_slot=*/true));
+        if ((f % 10) == 0) {
+            std::this_thread::yield();
+        }
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(40));
+    stop.store(true, std::memory_order_release);
+    for (auto& th : readers) th.join();
+
+    EXPECT_GT(pinned_reads.load(std::memory_order_relaxed), 0u);
+
+    // Final snapshot must match the last frame.
+    auto rc = state.connect();
+    int final = -1;
+    rc.read([&](const int& v){
+        final = v;
+    });
+    EXPECT_EQ(final, static_cast<int>(kFrames));
+}
+
+TEST(SharedStateTests, Concurrency_SingleElement_ConnectAndDestroyFromManyThreads) {
+    // Hammer the bit allocator: many threads repeatedly connect, read once, and destroy.
+    sync::shared_state<int, 3, false> state;
+
+    // Baseline value.
+    ASSERT_TRUE(state.write([](int& v){
+        v = 123;
+    }));
+
+    constexpr int kThreads      = 8;
+    constexpr int kPerThreadOps = 200;
+
+    std::atomic<bool> writer_done{false};
+    std::atomic<int>  last_written{123};
+
+    // Background writer: keeps changing the value while others connect+read.
+    std::thread writer([&]{
+        for (int f = 1; f <= 300; ++f) {
+            int val = 1000 + f;
+            bool ok = state.write([&](int& v){
+                v = val;
+            }, /*wait_for_free_slot=*/true);
+            ASSERT_TRUE(ok);
+            last_written.store(val, std::memory_order_relaxed);
+            if ((f & 7) == 0) {
+                std::this_thread::yield();
+            }
+        }
+        writer_done.store(true, std::memory_order_release);
+    });
+
+    std::vector<std::thread> threads;
+    threads.reserve(kThreads);
+    for (int t = 0; t < kThreads; ++t) {
+        threads.emplace_back([&, t]{
+            for (int i = 0; i < kPerThreadOps; ++i) {
+                {
+                    auto c = state.connect();
+                    int got = 0;
+                    c.read([&](const int& v){
+                        got = v;
+                    });
+
+                    // expect some value (baseline or from writer)
+                    (void)got;
+                } // connection destroyed here -> bit freed
+
+                if ((i & 7) == 0 && (t & 1)) {
+                    std::this_thread::yield();
+                }
+
+                // Optionally stop early if writer already finished.
+                if (writer_done.load(std::memory_order_acquire)) {
+                    break;
+                }
+            }
+        });
+    }
+
+    for (auto& th : threads) th.join();
+    writer.join();
+
+    // Final sanity: new connection must see the last published value.
+    auto r = state.connect();
+    int final = 0;
+    r.read([&](const int& v){
+        final = v;
+    });
+    EXPECT_EQ(final, last_written.load(std::memory_order_relaxed));
+}
+
+
+struct SharedStateTest {
+    int x{0};
+
+    // Intended semantics: copy from src to dst
+    static void sync(SharedStateTest& dst, const SharedStateTest& src) {
+        dst.x = src.x;
+    }
+};
+
+
+TEST(SharedContainerTests, BasicPublishAndReadSingleThread) {
+    // non-array shared_state under the hood
+    sync::shared_data<SharedStateTest, 3> container;
+
+    // Create a reader connection into the shared_state
+    auto conn = container.connect();
+
+    // Mutate original data and publish
+    container->x = 42;
+    container.publish();
+
+    int observed = -1;
+    conn.read([&](const SharedStateTest& s) {
+        observed = s.x;
+    });
+
+    EXPECT_EQ(observed, 42);
+
+    // Publish another value and make sure the reader sees the updated one.
+    container->x = 99;
+    container.publish();
+
+    observed = -1;
+    conn.read([&](const SharedStateTest& s) {
+        observed = s.x;
+    });
+
+    EXPECT_EQ(observed, 99);
+}
+
+TEST(SharedContainerTests, Concurrency_SingleWriterMultipleReaders) {
+    using Container = sync::shared_data<SharedStateTest, 3>;
+
+    Container container;
+
+    constexpr uint32_t kReaders = 6;
+    constexpr uint32_t kFrames  = 200;
+
+    // Seed initial value so readers can start with something.
+    container->x = 0;
+    container.publish();
+
+    // Pre-create one connection per reader thread
+    std::vector<Container::connection> conns;
+    conns.reserve(kReaders);
+    for (uint32_t i = 0; i < kReaders; ++i) {
+        conns.emplace_back(container.connect());
+    }
+
+    std::atomic<bool> stop{false};
+    std::atomic<uint64_t> total_reads{0};
+
+    // Each reader tracks the maximum value it has seen (monotonicity check after-the-fact)
+    std::vector<std::atomic<int>> max_seen(kReaders);
+    for (auto& m : max_seen) {
+        m.store(-1, std::memory_order_relaxed);
+    }
+
+    std::vector<std::thread> readers;
+    readers.reserve(kReaders);
+    for (uint32_t r = 0; r < kReaders; ++r) {
+        readers.emplace_back([&, r] {
+            auto& c = conns[r];
+            while (!stop.load(std::memory_order_acquire)) {
+                c.read([&](const SharedStateTest& s) {
+                    int v = s.x;
+                    // update max_seen atomically
+                    int old = max_seen[r].load(std::memory_order_relaxed);
+                    while (v > old &&
+                           !max_seen[r].compare_exchange_weak(
+                               old, v,
+                               std::memory_order_relaxed,
+                               std::memory_order_relaxed)) {
+                        // old reloaded; loop
+                    }
+                    total_reads.fetch_add(1, std::memory_order_relaxed);
+                });
+
+                if ((r & 1) == 0) {
+                    std::this_thread::yield();
+                }
+            }
+        });
+    }
+
+    // Writer thread: publish frames 1..kFrames
+    std::thread writer([&] {
+        for (uint32_t f = 1; f <= kFrames; ++f) {
+            container->x = static_cast<int>(f);
+            container.publish();
+            if ((f % 8) == 0) {
+                std::this_thread::yield();
+            }
+        }
+        // Give readers a little time to catch up
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        stop.store(true, std::memory_order_release);
+    });
+
+    writer.join();
+    for (auto& th : readers) th.join();
+
+    EXPECT_GT(total_reads.load(std::memory_order_relaxed), 0u);
+
+    // Each reader should have seen at least some non-negative value, not exceeding kFrames.
+    for (uint32_t r = 0; r < kReaders; ++r) {
+        int v = max_seen[r].load(std::memory_order_relaxed);
+        EXPECT_GE(v, 0);
+        EXPECT_LE(v, static_cast<int>(kFrames));
+    }
+
+    // Final snapshot from a fresh connection must be exactly the last frame
+    auto rc = container.connect();
+    int final = -1;
+    rc.read([&](const SharedStateTest& s) {
+        final = s.x;
+    });
+    EXPECT_EQ(final, static_cast<int>(kFrames));
+}
+
+TEST(SharedContainerTests, Concurrency_ConnectAndDestroyManyReadersViaContainer) {
+    using Container = sync::shared_data<SharedStateTest, 3>;
+    Container container;
+
+    // Baseline value
+    container->x = 123;
+    container.publish();
+
+    constexpr int kThreads      = 8;
+    constexpr int kPerThreadOps = 200;
+
+    std::atomic<bool> writer_done{false};
+    std::atomic<int>  last_written{123};
+
+    // Background writer: keeps bumping x and publishing
+    std::thread writer([&] {
+        for (int f = 1; f <= 300; ++f) {
+            int val = 1000 + f;
+            container->x = val;
+            container.publish();
+            last_written.store(val, std::memory_order_relaxed);
+            if ((f & 7) == 0) {
+                std::this_thread::yield();
+            }
+        }
+        writer_done.store(true, std::memory_order_release);
+    });
+
+    std::vector<std::thread> threads;
+    threads.reserve(kThreads);
+    for (int t = 0; t < kThreads; ++t) {
+        threads.emplace_back([&, t] {
+            for (int i = 0; i < kPerThreadOps; ++i) {
+                {
+                    // Each iteration: connect, read once, destroy connection
+                    auto c = container.connect();
+                    int got = 0;
+                    c.read([&](const SharedStateTest& s) {
+                        got = s.x;
+                    });
+                    // just sanity: value should be something valid (baseline or writer’s)
+                    (void)got;
+                } // c destroyed here, bit returned to pool
+
+                if ((i & 7) == 0 && (t & 1)) {
+                    std::this_thread::yield();
+                }
+
+                if (writer_done.load(std::memory_order_acquire)) {
+                    break;
+                }
+            }
+        });
+    }
+
+    for (auto& th : threads) th.join();
+    writer.join();
+
+    // Final snapshot via container must show the last published value
+    auto r = container.connect();
+    int final = 0;
+    r.read([&](const SharedStateTest& s) {
+        final = s.x;
+    });
+    EXPECT_EQ(final, last_written.load(std::memory_order_relaxed));
+}
+
