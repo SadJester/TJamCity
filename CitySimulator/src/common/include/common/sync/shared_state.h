@@ -393,14 +393,17 @@ namespace tjs::common::sync
         std::atomic<uint64_t> _active_mask{0};
     };
 
+    template <typename _type>
+    concept is_shared_type = std::is_constructible_v<_type> && (
+        std::is_trivially_copyable_v<_type>
+        || requires {
+            { _type::sync(std::declval<_type&>(), std::declval<const _type&>()) }
+            -> std::same_as<void>;
+        }
+    );
+
     template <typename shareable_type, uint16_t slots_count = 2u>
-        requires (
-            std::is_default_constructible_v<shareable_type> &&
-            requires {
-                { shareable_type::sync(std::declval<shareable_type&>(), std::declval<const shareable_type&>()) }
-                    -> std::same_as<void>;
-            }
-        )
+        requires is_shared_type<shareable_type>
     class shared_data {
     public:
         using connection = typename sync::shared_state<shareable_type, slots_count, false>::connection;
@@ -423,7 +426,12 @@ namespace tjs::common::sync
 
         void publish() {
             _shared_state.write([this](shareable_type& data) {
-                shareable_type::sync(data, _original_data);
+                if constexpr (std::is_trivially_copyable_v<shareable_type>) {
+                    std::memcpy(&data, &_original_data, sizeof(shareable_type));
+                }
+                else {
+                    shareable_type::sync(data, _original_data);
+                }
             });
         }
 

@@ -1220,3 +1220,28 @@ TEST(SharedContainerTests, Concurrency_ConnectAndDestroyManyReadersViaContainer)
     EXPECT_EQ(final, last_written.load(std::memory_order_relaxed));
 }
 
+TEST(SharedContainerTests, MemCpy_Test) {
+    struct TestData {
+        TestData() {
+            data1 = 1;
+            data2 = 2;
+
+        }
+        int data1;
+        int data2;
+    };
+
+    static_assert(std::is_trivially_copyable_v<TestData>);
+    static_assert(std::is_constructible_v<TestData>);
+
+    sync::shared_data<TestData, 2> test;
+
+    test->data1 = 2;
+    test.publish();
+
+    auto connection = test.connect();
+    connection.read([](const TestData& x) {
+        ASSERT_EQ(x.data1, 2);
+    });
+}
+
