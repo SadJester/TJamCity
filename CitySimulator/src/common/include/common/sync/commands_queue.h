@@ -21,6 +21,22 @@ namespace tjs::common::sync
     class commands_queue
     {
     public:
+        commands_queue() = default;
+        
+
+        commands_queue& operator = (const commands_queue& other)
+        {
+            if (&other == this)
+            {
+                return *this;
+            }
+
+            std::scoped_lock lk(_mutex, other._mutex);
+            std::ranges::copy(other._buffer.begin(), other._buffer.end(), _buffer.begin());
+
+            return *this;
+        }
+
         template <typename _cmd>
             requires std::is_trivially_copyable_v<std::remove_reference_t<_cmd>>
         void add_command(_cmd&& cmd) {
@@ -30,6 +46,16 @@ namespace tjs::common::sync
 
             std::unique_lock lk(_mutex);
             _buffer.emplace_back(std::forward<_cmd>(cmd));
+        }
+
+        void drain_to(std::vector<commands_set>& out) {
+            std::unique_lock lk(_mutex);
+            out.swap(_buffer);
+        }
+
+        void reserve(size_t n) {
+            std::unique_lock lk(_mutex);
+            _buffer.reserve(n);
         }
 
         // Get first command
@@ -46,7 +72,7 @@ namespace tjs::common::sync
     private:
         // TODO{threaded}: atomics, lock-free?
         std::vector<commands_set> _buffer;
-        std::mutex _mutex;
+        mutable std::mutex _mutex;
     };
 
 
