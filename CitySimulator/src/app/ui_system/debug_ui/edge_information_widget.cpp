@@ -1,9 +1,11 @@
 #include <stdafx.h>
 #include <ui_system/debug_ui/edge_information_widget.h>
-#include <visual_system/data/map_renderer_data.h>
 
 #include <Application.h>
 
+#include <ui_system/ui_system.h>
+#include <visual_system/visual_system.h>
+#include <visual_system/data/map_renderer_data.h>
 #include <core/simulation/simulation_system.h>
 #include <core/simulation/transport_management/vehicle_system.h>
 #include <core/data_layer/vehicle.h>
@@ -84,17 +86,18 @@ namespace tjs::ui {
 			return;
 		}
 
-		auto* render_data = _application.stores().get_entry<core::model::MapRendererData>();
-		if (!render_data) {
-			return;
-		}
+		core::Lane* selected_lane = nullptr;
+		auto& connection = _application.uiSystem().get_render_data_connection();
+		connection.read([&selected_lane](const core::model::MapRendererData& render_data) {
+			selected_lane = render_data.selected_lane;
+		});
 
-		if (!render_data->selected_lane) {
+		if (!selected_lane) {
 			return;
 		}
 
 		for (const core::Edge& edge : segment.road_network->edges) {
-			if (&edge != render_data->selected_lane->parent) {
+			if (&edge != selected_lane->parent) {
 				continue;
 			}
 			QTreeWidgetItem* edgeItem = new QTreeWidgetItem();
@@ -111,13 +114,11 @@ namespace tjs::ui {
 	}
 
 	void EdgeInformationWidget::handleItemClicked(QTreeWidgetItem* item, int) {
-		auto* render = _application.stores().get_entry<core::model::MapRendererData>();
-		if (!render) {
-			return;
-		}
+		auto v_sys = _application.systems().get<visualization::VisualSystem>();
 
 		if (item == _rootItem) {
-			render->selected_lane = nullptr;
+			v_sys->commands().add_command(
+				visualization::UpdateRenderParamsCommand { .selected_lane = nullptr });
 			_info->setText("Edges info");
 			return;
 		}
@@ -128,7 +129,8 @@ namespace tjs::ui {
 				_info->setText("-");
 				return;
 			}
-			render->selected_lane = nullptr;
+			v_sys->commands().add_command(
+				visualization::UpdateRenderParamsCommand { .selected_lane = nullptr });
 			QString text = QString("Way %1\nStart: %2\nEnd: %3\nOrientation: %4\nLanes: %5")
 							   .arg(edge->way ? edge->way->uid : 0)
 							   .arg(edge->start_node ? edge->start_node->uid : 0)
@@ -144,7 +146,9 @@ namespace tjs::ui {
 			_info->setText("-");
 			return;
 		}
-		render->selected_lane = const_cast<core::Lane*>(lane);
+
+		v_sys->commands().add_command(
+			visualization::UpdateRenderParamsCommand { .selected_lane = const_cast<core::Lane*>(lane) });
 
 		QStringList outs;
 		for (const auto& link : lane->outgoing_connections) {

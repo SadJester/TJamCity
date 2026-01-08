@@ -1,5 +1,7 @@
 #pragma once
 
+#include <visual_system/data/map_renderer_data.h>
+
 namespace tjs {
 	class Application;
 
@@ -19,8 +21,14 @@ namespace tjs {
 		void initialize();
 		void update();
 
+		core::model::MapRendererShared::connection& get_render_data_connection() {
+			return _render_data_connection;
+		}
+
 	private:
 		std::unique_ptr<IUIController> _controller;
 		Application& _application;
+
+		core::model::MapRendererShared::connection _render_data_connection;
 	};
 } // namespace tjs

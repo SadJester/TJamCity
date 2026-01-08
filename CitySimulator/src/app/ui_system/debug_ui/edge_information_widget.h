@@ -27,6 +27,8 @@ namespace tjs::ui {
 
 	private:
 		void populateTree();
+
+	private:
 		Application& _application;
 		QTreeWidget* _tree = nullptr;
 		QLabel* _info = nullptr;

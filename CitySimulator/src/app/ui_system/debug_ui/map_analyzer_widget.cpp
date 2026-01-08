@@ -1,9 +1,14 @@
 #include <stdafx.h>
+
 #include <ui_system/debug_ui/map_analyzer_widget.h>
+
 #include <Application.h>
-#include <data/persistent_render_data.h>
+
+#include <ui_system/ui_system.h>
+#include <visual_system/visual_system.h>
 #include <visual_system/data/map_renderer_data.h>
 #include <core/simulation/simulation_debug.h>
+#include <core/data_layer/node.h>
 
 #include <QVBoxLayout>
 #include <QTimer>
@@ -33,32 +38,24 @@ namespace tjs::ui {
 		if (!debug || !debug->selectedNode) {
 			_nodeId->setText("Node: none");
 			_coords->setText("Coords: -");
-			if (auto* render = _application.stores().get_entry<core::model::MapRendererData>(); render) {
-				_networkOnly->setChecked(render->networkOnlyForSelected);
-			}
-			return;
+		} else {
+			const auto* node = debug->selectedNode;
+			_nodeId->setText(QString("Node: %1").arg(node->uid));
+			_coords->setText(
+				QString("Coords: %1, %2").arg(node->coordinates.latitude).arg(node->coordinates.longitude));
 		}
 
-		const auto* node = debug->selectedNode;
-		_nodeId->setText(QString("Node: %1").arg(node->uid));
-		_coords->setText(QString("Coords: %1, %2").arg(node->coordinates.latitude).arg(node->coordinates.longitude));
-		if (auto* render = _application.stores().get_entry<core::model::MapRendererData>(); render) {
-			_networkOnly->setChecked(render->networkOnlyForSelected);
-		}
+		auto& connection = _application.uiSystem().get_render_data_connection();
+		connection.read([this](const core::model::MapRendererData& render_data) {
+			_networkOnly->setChecked(render_data.networkOnlyForSelected);
+		});
 	}
 
 	void MapAnalyzerWidget::onNetworkOnlyChanged(int state) {
-		auto* render = _application.stores().get_entry<core::model::MapRendererData>();
-		if (!render) {
-			return;
-		}
-
-		bool value = state == Qt::Checked;
-		if (render->networkOnlyForSelected != value) {
-			render->networkOnlyForSelected = value;
-			// TODO{threaded}: command -> recalculate_map_data
-			visualization::recalculate_map_data(_application);
-		}
+		const bool value = state == Qt::Checked;
+		auto v_sys = _application.systems().get<visualization::VisualSystem>();
+		v_sys->commands().add_command(
+			visualization::UpdateRenderParamsCommand { .network_only_for_selected = value });
 	}
 
 } // namespace tjs::ui

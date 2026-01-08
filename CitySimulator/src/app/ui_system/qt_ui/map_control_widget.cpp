@@ -13,6 +13,9 @@
 
 #include <project/project.h>
 
+#include <visual_system/visual_system.h>
+#include <ui_system/ui_system.h>
+
 /// TODO: Place somwhere to be more pretty
 
 #include <visualization/Scene.h>
@@ -28,6 +31,7 @@
 
 namespace tjs {
 	namespace ui {
+
 		MapControlWidget::MapControlWidget(Application& application, QWidget* parent)
 			: QWidget(parent)
 			, _application(application) {
@@ -174,9 +178,11 @@ namespace tjs {
 			simplifiedThreshold = new QDoubleSpinBox(this);
 			simplifiedThreshold->setRange(1.0, 100.0);
 			simplifiedThreshold->setSingleStep(1.0);
-			if (auto* renderData = _application.stores().get_entry<core::model::MapRendererData>()) {
-				simplifiedThreshold->setValue(renderData->simplifiedViewThreshold);
-			}
+
+			auto& connection = _application.uiSystem().get_render_data_connection();
+			connection.read([this](const core::model::MapRendererData& render_data) {
+				simplifiedThreshold->setValue(render_data.simplifiedViewThreshold);
+			});
 			simplifiedLayout->addWidget(simplifiedLabel);
 			simplifiedLayout->addWidget(simplifiedThreshold);
 			mainLayout->addLayout(simplifiedLayout);
@@ -240,9 +246,9 @@ namespace tjs {
 			});
 
 			connect(simplifiedThreshold, &QDoubleSpinBox::valueChanged, [this](double value) {
-				if (auto* renderData = _application.stores().get_entry<core::model::MapRendererData>()) {
-					renderData->simplifiedViewThreshold = value;
-				}
+				auto v_sys = _application.systems().get<visualization::VisualSystem>();
+				v_sys->commands().add_command(
+					visualization::UpdateRenderParamsCommand { .simplified_view_threshold = value });
 			});
 
 			connect(randomSeed, &QCheckBox::checkStateChanged, [this](int state) {
@@ -455,10 +461,9 @@ namespace tjs {
 				}
 			}
 
-			auto renderData = _application.stores().get_entry<core::model::MapRendererData>();
-			if (renderData) {
-				renderData->visibleLayers = layers;
-			}
+			auto v_sys = _application.systems().get<visualization::VisualSystem>();
+			v_sys->commands().add_command(
+				visualization::UpdateRenderParamsCommand { .visible_layers = layers });
 		}
 
 		void MapControlWidget::UpdateButtonsState() {
@@ -471,12 +476,8 @@ namespace tjs {
 				return;
 			}
 
-			if (_connection.empty()) {
-				// TODO{threads}: move connection to initialize method
-				_connection = shared->connect();
-			}
-
-			_connection.read([this](const core::model::MapRendererData& render_data) {
+			auto& connection = _application.uiSystem().get_render_data_connection();
+			connection.read([this](const core::model::MapRendererData& render_data) {
 				_zoomLevel->setText(QString("Meters per pixel: %1").arg(render_data.metersPerPixel));
 				_screenCenter->setText(QString("Center: %1, %2").arg(render_data.screen_center.x).arg(render_data.screen_center.y));
 			});
@@ -487,16 +488,18 @@ namespace tjs {
 				return;
 			}
 
-			auto render_data = _application.stores().get_entry<core::model::MapRendererData>();
-			if (!render_data) {
-				return;
-			}
+			core::model::MapRendererLayer visible_layers = core::model::MapRendererLayer::None;
+
+			auto& connection = _application.uiSystem().get_render_data_connection();
+			connection.read([&visible_layers](const core::model::MapRendererData& render_data) {
+				visible_layers = render_data.visibleLayers;
+			});
 
 			// Update layer selection based on current state
 			for (int i = 0; i < _layerList->count(); ++i) {
 				QListWidgetItem* item = _layerList->item(i);
 				core::model::MapRendererLayer layer = static_cast<core::model::MapRendererLayer>(item->data(Qt::UserRole).toUInt());
-				item->setSelected(static_cast<uint32_t>(render_data->visibleLayers & layer) != 0);
+				item->setSelected(static_cast<uint32_t>(visible_layers & layer) != 0);
 			}
 			UpdateLabels();
 		}

@@ -1,58 +1,59 @@
 #pragma once
 
+#include <visual_system/visual_system_commands.h>
 #include <common/system/threaded_system.h>
 #include <logic/logic_base.h>
 
-
 namespace tjs {
-    class Application;
-    class IRenderer;
-}
+	class Application;
+	class IRenderer;
+} // namespace tjs
 
-namespace tjs::visualization
-{
-    class SceneSystem;
+namespace tjs::visualization {
+	class SceneSystem;
 
-    class VisualSystem : public common::system::threaded_system<VisualSystem, std::variant<int>> {
-        friend common::system::threaded_system<VisualSystem, std::variant<int>>;
-    public:
-        using self_type = VisualSystem;
+	using visual_system_commands = std::variant<UpdateRenderParamsCommand>;
 
-    public:
-        VisualSystem(
-            Application& app,
-            std::unique_ptr<IRenderer>&& renderer,
-            std::unique_ptr<SceneSystem>&& scene_system
-        );
-        ~VisualSystem();
+	class VisualSystem : public common::system::threaded_system<VisualSystem, visual_system_commands> {
+		friend common::system::threaded_system<VisualSystem, visual_system_commands>;
 
-        IRenderer& renderer() {
-            return *_renderer;
-        }
+	public:
+		using self_type = VisualSystem;
 
-        visualization::SceneSystem& scene_system() {
-            return *_scene_system;
-        }
+	public:
+		VisualSystem(
+			Application& app,
+			std::unique_ptr<IRenderer>&& renderer,
+			std::unique_ptr<SceneSystem>&& scene_system);
+		~VisualSystem();
 
-    private:
-        void _initialize_self_impl() override;
-        void _initialize_impl() override;
-        void _update_impl() override;
-        void _release_impl() override;
-        void _release_self_impl() override;
+		IRenderer& renderer() {
+			return *_renderer;
+		}
 
-        void handle_command(int&&) {}
+		visualization::SceneSystem& scene_system() {
+			return *_scene_system;
+		}
 
-    private:
-        void _setup_logic();
-        void _setup_scene();
+	private:
+		void _initialize_self_impl() override;
+		void _initialize_impl() override;
+		void _update_impl() override;
+		void _release_impl() override;
+		void _release_self_impl() override;
 
-    private:
-        Application& _app;
-        std::unique_ptr<IRenderer> _renderer;
-        std::unique_ptr<visualization::SceneSystem> _scene_system;
+		void handle_command(UpdateRenderParamsCommand&& payload);
 
-        LogicHandler _logic_modules;
-    };
+	private:
+		void _setup_logic();
+		void _setup_scene();
 
-} // namespace tjs::systems
+	private:
+		Application& _app;
+		std::unique_ptr<IRenderer> _renderer;
+		std::unique_ptr<visualization::SceneSystem> _scene_system;
+
+		LogicHandler _logic_modules;
+	};
+
+} // namespace tjs::visualization

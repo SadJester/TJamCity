@@ -6,6 +6,10 @@
 
 namespace tjs {
 	void UISystem::initialize() {
+		// TODO{threaded}: will move to _initialize_impl
+		auto shared = _application.stores().get_entry<core::model::MapRendererShared>();
+		_render_data_connection = shared->connect();
+
 		_controller = std::make_unique<ui::QTUIController>(_application);
 		_controller->run();
 	}
