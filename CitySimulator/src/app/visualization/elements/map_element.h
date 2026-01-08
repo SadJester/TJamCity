@@ -39,7 +39,7 @@ namespace tjs::visualization {
 		void render_network_graph(IRenderer& renderer, const core::RoadNetwork& network);
 
 		Application& _application;
-		core::model::MapRendererData& _render_data;
+		core::model::MapRendererShared& _render_data;
 		core::model::PersistentRenderData& _cache;
 		core::simulation::SimulationDebugData* _debugData;
 

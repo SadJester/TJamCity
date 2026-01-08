@@ -20,7 +20,8 @@ namespace tjs::app::logic {
 
 	MapPositioning::MapPositioning(Application& app)
 		: ILogicModule(app)
-		, _maxDistance(app.settings().render.map.selectionDistance) {
+		, _maxDistance(app.settings().render.map.selectionDistance)
+		, _render_data(*_application.stores().get_entry<core::model::MapRendererShared>()) {
 	}
 
 	void MapPositioning::init() {
@@ -60,7 +61,7 @@ namespace tjs::app::logic {
 
 		for (auto& way_pair : ways) {
 			for (auto node : way_pair.second->nodes) {
-				FPoint node_point = visualization::convert_to_screen_f(node->coordinates, render->screen_center, render->metersPerPixel);
+				FPoint node_point = visualization::convert_to_screen_f(node->coordinates, render->get_screen_center(), render->get_meters_ppx());
 				float dx = static_cast<float>(node_point.x - event.x);
 				float dy = static_cast<float>(node_point.y - event.y);
 				float squared_dist = dx * dx + dy * dy;
@@ -76,19 +77,14 @@ namespace tjs::app::logic {
 	}
 
 	void MapPositioning::on_mouse_wheel_event(const render::RendererMouseWheelEvent& event) {
-		auto* render_data = _application.stores().get_entry<core::model::MapRendererData>();
-		if (!render_data) {
-			return;
-		}
-
-		double oldMPP = render_data->metersPerPixel;
+		double oldMPP = _render_data->get_meters_ppx();
 		double scale = event.deltaY > 0 ? 0.9 : 1.1;
-		double worldX = (event.x - render_data->screen_center.x) * oldMPP;
-		double worldY = (event.y - render_data->screen_center.y) * oldMPP;
+		double worldX = (event.x - _render_data->get_screen_center().x) * oldMPP;
+		double worldY = (event.y - _render_data->get_screen_center().y) * oldMPP;
 		double newMPP = oldMPP * scale;
-		render_data->set_meters_per_pixel(newMPP);
-		render_data->screen_center.x = static_cast<int>(event.x - worldX / newMPP);
-		render_data->screen_center.y = static_cast<int>(event.y - worldY / newMPP);
+		_render_data->set_meters_ppx(newMPP);
+		_render_data->set_screen_center({ static_cast<int>(event.x - worldX / newMPP),
+			static_cast<int>(event.y - worldY / newMPP) });
 
 		update_map_positioning();
 	}
@@ -98,13 +94,10 @@ namespace tjs::app::logic {
 			return;
 		}
 
-		auto* render_data = _application.stores().get_entry<core::model::MapRendererData>();
-		if (!render_data) {
-			return;
-		}
-
-		render_data->screen_center.x += event.xrel;
-		render_data->screen_center.y += event.yrel;
+		Position pos = _render_data->get_screen_center();
+		pos.x += event.xrel;
+		pos.y += event.yrel;
+		_render_data->set_screen_center(pos);
 
 		update_map_positioning();
 	}
@@ -114,49 +107,38 @@ namespace tjs::app::logic {
 			return;
 		}
 
-		auto* render_data = _application.stores().get_entry<core::model::MapRendererData>();
-		if (!render_data) {
-			return;
-		}
+		Position pos = _render_data->get_screen_center();
 
 		int step = 50; // pixels to move
 
 		switch (event.keyCode) {
 			case SDLK_UP:
-				render_data->screen_center.y += step;
+				pos.y += step;
 				break;
 			case SDLK_DOWN:
-				render_data->screen_center.y -= step;
+				pos.y -= step;
 				break;
 			case SDLK_LEFT:
-				render_data->screen_center.x += step;
+				pos.x += step;
 				break;
 			case SDLK_RIGHT:
-				render_data->screen_center.x -= step;
+				pos.x -= step;
 				break;
 			default:
 				return;
 		}
 
+		_render_data->set_screen_center(pos);
 		update_map_positioning();
 	}
 
 	void MapPositioning::update_map_positioning() {
-		auto* render_data = _application.stores().get_entry<core::model::MapRendererData>();
-		if (render_data) {
-			// TODO{threaded}: command -> change debug_data
-			visualization::recalculate_map_data(_application);
-		}
-
-		auto& shared = *_application.stores().get_entry<core::model::MapRendererShared>();
-		shared->screen_center = render_data->screen_center;
-		shared->metersPerPixel = render_data->metersPerPixel;
-		shared.publish();
-
+		// TODO{threaded}: command -> change debug_data
+		visualization::recalculate_map_data(_application);
 		// TODO{threaded}: Listener in main thread that saves settings
 		auto& general_settings = _application.settings().general;
-		general_settings.screen_center = shared->screen_center;
-		general_settings.zoomLevel = shared->metersPerPixel;
+		general_settings.screen_center = _render_data->get_screen_center();
+		general_settings.zoomLevel = _render_data->get_meters_ppx();
 
 		// TODO{threads}: SPMC
 		_application.message_dispatcher().handle_message(events::MapPositioningChanged {}, "map");

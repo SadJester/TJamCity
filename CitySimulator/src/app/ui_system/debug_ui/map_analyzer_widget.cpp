@@ -47,7 +47,7 @@ namespace tjs::ui {
 
 		auto& connection = _application.uiSystem().get_render_data_connection();
 		connection.read([this](const core::model::MapRendererData& render_data) {
-			_networkOnly->setChecked(render_data.networkOnlyForSelected);
+			_networkOnly->setChecked(render_data.get_network_only_for_selected());
 		});
 	}
 

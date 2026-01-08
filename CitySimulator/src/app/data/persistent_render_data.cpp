@@ -11,10 +11,6 @@ namespace tjs::visualization {
 
 	void recalculate_map_data(Application& app) {
 		auto debug = app.settings().simulationSettings.debug_data;
-		auto* render = app.stores().get_entry<core::model::MapRendererData>();
-		if (!render) {
-			return;
-		}
 
 		uint64_t selectedId = debug.selectedNode ? debug.selectedNode->uid : 0;
 		debug.reachableNodes.clear();
@@ -23,8 +19,9 @@ namespace tjs::visualization {
 			return;
 		}
 
+		auto& render_data = *app.stores().get_entry<core::model::MapRendererShared>();
 		auto& segment = *app.worldData().segments().front();
-		if (render->networkOnlyForSelected && debug.selectedNode && segment.road_network) {
+		if (render_data->get_network_only_for_selected() && debug.selectedNode && segment.road_network) {
 			auto nodes = core::algo::PathFinder::reachable_nodes(*segment.road_network, debug.selectedNode);
 			for (auto* n : nodes) {
 				debug.reachableNodes.insert(n->uid);

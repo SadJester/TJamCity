@@ -5,6 +5,9 @@
 
 namespace tjs {
 	class Application;
+	namespace core::model {
+		struct MapRendererShared;
+	} // namespace core::model
 } // namespace tjs
 
 namespace tjs::app::logic {
@@ -32,6 +35,8 @@ namespace tjs::app::logic {
 	private:
 		float _maxDistance;
 		bool _dragging = false;
+
+		core::model::MapRendererShared& _render_data;
 	};
 
 } // namespace tjs::app::logic

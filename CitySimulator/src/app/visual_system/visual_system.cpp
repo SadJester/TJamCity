@@ -99,29 +99,23 @@ namespace tjs::visualization {
 		bool changed = false;
 		auto& shared = *_app.stores().get_entry<core::model::MapRendererShared>();
 		if (command.selected_lane.has_value()) {
-			shared->selected_lane = command.selected_lane.value();
-			changed = true;
+			shared->set_selected_lane(command.selected_lane.value());
 		}
 
 		if (command.network_only_for_selected.has_value()) {
-			shared->networkOnlyForSelected = command.network_only_for_selected.value();
+			shared->set_network_only_for_selected(command.network_only_for_selected.value());
 			visualization::recalculate_map_data(_app);
-			changed = true;
 		}
 
 		if (command.simplified_view_threshold.has_value()) {
-			shared->simplifiedViewThreshold = command.simplified_view_threshold.value();
-			changed = true;
+			shared->set_simplified_view_threshold(command.simplified_view_threshold.value());
 		}
 
 		if (command.visible_layers.has_value()) {
-			shared->visibleLayers = command.visible_layers.value();
-			changed = true;
+			shared->set_visible_layers(command.visible_layers.value());
 		}
 
-		if (changed) {
-			shared.publish();
-		}
+		shared.try_publish();
 	}
 
 } // namespace tjs::visualization

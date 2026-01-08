@@ -181,7 +181,7 @@ namespace tjs {
 
 			auto& connection = _application.uiSystem().get_render_data_connection();
 			connection.read([this](const core::model::MapRendererData& render_data) {
-				simplifiedThreshold->setValue(render_data.simplifiedViewThreshold);
+				simplifiedThreshold->setValue(render_data.get_simplified_view_threshold());
 			});
 			simplifiedLayout->addWidget(simplifiedLabel);
 			simplifiedLayout->addWidget(simplifiedThreshold);
@@ -478,8 +478,8 @@ namespace tjs {
 
 			auto& connection = _application.uiSystem().get_render_data_connection();
 			connection.read([this](const core::model::MapRendererData& render_data) {
-				_zoomLevel->setText(QString("Meters per pixel: %1").arg(render_data.metersPerPixel));
-				_screenCenter->setText(QString("Center: %1, %2").arg(render_data.screen_center.x).arg(render_data.screen_center.y));
+				_zoomLevel->setText(QString("Meters per pixel: %1").arg(render_data.get_meters_ppx()));
+				_screenCenter->setText(QString("Center: %1, %2").arg(render_data.get_screen_center().x).arg(render_data.get_screen_center().y));
 			});
 		}
 
@@ -492,7 +492,7 @@ namespace tjs {
 
 			auto& connection = _application.uiSystem().get_render_data_connection();
 			connection.read([&visible_layers](const core::model::MapRendererData& render_data) {
-				visible_layers = render_data.visibleLayers;
+				visible_layers = render_data.get_visible_layers();
 			});
 
 			// Update layer selection based on current state

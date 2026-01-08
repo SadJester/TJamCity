@@ -22,7 +22,6 @@ namespace tjs::visualization {
 		: SceneNode("VehicleRenderer")
 		, _application(application)
 		, _mapRendererData(*application.stores().get_entry<core::model::MapRendererData>()) {
-
 		_connection = _application.simulationSystem().vehicle_system().vehicle_state().connect();
 	}
 
@@ -45,7 +44,6 @@ namespace tjs::visualization {
 		_connection.read([this, &renderer](const core::VehicleState1& state, uint32_t idx) {
 			render(renderer, state);
 		});
-
 	}
 
 	struct VehicleRenderSettings {
@@ -69,7 +67,7 @@ namespace tjs::visualization {
 	};
 
 	void VehicleRenderer::render(IRenderer& renderer, const core::VehicleState1& vehicle) {
-		const float metersPerPixel = _mapRendererData.metersPerPixel;
+		const float metersPerPixel = _mapRendererData.get_meters_ppx();
 
 		// Get the settings for the vehicle based on its type
 		const VehicleRenderSettings& settings = vehicleSettings.renderSettings[static_cast<int>(vehicle.type)];
@@ -80,8 +78,8 @@ namespace tjs::visualization {
 		// Convert coordinates to screen coordinates
 		auto screenPos = tjs::visualization::convert_to_screen(
 			vehicle.coordinates,
-			_mapRendererData.screen_center,
-			_mapRendererData.metersPerPixel);
+			_mapRendererData.get_screen_center(),
+			_mapRendererData.get_meters_ppx());
 		int screenX = screenPos.x;
 		int screenY = screenPos.y;
 

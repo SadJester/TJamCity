@@ -63,7 +63,7 @@ namespace tjs::visualization {
 	MapElement::MapElement(Application& application)
 		: SceneNode("MapElement")
 		, _application(application)
-		, _render_data(*application.stores().get_entry<model::MapRendererData>())
+		, _render_data(*application.stores().get_entry<model::MapRendererShared>())
 		, _cache(*application.stores().get_entry<core::model::PersistentRenderData>())
 		, _debugData(&application.settings().simulationSettings.debug_data) {
 	}
@@ -83,8 +83,8 @@ namespace tjs::visualization {
 
 		if (_current_file.empty()) {
 			_current_file = _application.settings().general.selectedFile;
-			_render_data.screen_center = general_settings.screen_center;
-			_render_data.metersPerPixel = general_settings.zoomLevel;
+			_render_data->set_screen_center(general_settings.screen_center);
+			_render_data->set_meters_ppx(general_settings.zoomLevel);
 		}
 
 		auto positioning = _application.logic_modules().get_entry<app::logic::MapPositioning>();
@@ -435,12 +435,12 @@ namespace tjs::visualization {
 		draw_diamond(renderer, position, circle_size, FColor::Red);
 	}
 
-	void render_network(IRenderer& renderer, const WorldSegment& segment, core::model::MapRendererData& render_data, core::simulation::SimulationDebugData* debug_data) {
-		const bool render_nodes = static_cast<uint32_t>(render_data.visibleLayers & model::MapRendererLayer::Nodes) != 0;
-		auto& screen_center = render_data.screen_center;
-		double mpp = render_data.metersPerPixel;
+	void render_network(IRenderer& renderer, const WorldSegment& segment, core::model::MapRendererShared& render_data, core::simulation::SimulationDebugData* debug_data) {
+		const bool render_nodes = static_cast<uint32_t>(render_data->get_visible_layers() & model::MapRendererLayer::Nodes) != 0;
+		const auto& screen_center = render_data->get_screen_center();
+		double mpp = render_data->get_meters_ppx();
 		core::Node* selected_node = debug_data != nullptr ? debug_data->selectedNode : nullptr;
-		const bool simplified = render_data.metersPerPixel > render_data.simplifiedViewThreshold;
+		const bool simplified = render_data->get_meters_ppx() > render_data->get_simplified_view_threshold();
 
 		enum class LaneType {
 			None,
@@ -483,17 +483,17 @@ namespace tjs::visualization {
 		const Node* selected = selected_node;
 		const auto& ways = segment.sorted_ways;
 
-		const bool filter = render_data.networkOnlyForSelected && debug_data != nullptr && !debug_data->reachableNodes.empty();
+		const bool filter = render_data->get_network_only_for_selected() && debug_data != nullptr && !debug_data->reachableNodes.empty();
 
 		std::unordered_set<const Lane*> outgoing_highlight;
 		std::unordered_set<const Lane*> incoming_highlight;
-		if (render_data.selected_lane) {
-			for (const auto& link : render_data.selected_lane->incoming_connections) {
+		if (auto selected_lane = render_data->get_selected_lane(); selected_lane) {
+			for (const auto& link : selected_lane->incoming_connections) {
 				if (link->from) {
 					incoming_highlight.insert(link->from);
 				}
 			}
-			for (const auto& link : render_data.selected_lane->outgoing_connections) {
+			for (const auto& link : selected_lane->outgoing_connections) {
 				if (link->to) {
 					outgoing_highlight.insert(link->to);
 				}
@@ -544,7 +544,7 @@ namespace tjs::visualization {
 						lane_type = LaneType::Outgoing;
 					} else if (incoming_highlight.contains(&lane)) {
 						lane_type = LaneType::Incoming;
-					} else if (&lane == render_data.selected_lane) {
+					} else if (&lane == render_data->get_selected_lane()) {
 						lane_type = LaneType::Selected;
 					}
 
@@ -650,13 +650,13 @@ namespace tjs::visualization {
 
 		auto& segment = segments.front();
 
-		if (_render_data.showBoundingBox) {
+		if (_render_data->get_show_bounding_box()) {
 			render_bounding_box();
 		}
 
 		render_network(renderer, *segment, _render_data, _debugData);
 
-		bool draw_network = static_cast<uint32_t>(_render_data.visibleLayers & model::MapRendererLayer::NetworkGraph) != 0;
+		bool draw_network = static_cast<uint32_t>(_render_data->get_visible_layers() & model::MapRendererLayer::NetworkGraph) != 0;
 		// Render network graph if enabled
 		if (draw_network) {
 			if (segment->road_network) {
@@ -670,15 +670,15 @@ namespace tjs::visualization {
 		// Set color for network graph edges
 		renderer.set_draw_color({ 0.0f, 0.8f, 0.8f, 0.5f }); // Semi-transparent cyan
 
-		bool filter = _render_data.networkOnlyForSelected && _debugData != nullptr && !_debugData->reachableNodes.empty();
+		bool filter = _render_data->get_network_only_for_selected() && _debugData != nullptr && !_debugData->reachableNodes.empty();
 		// Render edges from edge graph
 		for (const auto& [node, edges] : network.edge_graph) {
 			const bool is_node_filtered = filter && !_debugData->reachableNodes.contains(node->uid);
-			const FPoint start = convert_to_screen_f(node->coordinates, _render_data.screen_center, _render_data.metersPerPixel);
+			const FPoint start = convert_to_screen_f(node->coordinates, _render_data->get_screen_center(), _render_data->get_meters_ppx());
 			for (const Edge* edge : edges) {
 				Node* neighbor = edge->end_node;
 				const bool is_neighbor_filtered = filter && !_debugData->reachableNodes.contains(neighbor->uid);
-				const FPoint end = convert_to_screen_f(neighbor->coordinates, _render_data.screen_center, _render_data.metersPerPixel);
+				const FPoint end = convert_to_screen_f(neighbor->coordinates, _render_data->get_screen_center(), _render_data->get_meters_ppx());
 				Position is_start { static_cast<int>(start.x), static_cast<int>(start.y) };
 				Position is_end { static_cast<int>(end.x), static_cast<int>(end.y) };
 				if (line_outside_screen(is_start, is_end, renderer.screen_width(), renderer.screen_height())) {
@@ -687,7 +687,7 @@ namespace tjs::visualization {
 
 				// Draw edge as a thin line
 				const FColor color = (is_node_filtered || is_neighbor_filtered) ? FColor { 0.8f, 0.0f, 0.0f, 0.5f } : FColor { 0.0f, 0.8f, 0.8f, 0.5f };
-				drawThickLine(renderer, { start, end }, _render_data.metersPerPixel, 1.0f, color);
+				drawThickLine(renderer, { start, end }, _render_data->get_meters_ppx(), 1.0f, color);
 			}
 		}
 	}
@@ -713,8 +713,8 @@ namespace tjs::visualization {
 	Position MapElement::convert_to_screen(const Coordinates& coord) const {
 		return tjs::visualization::convert_to_screen(
 			coord,
-			_render_data.screen_center,
-			_render_data.metersPerPixel);
+			_render_data->get_screen_center(),
+			_render_data->get_meters_ppx());
 	}
 
 	void MapElement::auto_zoom(const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {
@@ -750,13 +750,14 @@ namespace tjs::visualization {
 		double zoomX = widthMeters / (renderer.screen_width() * 0.9);
 		double zoomY = heightMeters / (renderer.screen_height() * 0.9);
 
-		_render_data.set_meters_per_pixel(std::min(zoomX, zoomY));
+		_render_data->set_meters_ppx(std::min(zoomX, zoomY));
 
 		double center_x = (minX + maxX) / 2.0;
 		double center_y = (minY + maxY) / 2.0;
 
-		_render_data.screen_center.x = static_cast<int>(renderer.screen_width() / 2.0 - center_x / _render_data.metersPerPixel);
-		_render_data.screen_center.y = static_cast<int>(renderer.screen_height() / 2.0 - center_y / _render_data.metersPerPixel);
+		_render_data->set_screen_center(Position {
+			static_cast<int>(renderer.screen_width() / 2.0 - center_x / _render_data->get_meters_ppx()),
+			static_cast<int>(renderer.screen_height() / 2.0 - center_y / _render_data->get_meters_ppx()) });
 	}
 
 	void MapElement::calculate_map_bounds(const std::unordered_map<uint64_t, std::unique_ptr<Node>>& nodes) {

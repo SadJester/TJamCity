@@ -55,19 +55,19 @@ namespace tjs::app::logic {
 		}
 
 		if (_application.worldData().segments().empty()) {
-			render_data->selected_lane = nullptr;
+			render_data->set_selected_lane(nullptr);
 			return;
 		}
 
 		core::WorldSegment& segment = *_application.worldData().segments().front();
 		if (!segment.road_network) {
-			render_data->selected_lane = nullptr;
+			render_data->set_selected_lane(nullptr);
 			return;
 		}
 
 		Position click { event.x, event.y };
 		core::Lane* nearestLane = nullptr;
-		float bestDist = _maxDistance / render_data->metersPerPixel;
+		float bestDist = _maxDistance / render_data->get_meters_ppx();
 
 		for (const core::Edge& edge : segment.road_network->edges) {
 			for (const core::Lane& lane : edge.lanes) {
@@ -76,9 +76,9 @@ namespace tjs::app::logic {
 				}
 				for (size_t i = 0; i + 1 < lane.centerLine.size(); ++i) {
 					Position a = visualization::convert_to_screen(
-						lane.centerLine[i], render_data->screen_center, render_data->metersPerPixel);
+						lane.centerLine[i], render_data->get_screen_center(), render_data->get_meters_ppx());
 					Position b = visualization::convert_to_screen(
-						lane.centerLine[i + 1], render_data->screen_center, render_data->metersPerPixel);
+						lane.centerLine[i + 1], render_data->get_screen_center(), render_data->get_meters_ppx());
 					float dist = point_segment_distance(click, a, b);
 					if (dist < bestDist) {
 						bestDist = dist;
@@ -90,7 +90,7 @@ namespace tjs::app::logic {
 
 		core::Node* nearest_node = nullptr;
 		for (auto& n : segment.road_network->nodes) {
-			Position p = visualization::convert_to_screen(n.second->coordinates, render_data->screen_center, render_data->metersPerPixel);
+			Position p = visualization::convert_to_screen(n.second->coordinates, render_data->get_screen_center(), render_data->get_meters_ppx());
 
 			float dx = static_cast<float>(p.x - event.x);
 			float dy = static_cast<float>(p.y - event.y);
@@ -103,7 +103,7 @@ namespace tjs::app::logic {
 		}
 
 		debug_data->selectedNode = nearest_node;
-		render_data->selected_lane = nearestLane;
+		render_data->set_selected_lane(nearestLane);
 		_application.message_dispatcher().handle_message(events::LaneIsSelected {}, "map");
 	}
 

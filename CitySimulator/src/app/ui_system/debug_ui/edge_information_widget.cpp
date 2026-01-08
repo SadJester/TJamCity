@@ -89,7 +89,7 @@ namespace tjs::ui {
 		core::Lane* selected_lane = nullptr;
 		auto& connection = _application.uiSystem().get_render_data_connection();
 		connection.read([&selected_lane](const core::model::MapRendererData& render_data) {
-			selected_lane = render_data.selected_lane;
+			selected_lane = render_data.get_selected_lane();
 		});
 
 		if (!selected_lane) {
