@@ -1,6 +1,6 @@
 #include <stdafx.h>
 
-#include <data/map_renderer_data.h>
+#include <visual_system/data/map_renderer_data.h>
 
 namespace tjs::core::model {
 

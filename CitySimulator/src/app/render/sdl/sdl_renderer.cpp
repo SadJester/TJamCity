@@ -225,7 +225,7 @@ namespace tjs::render {
 			return;
 		}
 
-		_metrics.triangles_last_frame = _trianglesCount;
+		_metrics.triangles_last_frame.store(_trianglesCount, std::memory_order_release);
 
 		// Present the renderer
 		SDL_RenderPresent(_sdlRenderer);

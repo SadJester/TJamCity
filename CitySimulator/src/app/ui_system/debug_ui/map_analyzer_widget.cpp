@@ -1,7 +1,8 @@
-#include "ui_system/debug_ui/map_analyzer_widget.h"
-#include "Application.h"
-#include "data/persistent_render_data.h"
-#include "data/map_renderer_data.h"
+#include <stdafx.h>
+#include <ui_system/debug_ui/map_analyzer_widget.h>
+#include <Application.h>
+#include <data/persistent_render_data.h>
+#include <visual_system/data/map_renderer_data.h>
 #include <core/simulation/simulation_debug.h>
 
 #include <QVBoxLayout>
@@ -55,6 +56,7 @@ namespace tjs::ui {
 		bool value = state == Qt::Checked;
 		if (render->networkOnlyForSelected != value) {
 			render->networkOnlyForSelected = value;
+			// TODO{threaded}: command -> recalculate_map_data
 			visualization::recalculate_map_data(_application);
 		}
 	}

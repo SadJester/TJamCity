@@ -1,8 +1,10 @@
 #include <stdafx.h>
-#include <logic/map/lanes_selector.h>
-#include <Application.h>
-#include <data/map_renderer_data.h>
+#include <visual_system/logic/map/lanes_selector.h>
+#include <visual_system/data/map_renderer_data.h>
+
 #include <visualization/elements/map_element.h>
+
+#include <Application.h>
 
 #include <core/data_layer/world_data.h>
 #include <core/simulation/simulation_debug.h>

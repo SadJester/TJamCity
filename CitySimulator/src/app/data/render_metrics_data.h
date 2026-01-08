@@ -6,7 +6,8 @@ namespace tjs::core::model {
 	struct RenderMetricsData : public IDataModel {
 		static std::type_index get_type() { return typeid(RenderMetricsData); }
 
-		std::size_t triangles_last_frame = 0;
+		// TODO{threaded}: Move to system statistics
+		std::atomic<std::size_t> triangles_last_frame = 0;
 
 		void reinit() override { triangles_last_frame = 0; }
 	};

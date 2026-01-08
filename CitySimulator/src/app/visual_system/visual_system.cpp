@@ -8,9 +8,9 @@
 #include <visualization/scene_system.h>
 
 // Map logic
-#include <logic/map/vehicle_targeting.h>
-#include <logic/map/lanes_selector.h>
-#include <logic/map/map_positioning.h>
+#include <visual_system/logic/map/vehicle_targeting.h>
+#include <visual_system/logic/map/lanes_selector.h>
+#include <visual_system/logic/map/map_positioning.h>
 
 // Scene
 #include <visualization/scene_system.h>

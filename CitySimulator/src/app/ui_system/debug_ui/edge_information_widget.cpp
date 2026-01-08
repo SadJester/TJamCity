@@ -1,6 +1,8 @@
-#include "ui_system/debug_ui/edge_information_widget.h"
-#include "Application.h"
-#include "data/map_renderer_data.h"
+#include <stdafx.h>
+#include <ui_system/debug_ui/edge_information_widget.h>
+#include <visual_system/data/map_renderer_data.h>
+
+#include <Application.h>
 
 #include <core/simulation/simulation_system.h>
 #include <core/simulation/transport_management/vehicle_system.h>

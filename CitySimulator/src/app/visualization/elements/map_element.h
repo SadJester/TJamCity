@@ -2,7 +2,7 @@
 
 #include <visualization/scene_node.h>
 #include <core/data_layer/data_types.h>
-#include <data/map_renderer_data.h>
+#include <visual_system/data/map_renderer_data.h>
 #include <data/persistent_render_data.h>
 #include <core/simulation/simulation_debug.h>
 #include <core/data_layer/road_network.h>

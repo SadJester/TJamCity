@@ -13,7 +13,8 @@ namespace tjs::visualization
 {
     class SceneSystem;
 
-    class VisualSystem : public common::system::threaded_system {
+    class VisualSystem : public common::system::threaded_system<VisualSystem, std::variant<int>> {
+        friend common::system::threaded_system<VisualSystem, std::variant<int>>;
     public:
         using self_type = VisualSystem;
 
@@ -39,6 +40,8 @@ namespace tjs::visualization
         void _update_impl() override;
         void _release_impl() override;
         void _release_self_impl() override;
+
+        void handle_command(int&&) {}
 
     private:
         void _setup_logic();

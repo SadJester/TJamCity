@@ -13,7 +13,7 @@
 #include <events/map_events.h>
 #include <core/events/vehicle_population_events.h>
 
-#include <data/map_renderer_data.h>
+#include <visual_system/data/map_renderer_data.h>
 
 namespace tjs {
 	class Application;

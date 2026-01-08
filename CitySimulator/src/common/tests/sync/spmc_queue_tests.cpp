@@ -5,6 +5,8 @@
 using namespace tjs::common;
 
 namespace {
+    enum class MsgKind : char { A = 1, B = 2, C = 3, D = 4 };
+
     struct SmallPod {
         int x{};
         int y{};
@@ -14,13 +16,13 @@ namespace {
 
     // Simple payload carrying a sequence number to validate ordering
     struct SeqPayload {
+        static constexpr MsgKind ALLOWED_IN_MESSAGES[] = {MsgKind::A, MsgKind::B, MsgKind::C, MsgKind::D};
         std::uint64_t seq{};
         explicit SeqPayload(std::uint64_t s = 0)
             : seq(s) {
         }
     };
 
-    enum class MsgKind : char { A = 1, B = 2, C = 3, D = 4 };
     // Choose a large capacity to avoid overrun in ordering tests
     static constexpr std::size_t kCapacityLarge = 16384;
 
@@ -37,7 +39,7 @@ TEST(SpmcQueueTests, SingleThreadedOrderAndDrain) {
 
     const std::size_t N = 5000;
     for (std::size_t i = 0; i < N; ++i) {
-        q.push<SeqPayload>(MsgKind::A, i);
+        q.push<SeqPayload, MsgKind::A>(i);
     }
 
     std::vector<std::uint64_t> seen;
@@ -107,7 +109,7 @@ TEST(SpmcQueueTests, Multithreaded_SingleProducer_ManyConsumers_AllSeeAll) {
     std::thread producer([&]{
         sync_point.arrive_and_wait();
         for (std::size_t i = 0; i < N; ++i) {
-            q.push<SeqPayload>(MsgKind::A, i);
+            q.push<SeqPayload, MsgKind::A>(i);
         }
     });
 
@@ -132,7 +134,7 @@ TEST(SpmcQueue, OverrunSkipsOverwrittenSlotAndStaysConsistent) {
 
     const std::size_t total = 32;
     for (std::size_t i = 0; i < total; ++i) {
-        q.template push<SeqPayload>(MsgKind::A, i);
+        q.push<SeqPayload, MsgKind::A>(i);
     }
 
     std::vector<std::uint64_t> seen;
@@ -158,4 +160,62 @@ TEST(SpmcQueue, OverrunSkipsOverwrittenSlotAndStaysConsistent) {
     for (std::size_t i = 1; i < seen.size(); ++i) {
         ASSERT_GT(seen[i], seen[i - 1]);
     }
+}
+
+enum class MsgMy
+{
+    One, Two, Three
+};
+
+struct TestMsg
+{
+    static constexpr MsgMy MSG_PAYLOADS[] = {MsgMy::One, MsgMy::Two};
+    int x;
+};
+
+struct TestMsg1
+{
+    static constexpr int MSG_PAYLOADS[] = {1, 2};
+    int x;
+};
+
+template <typename msg_types>
+struct S
+{
+    template <typename T, msg_types _type, typename... Args>
+        requires std::is_enum_v<msg_types>
+    void push(Args&&... payload)
+    {
+        /*
+        if constexpr (std::is_enum_v<msg_Type>)
+        {
+            constexpr auto allowed = std::span(T::ALLOWED_IN_MESSAGES);
+            const bool ok = std::ranges::find(allowed, msg_type) != allowed.end();
+        }
+        */
+
+        constexpr auto allowed = std::span{T::MSG_PAYLOADS}; // C++20
+        const bool ok = std::ranges::find(allowed, _type) != allowed.end();
+        static_assert(ok, "Unexpected values for message type");
+    }
+
+    template <typename T, typename... Args>
+        requires !std::is_enum_v<msg_types>
+    void push(msg_types msg_type, Args&&... payload)
+    {
+        constexpr auto allowed = std::span{T::MSG_PAYLOADS}; // C++20
+        const bool ok = std::ranges::find(allowed, msg_type) != allowed.end();
+        std::cout << (ok ? "OK\n" : "NOT OK\n");
+    }
+};
+
+TEST(SpmcQueue, SSS)
+{
+    S<MsgMy> s;
+    s.push<TestMsg, MsgMy::One>(5);
+    //s.push<TestMsg, MsgMy::Three>(5);
+    s.push<TestMsg, MsgMy::Two>(5);
+
+    S<int>  s1;
+    s1.push<TestMsg1>(2, 3);
 }

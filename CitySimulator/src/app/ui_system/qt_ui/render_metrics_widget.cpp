@@ -96,7 +96,7 @@ namespace tjs {
 				auto* metrics = _app.stores().get_entry<core::model::RenderMetricsData>();
 				if (metrics) {
 					trianglesLabel->setText(
-						QString("Triangles: %1").arg(_locale.toString(metrics->triangles_last_frame)));
+						QString("Triangles: %1").arg(_locale.toString(metrics->triangles_last_frame.load(std::memory_order_acquire))));
 				}
 
 				_update_counter = 0;

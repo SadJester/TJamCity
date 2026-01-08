@@ -3,7 +3,6 @@
 #include <visualization/elements/map_element.h>
 
 #include <data/persistent_render_data.h>
-#include <data/map_renderer_data.h>
 
 #include <render/render_base.h>
 #include <visualization/visualization_constants.h>
@@ -16,7 +15,8 @@
 #include <core/math_constants.h>
 #include <core/map_math/path_finder.h>
 
-#include <logic/map/map_positioning.h>
+#include <visual_system/data/map_renderer_data.h>
+#include <visual_system/logic/map/map_positioning.h>
 
 namespace tjs::visualization {
 	using namespace tjs::core;

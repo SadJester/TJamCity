@@ -1,9 +1,9 @@
-#include "stdafx.h"
-#include "logic/map/vehicle_targeting.h"
+#include <stdafx.h>
+#include <visual_system/logic/map/vehicle_targeting.h>
 
-#include "Application.h"
+#include <visual_system/data/map_renderer_data.h>
 
-#include "data/map_renderer_data.h"
+#include <Application.h>
 
 #include <visualization/elements/map_element.h>
 #include <core/store_models/vehicle_analyze_data.h>

@@ -5,7 +5,7 @@
 #include <Application.h>
 #include <visualization/Scene.h>
 #include <visualization/scene_system.h>
-#include <data/map_renderer_data.h>
+#include <visual_system/data/map_renderer_data.h>
 
 #include <core/data_layer/data_types.h>
 #include <core/store_models/idata_model.h>

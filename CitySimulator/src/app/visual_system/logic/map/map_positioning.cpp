@@ -1,11 +1,14 @@
-#include "stdafx.h"
-#include "logic/map/map_positioning.h"
-#include "Application.h"
-#include "data/persistent_render_data.h"
-#include "data/map_renderer_data.h"
+#include <stdafx.h>
+
+#include <visual_system/logic/map/map_positioning.h>
+#include <visual_system/data/map_renderer_data.h>
+
+#include <data/persistent_render_data.h>
 #include <events/map_events.h>
 
 #include <visualization/elements/map_element.h>
+
+#include <Application.h>
 
 #include <core/math_constants.h>
 #include <core/data_layer/world_data.h>
@@ -141,18 +144,19 @@ namespace tjs::app::logic {
 	void MapPositioning::update_map_positioning() {
 		auto* render_data = _application.stores().get_entry<core::model::MapRendererData>();
 		if (render_data) {
+			// TODO{threaded}: command -> change debug_data
 			visualization::recalculate_map_data(_application);
 		}
-
-		auto& general_settings = _application.settings().general;
-		general_settings.screen_center = render_data->screen_center;
-		general_settings.zoomLevel = render_data->metersPerPixel;
-
 
 		auto& shared = *_application.stores().get_entry<core::model::MapRendererShared>();
 		shared->screen_center = render_data->screen_center;
 		shared->metersPerPixel = render_data->metersPerPixel;
 		shared.publish();
+
+		// TODO{threaded}: Listener in main thread that saves settings
+		auto& general_settings = _application.settings().general;
+		general_settings.screen_center = shared->screen_center;
+		general_settings.zoomLevel = shared->metersPerPixel;
 
 		// TODO{threads}: SPMC
 		_application.message_dispatcher().handle_message(events::MapPositioningChanged {}, "map");

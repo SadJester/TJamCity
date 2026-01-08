@@ -4,7 +4,7 @@
 
 #include <Application.h>
 #include <settings/general_settings.h>
-#include <data/map_renderer_data.h>
+#include <visual_system/data/map_renderer_data.h>
 
 #include <QLabel>
 #include <QFileDialog>

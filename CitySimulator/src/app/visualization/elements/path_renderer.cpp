@@ -2,9 +2,9 @@
 
 #include <visualization/elements/path_renderer.h>
 
-#include "render/render_base.h"
-#include "visualization/visualization_constants.h"
-#include "Application.h"
+#include <render/render_base.h>
+#include <visualization/visualization_constants.h>
+#include <Application.h>
 
 #include <core/data_layer/world_data.h>
 #include <core/data_layer/data_types.h>
@@ -13,12 +13,11 @@
 #include <core/math_constants.h>
 #include <core/store_models/vehicle_analyze_data.h>
 #include <core/simulation/agent/agent_data.h>
-#include <data/map_renderer_data.h>
+#include <visual_system/data/map_renderer_data.h>
 #include <visualization/elements/map_element.h>
 
 #include <visualization/Scene.h>
 #include <visualization/scene_system.h>
-#include <visualization/elements/map_element.h>
 
 namespace tjs::visualization {
 	using namespace tjs::core;

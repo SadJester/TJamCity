@@ -72,15 +72,26 @@ namespace tjs::common::sync
             _current_idx.store(0, std::memory_order_relaxed);
         }
 
+        template <typename T, msg_types _type, typename... Args>
+        requires std::is_enum_v<msg_types>// && std::span{T::ALLOWED_IN_MESSAGES}
+        void push(Args&&... payload) {
+            constexpr auto allowed = std::span{T::ALLOWED_IN_MESSAGES};
+            const bool ok = std::ranges::find(allowed, _type) != allowed.end();
+            static_assert(ok, "Unexpected values for message type");
+
+            _push_impl<T>(_type, std::forward<Args>(payload)...);
+        }
+
         template <typename T, typename... Args>
+        requires !std::is_enum_v<msg_types>// && std::span{T::ALLOWED_IN_MESSAGES}
         void push(msg_types msg_type, Args&&... payload) {
-            const uint64_t tail = _current_idx.load(std::memory_order_relaxed);
+            constexpr auto allowed = std::span{T::ALLOWED_IN_MESSAGES};
+            const bool ok = std::ranges::find(allowed, msg_type) != allowed.end();
 
-            const size_t idx = static_cast<size_t>(tail) & power_2_mask;
+            // TODO: Assert system
+            assert(ok && "Unexpected value for message type");
 
-            _messages[idx].replace<T>(msg_type, std::forward<Args>(payload)...);
-            
-            _current_idx.store(tail + 1, std::memory_order_release);
+            _push_impl<T>(msg_type, std::forward<Args>(payload)...);
         }
 
         reader connect() noexcept {
@@ -90,6 +101,15 @@ namespace tjs::common::sync
 
         uint64_t current_idx() const noexcept {
             return _current_idx.load(std::memory_order_relaxed);
+        }
+
+    private:
+        template <typename T, typename... Args>
+        void _push_impl(msg_types msg_type, Args&&... payload) {
+            const uint64_t tail = _current_idx.load(std::memory_order_relaxed);
+            const size_t idx = static_cast<size_t>(tail) & power_2_mask;
+            _messages[idx].replace<T>(msg_type, std::forward<Args>(payload)...);
+            _current_idx.store(tail + 1, std::memory_order_release);
         }
 
     private:

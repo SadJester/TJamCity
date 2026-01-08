@@ -18,9 +18,10 @@
 
 // Store models
 #include <core/store_models/vehicle_analyze_data.h>
-#include <data/map_renderer_data.h>
 #include <data/persistent_render_data.h>
 #include <data/render_metrics_data.h>
+
+#include <visual_system/data/map_renderer_data.h>
 
 #include <common/system/system_holder_delegate.h>
 

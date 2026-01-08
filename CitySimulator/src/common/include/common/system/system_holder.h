@@ -3,7 +3,7 @@
 
 namespace tjs::common::system
 {
-    class threaded_system;
+    class threaded_system_base;
     class system_holder_delegate;
 
     template <typename T>
@@ -12,11 +12,11 @@ namespace tjs::common::system
         std::same_as<typename T::self_type, T>;
 
     template<typename T>
-	concept is_thread_system_v = std::is_base_of_v<threaded_system, T> && has_self_type<T>;
+	concept is_thread_system_v = std::is_base_of_v<threaded_system_base, T> && has_self_type<T>;
 
     class system_holder {
     public:
-		using system_ptr = std::unique_ptr<threaded_system>;
+		using system_ptr = std::unique_ptr<threaded_system_base>;
 
         ~system_holder();
 

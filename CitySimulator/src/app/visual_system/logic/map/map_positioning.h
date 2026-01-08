@@ -9,6 +9,7 @@ namespace tjs {
 
 namespace tjs::app::logic {
 
+	// TODO{threaded}: Move to totally in render thread. Not in Application
 	class MapPositioning : public ILogicModule, public render::IRenderEventListener {
 	public:
 		static std::type_index get_type() {
