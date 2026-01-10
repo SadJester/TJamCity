@@ -399,6 +399,12 @@ namespace tjs::common::sync {
 		-> std::same_as<void>;
 	});
 
+	template<class T>
+	concept change_trackable = requires(T& t) {
+		{ t.is_changed() } -> std::convertible_to<bool>;
+		{ t.reset_changed() } -> std::same_as<void>;
+	};
+
 	template<typename shareable_type, uint16_t slots_count = 2u>
 		requires is_shared_type<shareable_type>
 	class shared_data {
@@ -423,6 +429,22 @@ namespace tjs::common::sync {
 		}
 
 		void publish() {
+			if constexpr (change_trackable<shareable_type>) {
+				if (_original_data.is_changed()) {
+					_publish_impl();
+					_original_data.reset_changed();
+				}
+			} else {
+				_publish_impl();
+			}
+		}
+
+		connection connect() {
+			return _shared_state.connect();
+		}
+
+	private:
+		void _publish_impl() {
 			_shared_state.write([this](shareable_type& data) {
 				if constexpr (std::is_trivially_copyable_v<shareable_type>) {
 					std::memcpy(&data, &_original_data, sizeof(shareable_type));
@@ -430,10 +452,6 @@ namespace tjs::common::sync {
 					shareable_type::sync(data, _original_data);
 				}
 			});
-		}
-
-		connection connect() {
-			return _shared_state.connect();
 		}
 
 	private:

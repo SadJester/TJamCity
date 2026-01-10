@@ -10,6 +10,7 @@
 namespace tjs::visualization {
 
 	void recalculate_map_data(Application& app) {
+		// TODO{threaded}: command -> change debug_data
 		auto debug = app.settings().simulationSettings.debug_data;
 
 		uint64_t selectedId = debug.selectedNode ? debug.selectedNode->uid : 0;

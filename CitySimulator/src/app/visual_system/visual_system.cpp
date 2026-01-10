@@ -115,7 +115,7 @@ namespace tjs::visualization {
 			shared->set_visible_layers(command.visible_layers.value());
 		}
 
-		shared.try_publish();
+		shared.publish();
 	}
 
 } // namespace tjs::visualization

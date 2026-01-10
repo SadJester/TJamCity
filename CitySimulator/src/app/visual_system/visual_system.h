@@ -1,6 +1,6 @@
 #pragma once
 
-#include <visual_system/visual_system_commands.h>
+#include <visual_system/visual_system_definitions.h>
 #include <common/system/threaded_system.h>
 #include <logic/logic_base.h>
 
@@ -12,10 +12,9 @@ namespace tjs {
 namespace tjs::visualization {
 	class SceneSystem;
 
-	using visual_system_commands = std::variant<UpdateRenderParamsCommand>;
-
-	class VisualSystem : public common::system::threaded_system<VisualSystem, visual_system_commands> {
-		friend common::system::threaded_system<VisualSystem, visual_system_commands>;
+	class VisualSystem : public common::system::threaded_system<
+							 VisualSystem, visual_system_commands, visual_sys_lossy_queue, visual_sys_lossless_queue> {
+		friend common::system::threaded_system<VisualSystem, visual_system_commands, visual_sys_lossy_queue, visual_sys_lossless_queue>;
 
 	public:
 		using self_type = VisualSystem;

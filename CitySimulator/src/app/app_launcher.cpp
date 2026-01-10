@@ -25,7 +25,6 @@
 
 #include <common/system/system_holder_delegate.h>
 
-
 // TODO: Place somwhere to be more pretty
 #include "visualization/Scene.h"
 #include "visualization/scene_system.h"
@@ -49,7 +48,9 @@ namespace tjs {
 		}
 
 		void on_initialization_done() noexcept override {
-			open_map_simulation_reinit(_app.settings().general.selectedFile, _app);	
+			_app.uiSystem().post_init();
+
+			open_map_simulation_reinit(_app.settings().general.selectedFile, _app);
 		}
 
 		void on_release_done() noexcept override {
@@ -69,8 +70,7 @@ namespace tjs {
 
 		auto worldData = std::make_unique<tjs::core::WorldData>();
 		auto simulationSystem = std::make_unique<core::simulation::TrafficSimulationSystem>(
-			*worldData, application.stores(), application.settings().simulationSettings
-		);
+			*worldData, application.stores(), application.settings().simulationSettings);
 
 		application.setup(
 			std::make_unique<tjs::UISystem>(application),
@@ -82,8 +82,7 @@ namespace tjs {
 		application.systems().create<visualization::VisualSystem>(
 			application,
 			std::make_unique<tjs::render::SDLRenderer>(application),
-			std::make_unique<tjs::visualization::SceneSystem>(application)
-		);
+			std::make_unique<tjs::visualization::SceneSystem>(application));
 
 		ApplicationDelegate delegate(application);
 		application.run(delegate);

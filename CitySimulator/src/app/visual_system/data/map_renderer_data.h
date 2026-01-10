@@ -64,10 +64,14 @@ namespace tjs::core::model {
 		static void sync(MapRendererData& dst, const MapRendererData& src);
 
 	private:
-		bool _changed = false;
+		Position _screen_center;
 
 		// View settings
 		double _meters_per_pixel = 1.0;
+		double _lane_marker_visibility_threshold = 1.0; // meters per pixel threshold
+		double _simplified_view_threshold = 1.2;        // meters per pixel threshold
+
+		core::Lane* _selected_lane = nullptr;
 
 		// Layer visibility flags
 		MapRendererLayer _visible_layers = MapRendererLayer::Ways;
@@ -75,14 +79,8 @@ namespace tjs::core::model {
 		// Rendering options
 		bool _show_bounding_box = false;
 		bool _show_lane_markers = true;
-		double _lane_marker_visibility_threshold = 1.0; // meters per pixel threshold
-		double _simplified_view_threshold = 1.2;        // meters per pixel threshold
-
 		bool _network_only_for_selected = false;
-
-		core::Lane* _selected_lane = nullptr;
-
-		Position _screen_center;
+		bool _changed = false;
 	};
 
 	struct MapRendererShared : public IDataModel, common::sync::shared_data<MapRendererData, 3> {
@@ -93,11 +91,8 @@ namespace tjs::core::model {
 		MapRendererShared() = default;
 
 		void reinit() override {
-			MapRendererData& data = this->operator*();
-			data.reinit();
+			(*this)->reinit();
 		}
-
-		void try_publish();
 	};
 
 } // namespace tjs::core::model

@@ -2,6 +2,7 @@
 #include <visual_system/logic/map/vehicle_targeting.h>
 
 #include <visual_system/data/map_renderer_data.h>
+#include <visual_system/visual_system.h>
 
 #include <Application.h>
 
@@ -74,5 +75,8 @@ namespace tjs::app::logic {
 		model->agent = agent;
 		_application.message_dispatcher().handle_message(
 			events::AgentSelected { agent }, "map");
+
+		auto& v_sys = *_application.systems().get<visualization::VisualSystem>();
+		v_sys.optional_qeueue().push<visualization::VisualSystemEvents::agent_selected, visualization::agent_payload>(agent);
 	}
 } // namespace tjs::app::logic

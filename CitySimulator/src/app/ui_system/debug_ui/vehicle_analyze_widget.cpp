@@ -8,6 +8,8 @@
 #include <QtWidgets/QListWidget>
 
 #include <Application.h>
+#include <ui_system //ui_system.h>
+
 #include <core/store_models/vehicle_analyze_data.h>
 #include <core/simulation/agent/agent_data.h>
 #include <core/simulation/simulation_system.h>
@@ -22,18 +24,19 @@ namespace tjs::ui {
 		, _pathTreeWidget(nullptr) {
 		initialize();
 
+		_ui_subs_handler = _application.uiSystem().visual_event_bus().subscribe(*this);
 		_application.simulationSystem().message_dispatcher().register_handler(*this, &VehicleAnalyzeWidget::handle_simulation_initialized, "VehicleAnalyzeWidget");
 		_application.simulationSystem().message_dispatcher().register_handler(*this, &VehicleAnalyzeWidget::handle_population, "VehicleAnalyzeWidget");
 
-		_application.message_dispatcher().register_handler(*this, &VehicleAnalyzeWidget::handle_agent_selected, "VehicleAnalyzeWidget");
 		_application.message_dispatcher().register_handler(*this, &VehicleAnalyzeWidget::handle_open_map, "VehicleAnalyzeWidget");
 	}
 
 	VehicleAnalyzeWidget::~VehicleAnalyzeWidget() {
+		_application.uiSystem().visual_event_bus().unsubscribe(_ui_subs_handler);
+
 		_application.simulationSystem().message_dispatcher().unregister_handler<core::events::SimulationInitialized>("VehicleAnalyzeWidget");
 		_application.simulationSystem().message_dispatcher().unregister_handler<core::events::VehiclesPopulated>("VehicleAnalyzeWidget");
 
-		_application.message_dispatcher().unregister_handler<events::AgentSelected>("VehicleAnalyzeWidget");
 		_application.message_dispatcher().unregister_handler<events::OpenMapEvent>("VehicleAnalyzeWidget");
 	}
 
@@ -53,22 +56,25 @@ namespace tjs::ui {
 		initialize();
 	}
 
-	void VehicleAnalyzeWidget::handle_agent_selected(const events::AgentSelected& event) {
-		core::model::VehicleAnalyzeData* model = _application.stores().get_entry<core::model::VehicleAnalyzeData>();
-		model->set_agent(event.agent);
-		if (event.agent) {
-			// Update combo box to selected agent
-			for (int i = 0; i < _agentComboBox->count(); ++i) {
-				if (_agentComboBox->itemData(i).value<uint64_t>() == event.agent->id) {
-					_agentComboBox->setCurrentIndex(i);
-					break;
+	void VehicleAnalyzeWidget::handle(const visualization::visual_sys_lossy_queue::message_t& msg) {
+		if (msg.type() == visualization::VisualSystemEvents::agent_selected) {
+			auto agent_payload = msg.get<visualization::VisualSystemEvents::agent_selected, visualization::agent_payload>();
+			core::model::VehicleAnalyzeData* model = _application.stores().get_entry<core::model::VehicleAnalyzeData>();
+			model->set_agent(agent_payload.agent);
+			if (agent_payload.agent) {
+				// Update combo box to selected agent
+				for (int i = 0; i < _agentComboBox->count(); ++i) {
+					if (_agentComboBox->itemData(i).value<uint64_t>() == agent_payload.agent->id) {
+						_agentComboBox->setCurrentIndex(i);
+						break;
+					}
 				}
+				updateAgentDetails(agent_payload.agent);
+				_detailsGroup->setVisible(true);
+			} else {
+				_agentComboBox->setCurrentIndex(0);
+				_detailsGroup->setVisible(false);
 			}
-			updateAgentDetails(event.agent);
-			_detailsGroup->setVisible(true);
-		} else {
-			_agentComboBox->setCurrentIndex(0);
-			_detailsGroup->setVisible(false);
 		}
 	}
 

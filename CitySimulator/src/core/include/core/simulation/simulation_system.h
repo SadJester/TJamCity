@@ -7,7 +7,11 @@
 #include <core/simulation/transport_management/vehicle_system.h>
 #include <core/simulation/agent/agent_manager.h>
 
+#include <core/simulation/simulation_system_commands.h>
+
 #include <common/message_dispatcher/message_dispatcher.h>
+
+#include <common/sync/commands_queue.h>
 
 namespace tjs::core {
 	class WorldData;
@@ -20,6 +24,9 @@ namespace tjs::core {
 } // namespace tjs::core
 
 namespace tjs::core::simulation {
+
+	using simulation_system_commands = std::variant<UpdateDebugDataCommand>;
+
 	class TrafficSimulationSystem {
 	public:
 		TrafficSimulationSystem(core::WorldData& data, core::model::DataModelStore& store, SimulationSettings& settings);
@@ -70,6 +77,13 @@ namespace tjs::core::simulation {
 			return _settings;
 		}
 
+		common::sync::commands_queue<simulation_system_commands>& commands() {
+			return _commands;
+		}
+
+	private:
+		void handle(UpdateDebugDataCommand&& command);
+
 	private:
 		TimeModule _timeModule;
 		StrategicPlanningModule _strategicModule;
@@ -85,5 +99,7 @@ namespace tjs::core::simulation {
 		core::WorldData& _worldData;
 
 		common::MessageDispatcher _message_dispatcher;
+
+		common::sync::commands_queue<simulation_system_commands> _commands;
 	};
 } // namespace tjs::core::simulation

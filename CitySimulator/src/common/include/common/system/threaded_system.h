@@ -76,19 +76,19 @@ namespace tjs::common::system {
 		std::thread _thread;
 	};
 
-	template<typename _sibling, typename _commands_set>
+	template<
+		typename _sibling,
+		typename _commands_set,
+		typename _lossy_queue = sync::spmc_queue<int>,
+		typename _lossless_queue = sync::spmc_queue<int, 2048>>
 	class threaded_system : public threaded_system_base {
 	public:
 		using commands_set = _commands_set;
 		using commands_queue = sync::commands_queue<commands_set>;
 
-		// TODO: need to remove msg_types - more loose conventions
-		//      or make some mapping. Need at least two system small design
-		using msg_types = int;
-		using lossy_queue = sync::spmc_queue<msg_types>;
-
+		using lossy_queue = _lossy_queue;
 		// TODO: Correct impl of lossless
-		using lossless_queue = sync::spmc_queue<msg_types, 2048>;
+		using lossless_queue = _lossless_queue;
 
 	public:
 		lossless_queue& mandatory_queue() {

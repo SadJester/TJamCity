@@ -563,7 +563,7 @@ namespace tjs::core::simulation {
 						// insert shadow
 						if (auto& rt_tgt = lane_rt[tgt->index_in_buffer]; std::ranges::find(rt_tgt.vehicle_slots, vehicle) == rt_tgt.vehicle_slots.end()) {
 							auto it_ins = std::lower_bound(rt_tgt.vehicle_slots.begin(), rt_tgt.vehicle_slots.end(),
-								vehicle->s_on_lane, [](Vehicle* v, float s) {
+								vehicle->s_on_lane, [](Vehicle* v, double s) {
 									return v->s_on_lane > s;
 								});
 							rt_tgt.vehicle_slots.insert(it_ins, vehicle);

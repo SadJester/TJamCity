@@ -594,6 +594,10 @@ namespace tjs::visualization {
 						}
 					}
 					if (opposite) {
+						// TODO{threaded}: HACK - somewhere in threads is writing and data race
+						if (edge->lanes.empty()) {
+							continue;
+						}
 						const auto& lf = edge->opposite_side == Edge::OppositeSide::Right ? edge->lanes.front() : edge->lanes.back();
 						const auto& lb = opposite->opposite_side == Edge::OppositeSide::Right ? opposite->lanes.front() : opposite->lanes.back();
 						Coordinates start_world {

@@ -3,11 +3,14 @@
 #include <common/message_dispatcher/Event.h>
 #include <core/simulation/agent/agent_data.h>
 
+#include <visual_system/visual_system_commands.h>
+
 namespace tjs::events {
 	struct AgentSelected : common::Event {
 		core::AgentData* agent;
 
 		AgentSelected(core::AgentData* agent)
-			: agent(agent) {}
+			: agent(agent) {
+		}
 	};
 } // namespace tjs::events

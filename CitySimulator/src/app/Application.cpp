@@ -15,7 +15,6 @@
 
 #include <visual_system/visual_system.h>
 
-
 namespace tjs {
 	Application::Application(int& argc, char** argv)
 		: _commandLine(argc, argv) {
@@ -44,11 +43,10 @@ namespace tjs {
 		_logic_modules.init();
 	}
 
-
 	void Application::run(common::system::system_holder_delegate& delegate) {
 		using duration = FrameStats::duration;
 
-		_systems.start(delegate);
+		_systems.start(&delegate);
 
 		const int targetFPS = _settings.render.targetFPS;
 		const duration targetFrameTime(1.0 / targetFPS);
@@ -144,6 +142,5 @@ namespace tjs {
 	visualization::SceneSystem& Application::sceneSystem() {
 		return _systems.get<visualization::VisualSystem>()->scene_system();
 	}
-
 
 } // namespace tjs

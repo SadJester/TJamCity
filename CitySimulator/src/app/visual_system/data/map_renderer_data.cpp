@@ -61,11 +61,4 @@ namespace tjs::core::model {
 		dst._visible_layers = src._visible_layers;
 	}
 
-	void MapRendererShared::try_publish() {
-		if ((*this)->is_changed()) {
-			publish();
-			(*this)->reset_changed();
-		}
-	}
-
 } // namespace tjs::core::model

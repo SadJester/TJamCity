@@ -133,8 +133,8 @@ namespace tjs::app::logic {
 	}
 
 	void MapPositioning::update_map_positioning() {
-		// TODO{threaded}: command -> change debug_data
 		visualization::recalculate_map_data(_application);
+
 		// TODO{threaded}: Listener in main thread that saves settings
 		auto& general_settings = _application.settings().general;
 		general_settings.screen_center = _render_data->get_screen_center();
