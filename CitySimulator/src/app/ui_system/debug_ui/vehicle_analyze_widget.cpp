@@ -26,8 +26,6 @@ namespace tjs::ui {
 		_ui_subs_handler = _application.uiSystem().event_bus().subscribe(*this);
 		_application.simulationSystem().message_dispatcher().register_handler(*this, &VehicleAnalyzeWidget::handle_simulation_initialized, "VehicleAnalyzeWidget");
 		_application.simulationSystem().message_dispatcher().register_handler(*this, &VehicleAnalyzeWidget::handle_population, "VehicleAnalyzeWidget");
-
-		_application.message_dispatcher().register_handler(*this, &VehicleAnalyzeWidget::handle_open_map, "VehicleAnalyzeWidget");
 	}
 
 	VehicleAnalyzeWidget::~VehicleAnalyzeWidget() {
@@ -35,8 +33,6 @@ namespace tjs::ui {
 
 		_application.simulationSystem().message_dispatcher().unregister_handler<core::events::SimulationInitialized>("VehicleAnalyzeWidget");
 		_application.simulationSystem().message_dispatcher().unregister_handler<core::events::VehiclesPopulated>("VehicleAnalyzeWidget");
-
-		_application.message_dispatcher().unregister_handler<events::OpenMapEvent>("VehicleAnalyzeWidget");
 	}
 
 	void VehicleAnalyzeWidget::handle_simulation_initialized(const core::events::SimulationInitialized& event) {
@@ -50,7 +46,7 @@ namespace tjs::ui {
 		initialize();
 	}
 
-	void VehicleAnalyzeWidget::handle_open_map(const events::OpenMapEvent& event) {
+	void VehicleAnalyzeWidget::handle(const events::OpenMapEvent& event) {
 		_application.stores().get_entry<core::model::VehicleAnalyzeData>()->agent = nullptr;
 		initialize();
 	}

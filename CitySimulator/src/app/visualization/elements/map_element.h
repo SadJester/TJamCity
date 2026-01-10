@@ -29,7 +29,7 @@ namespace tjs::visualization {
 
 		void on_map_updated();
 
-	private:
+	public:
 		void handle(const events::OpenMapEvent& event);
 
 	private:

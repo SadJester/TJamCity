@@ -35,10 +35,11 @@ namespace tjs {
 			explicit MapControlWidget(Application& application, QWidget* parent = nullptr);
 			~MapControlWidget() override;
 
+			void handle(const visualization::visual_sys_lossy_queue::message_t& msg);
+
 		private:
 			void UpdateButtonsState();
 			void UpdateLabels();
-			void handle(const visualization::visual_sys_lossy_queue::message_t& msg);
 
 			void createVehicleInformation(QVBoxLayout* layout);
 			void createLayerSelection(QVBoxLayout* layout);

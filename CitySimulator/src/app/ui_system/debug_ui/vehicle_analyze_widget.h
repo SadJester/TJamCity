@@ -27,7 +27,9 @@ namespace tjs {
 
 			void initialize();
 
+		public:
 			void handle(const visualization::visual_sys_lossy_queue::message_t& msg);
+			void handle(const events::OpenMapEvent& event);
 
 		private slots:
 			void handleAgentSelection(int index);
@@ -37,7 +39,6 @@ namespace tjs {
 
 			void handle_simulation_initialized(const core::events::SimulationInitialized& event);
 			void handle_population(const core::events::VehiclesPopulated& event);
-			void handle_open_map(const events::OpenMapEvent& event);
 
 		private:
 			Application& _application;

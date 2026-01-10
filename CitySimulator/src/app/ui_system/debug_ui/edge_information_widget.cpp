@@ -64,14 +64,10 @@ namespace tjs::ui {
 
 		populateTree();
 		connect(_tree, &QTreeWidget::itemClicked, this, &EdgeInformationWidget::handleItemClicked);
-
-		_application.message_dispatcher().register_handler(*this, &EdgeInformationWidget::handle_open_map, "EdgeInformationWidget");
 	}
 
 	EdgeInformationWidget::~EdgeInformationWidget() {
 		_application.uiSystem().event_bus().unsubscribe(_ui_subs_handler);
-
-		_application.message_dispatcher().unregister_handler<events::OpenMapEvent>("EdgeInformationWidget");
 	}
 
 	void EdgeInformationWidget::populateTree() {
@@ -199,7 +195,7 @@ namespace tjs::ui {
 		}
 	}
 
-	void EdgeInformationWidget::handle_open_map(const events::OpenMapEvent& event) {
+	void EdgeInformationWidget::handle(const events::OpenMapEvent& event) {
 		populateTree();
 	}
 

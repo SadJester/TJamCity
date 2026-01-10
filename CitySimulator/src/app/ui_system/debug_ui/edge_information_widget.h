@@ -19,13 +19,13 @@ namespace tjs::ui {
 	public:
 		explicit EdgeInformationWidget(Application& app);
 		~EdgeInformationWidget();
+
+	public:
+		void handle(const visualization::visual_sys_lossy_queue::message_t& msg);
+		void handle(const events::OpenMapEvent& event);
+
 	private slots:
 		void handleItemClicked(QTreeWidgetItem* item, int column);
-
-	private:
-		void handle(const visualization::visual_sys_lossy_queue::message_t& msg);
-
-		void handle_open_map(const events::OpenMapEvent& event);
 
 	private:
 		void populateTree();

@@ -2,7 +2,7 @@
 
 #include <core/data_layer/data_types.h>
 
-#include <common/sync //coordinated_gate.h>
+#include <common/sync/coordinated_gate.h>
 
 namespace tjs {
 	namespace core {

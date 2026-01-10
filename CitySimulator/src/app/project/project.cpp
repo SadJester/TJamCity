@@ -11,6 +11,9 @@
 
 #include <core/simulation/simulation_system.h>
 
+// TODO{threaded}: Remove system after migrating to thread_system
+#include <ui_system/ui_system.h>
+
 namespace tjs {
 	bool open_map_simulation_reinit(std::string_view fileName, Application& application) {
 		auto& world = application.worldData();
@@ -24,10 +27,11 @@ namespace tjs {
 
 			application.stores().reinit();
 			application.logic_modules().reinit();
-
-			application.message_dispatcher().handle_message(events::OpenMapEvent {}, "project");
 		}
 
+		application.uiSystem().event_bus().publish(events::OpenMapEvent {});
+
+		application.message_dispatcher().handle_message(events::OpenMapEvent {}, "project");
 		world.gates().unlock();
 		return result;
 	}

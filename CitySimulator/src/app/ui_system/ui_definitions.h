@@ -4,10 +4,13 @@
 
 #include <visual_system/visual_system_definitions.h>
 
+#include <events/project_events.h>
+
 namespace tjs::ui {
 	using ui_handling_events = common::type_list<
 		visualization::visual_sys_lossy_queue::message_t,
-		visualization::visual_sys_lossless_queue::message_t>;
+		visualization::visual_sys_lossless_queue::message_t,
+		events::OpenMapEvent>;
 
 	using ui_event_bus = common::event_bus<ui_handling_events>;
 
