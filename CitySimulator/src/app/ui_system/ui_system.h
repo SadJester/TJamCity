@@ -31,8 +31,8 @@ namespace tjs {
 			return _render_data_connection;
 		}
 
-		ui::ui_event_bus& visual_event_bus() {
-			return _visual_events_bus;
+		ui::ui_event_bus& event_bus() {
+			return _event_bus;
 		}
 
 	private:
@@ -47,6 +47,6 @@ namespace tjs {
 		visualization::visual_sys_lossy_queue::reader _visual_lossy_reader;
 		visualization::visual_sys_lossless_queue::reader _visual_lossless_reader;
 
-		ui::ui_event_bus _visual_events_bus;
+		ui::ui_event_bus _event_bus;
 	};
 } // namespace tjs

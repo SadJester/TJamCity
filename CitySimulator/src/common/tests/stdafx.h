@@ -10,7 +10,11 @@
 #include <vector>
 #include <random>
 #include <array>
+#include <algorithm>
 #include <string>
+#include <chrono>
+
 #include <thread>
 #include <barrier>
-#include <algorithm>
+#include <atomic>
+#include <future>

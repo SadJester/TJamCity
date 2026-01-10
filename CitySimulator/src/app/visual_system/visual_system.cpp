@@ -3,6 +3,8 @@
 #include <visual_system/visual_system.h>
 
 #include <Application.h>
+#include <core/data_layer/world_data.h>
+
 #include <render/render_base.h>
 #include <render/render_constants.h>
 #include <visualization/scene_system.h>
@@ -38,6 +40,8 @@ namespace tjs::visualization {
 	void VisualSystem::_initialize_self_impl() {
 		std::cout << "[Sys] Self init" << std::endl;
 
+		_app.worldData().gates().register_gate(&_gate);
+
 		_renderer->initialize();
 		_scene_system->initialize();
 
@@ -53,6 +57,16 @@ namespace tjs::visualization {
 	}
 
 	void VisualSystem::_update_impl() {
+		const auto lock_action = []() {};
+		const auto unlock_action = [this]() {
+			_event_bus.publish(events::OpenMapEvent {});
+		};
+
+		auto state = _gate.pump(lock_action, unlock_action);
+		if (state == common::sync::coordinated_gate::state::locked) {
+			return;
+		}
+
 		_renderer->update();
 		_scene_system->update();
 
@@ -68,6 +82,8 @@ namespace tjs::visualization {
 
 	void VisualSystem::_release_self_impl() {
 		std::cout << "[Sys] Release self impl" << std::endl;
+
+		_app.worldData().gates().unregister_gate(&_gate);
 
 		_scene_system.reset();
 		_renderer->release();

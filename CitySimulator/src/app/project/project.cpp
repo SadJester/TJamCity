@@ -13,7 +13,11 @@
 
 namespace tjs {
 	bool open_map_simulation_reinit(std::string_view fileName, Application& application) {
-		if (tjs::core::WorldCreator::loadOSMData(application.worldData(), fileName)) {
+		auto& world = application.worldData();
+
+		world.gates().lock();
+		const bool result = tjs::core::WorldCreator::loadOSMData(application.worldData(), fileName);
+		if (result) {
 			application.settings().general.selectedFile = fileName;
 
 			application.simulationSystem().initialize();
@@ -22,8 +26,9 @@ namespace tjs {
 			application.logic_modules().reinit();
 
 			application.message_dispatcher().handle_message(events::OpenMapEvent {}, "project");
-			return true;
 		}
-		return false;
+
+		world.gates().unlock();
+		return result;
 	}
 } // namespace tjs

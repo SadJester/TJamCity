@@ -1,7 +1,6 @@
 #pragma once
 
 #include <common/sync/message.h>
-#include <mutex>
 
 namespace tjs::common::sync {
 	/*

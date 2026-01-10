@@ -6,6 +6,8 @@
 #include <unordered_set>
 #include <deque>
 #include <typeindex>
+#include <variant>
+#include <iostream>
 
 #include <stdexcept>
 
@@ -19,5 +21,6 @@
 
 #include <barrier>
 #include <thread>
+#include <mutex>
 
 #include <common/definitions.h>

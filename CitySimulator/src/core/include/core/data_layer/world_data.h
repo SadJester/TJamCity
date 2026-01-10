@@ -1,6 +1,8 @@
 #pragma once
 
-#include "core/data_layer/data_types.h"
+#include <core/data_layer/data_types.h>
+
+#include <common/sync //coordinated_gate.h>
 
 namespace tjs {
 	namespace core {
@@ -17,8 +19,13 @@ namespace tjs {
 				return _segments;
 			}
 
+			common::sync::coordinated_gate_holder& gates() {
+				return _gates;
+			}
+
 		private:
 			WorldSegments _segments;
+			common::sync::coordinated_gate_holder _gates;
 		};
 	} // namespace core
 } // namespace tjs

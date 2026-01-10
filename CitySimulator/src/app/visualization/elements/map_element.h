@@ -1,9 +1,11 @@
 #pragma once
 
 #include <visualization/scene_node.h>
-#include <core/data_layer/data_types.h>
 #include <visual_system/data/map_renderer_data.h>
+#include <visual_system/visual_system_definitions.h>
 #include <data/persistent_render_data.h>
+
+#include <core/data_layer/data_types.h>
 #include <core/simulation/simulation_debug.h>
 #include <core/data_layer/road_network.h>
 
@@ -28,17 +30,20 @@ namespace tjs::visualization {
 		void on_map_updated();
 
 	private:
-		void handle_open_map_simulation_reinit(const events::OpenMapEvent& event);
+		void handle(const events::OpenMapEvent& event);
 
 	private:
 		Position convert_to_screen(const core::Coordinates& coord) const;
 		void auto_zoom(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
 		void calculate_map_bounds(const std::unordered_map<uint64_t, std::unique_ptr<core::Node>>& nodes);
 		void render_bounding_box() const;
-		void draw_lane_markers(const std::vector<Position>& nodes, int lanes, int lane_width_pixels);
 		void render_network_graph(IRenderer& renderer, const core::RoadNetwork& network);
 
+	private:
 		Application& _application;
+
+		visual_event_bus::handler_t _subs_handler {};
+
 		core::model::MapRendererShared& _render_data;
 		core::model::PersistentRenderData& _cache;
 		core::simulation::SimulationDebugData* _debugData;

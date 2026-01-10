@@ -35,7 +35,7 @@ namespace tjs {
 		MapControlWidget::MapControlWidget(Application& application, QWidget* parent)
 			: QWidget(parent)
 			, _application(application) {
-			_ui_subs_handler = _application.uiSystem().visual_event_bus().subscribe(*this);
+			_ui_subs_handler = _application.uiSystem().event_bus().subscribe(*this);
 			_application.simulationSystem().message_dispatcher().register_handler(*this, &MapControlWidget::handle_population, "MapControlWidget");
 
 			// Create main layout
@@ -87,7 +87,7 @@ namespace tjs {
 		}
 
 		MapControlWidget::~MapControlWidget() {
-			_application.uiSystem().visual_event_bus().unsubscribe(_ui_subs_handler);
+			_application.uiSystem().event_bus().unsubscribe(_ui_subs_handler);
 
 			_application.simulationSystem().message_dispatcher().unregister_handler<core::events::VehiclesPopulated>("MapControlWidget");
 		}

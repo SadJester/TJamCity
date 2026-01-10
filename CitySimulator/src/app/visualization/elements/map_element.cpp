@@ -14,6 +14,7 @@
 #include <core/math_constants.h>
 #include <core/map_math/path_finder.h>
 
+#include <visual_system/visual_system.h>
 #include <visual_system/data/map_renderer_data.h>
 #include <visual_system/logic/map/map_positioning.h>
 
@@ -68,6 +69,7 @@ namespace tjs::visualization {
 	}
 
 	MapElement::~MapElement() {
+		_application.systems().get<visualization::VisualSystem>()->event_bus().unsubscribe(_subs_handler);
 	}
 
 	void MapElement::on_map_updated() {
@@ -93,7 +95,7 @@ namespace tjs::visualization {
 	}
 
 	void MapElement::init() {
-		_application.message_dispatcher().register_handler(*this, &MapElement::handle_open_map_simulation_reinit, "project");
+		_subs_handler = _application.systems().get<visualization::VisualSystem>()->event_bus().subscribe(*this);
 	}
 
 	void MapElement::update() {
@@ -643,13 +645,6 @@ namespace tjs::visualization {
 	}
 
 	void MapElement::render(IRenderer& renderer) {
-		// TODO{threaded} Need to wait for map loading, because of data race
-		static int wait_map_loading = 0;
-		wait_map_loading++;
-		if (wait_map_loading < 500) {
-			return;
-		}
-
 		TJS_TRACY_NAMED("MapElement_Render");
 		auto& world = _application.worldData();
 		auto& segments = world.segments();
@@ -716,7 +711,7 @@ namespace tjs::visualization {
 		return { screenX, screenY };
 	}
 
-	void MapElement::handle_open_map_simulation_reinit(const events::OpenMapEvent& event) {
+	void MapElement::handle(const events::OpenMapEvent& event) {
 		on_map_updated();
 	}
 

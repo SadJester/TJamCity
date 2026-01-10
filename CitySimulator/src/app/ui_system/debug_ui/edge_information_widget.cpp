@@ -51,7 +51,7 @@ namespace tjs::ui {
 	EdgeInformationWidget::EdgeInformationWidget(Application& app)
 		: QWidget(nullptr)
 		, _application(app) {
-		_ui_subs_handler = _application.uiSystem().visual_event_bus().subscribe(*this);
+		_ui_subs_handler = _application.uiSystem().event_bus().subscribe(*this);
 
 		QVBoxLayout* layout = new QVBoxLayout(this);
 		_tree = new QTreeWidget(this);
@@ -69,7 +69,7 @@ namespace tjs::ui {
 	}
 
 	EdgeInformationWidget::~EdgeInformationWidget() {
-		_application.uiSystem().visual_event_bus().unsubscribe(_ui_subs_handler);
+		_application.uiSystem().event_bus().unsubscribe(_ui_subs_handler);
 
 		_application.message_dispatcher().unregister_handler<events::OpenMapEvent>("EdgeInformationWidget");
 	}

@@ -23,7 +23,7 @@ namespace tjs::ui {
 		, _pathTreeWidget(nullptr) {
 		initialize();
 
-		_ui_subs_handler = _application.uiSystem().visual_event_bus().subscribe(*this);
+		_ui_subs_handler = _application.uiSystem().event_bus().subscribe(*this);
 		_application.simulationSystem().message_dispatcher().register_handler(*this, &VehicleAnalyzeWidget::handle_simulation_initialized, "VehicleAnalyzeWidget");
 		_application.simulationSystem().message_dispatcher().register_handler(*this, &VehicleAnalyzeWidget::handle_population, "VehicleAnalyzeWidget");
 
@@ -31,7 +31,7 @@ namespace tjs::ui {
 	}
 
 	VehicleAnalyzeWidget::~VehicleAnalyzeWidget() {
-		_application.uiSystem().visual_event_bus().unsubscribe(_ui_subs_handler);
+		_application.uiSystem().event_bus().unsubscribe(_ui_subs_handler);
 
 		_application.simulationSystem().message_dispatcher().unregister_handler<core::events::SimulationInitialized>("VehicleAnalyzeWidget");
 		_application.simulationSystem().message_dispatcher().unregister_handler<core::events::VehiclesPopulated>("VehicleAnalyzeWidget");

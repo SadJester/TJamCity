@@ -80,7 +80,9 @@ namespace tjs::common::system {
 		typename _sibling,
 		typename _commands_set,
 		typename _lossy_queue = sync::spmc_queue<int>,
-		typename _lossless_queue = sync::spmc_queue<int, 2048>>
+		typename _lossless_queue = sync::spmc_queue<int, 2048>
+		// TODO{threaded}: event_bus
+		>
 	class threaded_system : public threaded_system_base {
 	public:
 		using commands_set = _commands_set;

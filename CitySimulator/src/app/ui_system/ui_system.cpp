@@ -38,12 +38,12 @@ namespace tjs {
 	void UISystem::_process_events() {
 		_visual_lossless_reader.read_all(
 			[this](const visualization::VisualSystem::lossless_queue::message_t& msg) {
-				_visual_events_bus.publish(msg);
+				_event_bus.publish(msg);
 			});
 
 		_visual_lossy_reader.read_all(
 			[this](const visualization::VisualSystem::lossy_queue::message_t& msg) {
-				_visual_events_bus.publish(msg);
+				_event_bus.publish(msg);
 			});
 	}
 
