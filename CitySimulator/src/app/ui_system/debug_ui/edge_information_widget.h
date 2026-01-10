@@ -4,7 +4,8 @@
 #include <QTreeWidget>
 #include <QLabel>
 
-#include <events/map_events.h>
+#include <ui_system/ui_definitions.h>
+
 #include <events/project_events.h>
 
 namespace tjs {
@@ -22,7 +23,8 @@ namespace tjs::ui {
 		void handleItemClicked(QTreeWidgetItem* item, int column);
 
 	private:
-		void handle_lane_selected(const events::LaneIsSelected& event);
+		void handle(const visualization::visual_sys_lossy_queue::message_t& msg);
+
 		void handle_open_map(const events::OpenMapEvent& event);
 
 	private:
@@ -30,6 +32,8 @@ namespace tjs::ui {
 
 	private:
 		Application& _application;
+		ui::ui_event_bus::handler_t _ui_subs_handler {};
+
 		QTreeWidget* _tree = nullptr;
 		QLabel* _info = nullptr;
 		QTreeWidgetItem* _rootItem = nullptr;

@@ -4,11 +4,15 @@
 
 namespace tjs::core {
 	struct AgentData;
+	struct Lane;
+	struct VehicleData;
 } // namespace tjs::core
 
 namespace tjs::visualization {
 	enum class VisualSystemEvents {
-		agent_selected
+		agent_selected,
+		lane_selected,
+		map_position_changed
 	};
 
 	struct agent_payload {
@@ -17,6 +21,15 @@ namespace tjs::visualization {
 
 		agent_payload(core::AgentData* agent)
 			: agent(agent) {
+		}
+	};
+
+	struct lane_payload {
+		static constexpr VisualSystemEvents ALLOWED_IN_MESSAGES[] = { VisualSystemEvents::lane_selected };
+		core::Lane* lane;
+
+		lane_payload(core::Lane* lane)
+			: lane(lane) {
 		}
 	};
 

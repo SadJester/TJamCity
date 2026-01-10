@@ -1,6 +1,8 @@
 #include <stdafx.h>
+
 #include <visual_system/logic/map/lanes_selector.h>
 #include <visual_system/data/map_renderer_data.h>
+#include <visual_system/visual_system.h>
 
 #include <visualization/elements/map_element.h>
 
@@ -8,7 +10,6 @@
 
 #include <core/data_layer/world_data.h>
 #include <core/simulation/simulation_debug.h>
-#include <events/map_events.h>
 
 namespace tjs::app::logic {
 
@@ -48,7 +49,7 @@ namespace tjs::app::logic {
 			return;
 		}
 
-		auto* render_data = _application.stores().get_entry<core::model::MapRendererData>();
+		auto* render_data = _application.stores().get_entry<core::model::MapRendererShared>()->get();
 		auto* debug_data = &_application.settings().simulationSettings.debug_data;
 		if (!render_data || !debug_data) {
 			return;
@@ -104,7 +105,9 @@ namespace tjs::app::logic {
 
 		debug_data->selectedNode = nearest_node;
 		render_data->set_selected_lane(nearestLane);
-		_application.message_dispatcher().handle_message(events::LaneIsSelected {}, "map");
+
+		auto& v_sys = *_application.systems().get<visualization::VisualSystem>();
+		v_sys.optional_qeueue().push<visualization::VisualSystemEvents::lane_selected, visualization::lane_payload>(nearestLane);
 	}
 
 } // namespace tjs::app::logic

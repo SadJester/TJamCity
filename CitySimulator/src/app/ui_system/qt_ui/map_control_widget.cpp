@@ -35,11 +35,11 @@ namespace tjs {
 		MapControlWidget::MapControlWidget(Application& application, QWidget* parent)
 			: QWidget(parent)
 			, _application(application) {
+			_ui_subs_handler = _application.uiSystem().visual_event_bus().subscribe(*this);
+			_application.simulationSystem().message_dispatcher().register_handler(*this, &MapControlWidget::handle_population, "MapControlWidget");
+
 			// Create main layout
 			QVBoxLayout* mainLayout = new QVBoxLayout(this);
-
-			_application.message_dispatcher().register_handler(*this, &MapControlWidget::handle_positioning_changed, "MapControlWidget");
-			_application.simulationSystem().message_dispatcher().register_handler(*this, &MapControlWidget::handle_population, "MapControlWidget");
 
 			// File button
 			_openFileButton = new QPushButton("Open OSMX File");
@@ -87,7 +87,8 @@ namespace tjs {
 		}
 
 		MapControlWidget::~MapControlWidget() {
-			_application.message_dispatcher().unregister_handler<events::MapPositioningChanged>("MapControlWidget");
+			_application.uiSystem().visual_event_bus().unsubscribe(_ui_subs_handler);
+
 			_application.simulationSystem().message_dispatcher().unregister_handler<core::events::VehiclesPopulated>("MapControlWidget");
 		}
 
@@ -504,8 +505,10 @@ namespace tjs {
 			UpdateLabels();
 		}
 
-		void MapControlWidget::handle_positioning_changed(const events::MapPositioningChanged& event) {
-			UpdateLabels();
+		void MapControlWidget::handle(const visualization::visual_sys_lossy_queue::message_t& msg) {
+			if (msg.type() == visualization::VisualSystemEvents::map_position_changed) {
+				UpdateLabels();
+			}
 		}
 
 		void MapControlWidget::handle_population(const core::events::VehiclesPopulated& event) {

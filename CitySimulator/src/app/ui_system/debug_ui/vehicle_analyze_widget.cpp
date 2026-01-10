@@ -8,13 +8,12 @@
 #include <QtWidgets/QListWidget>
 
 #include <Application.h>
-#include <ui_system //ui_system.h>
+#include <ui_system/ui_system.h>
 
 #include <core/store_models/vehicle_analyze_data.h>
 #include <core/simulation/agent/agent_data.h>
 #include <core/simulation/simulation_system.h>
 #include <core/simulation/simulation_debug.h>
-#include <events/vehicle_events.h>
 
 namespace tjs::ui {
 	VehicleAnalyzeWidget::VehicleAnalyzeWidget(Application& app)

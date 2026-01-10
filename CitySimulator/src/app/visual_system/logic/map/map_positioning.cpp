@@ -2,9 +2,9 @@
 
 #include <visual_system/logic/map/map_positioning.h>
 #include <visual_system/data/map_renderer_data.h>
+#include <visual_system/visual_system.h>
 
 #include <data/persistent_render_data.h>
-#include <events/map_events.h>
 
 #include <visualization/elements/map_element.h>
 
@@ -45,7 +45,7 @@ namespace tjs::app::logic {
 		_dragging = true;
 
 		auto* debug = &_application.settings().simulationSettings.debug_data;
-		auto* render = _application.stores().get_entry<core::model::MapRendererData>();
+		auto* render = _application.stores().get_entry<core::model::MapRendererShared>()->get();
 		if (!debug || !render) {
 			return;
 		}
@@ -140,8 +140,8 @@ namespace tjs::app::logic {
 		general_settings.screen_center = _render_data->get_screen_center();
 		general_settings.zoomLevel = _render_data->get_meters_ppx();
 
-		// TODO{threads}: SPMC
-		_application.message_dispatcher().handle_message(events::MapPositioningChanged {}, "map");
+		auto& v_sys = *_application.systems().get<visualization::VisualSystem>();
+		v_sys.optional_qeueue().push<visualization::VisualSystemEvents::map_position_changed>();
 	}
 
 } // namespace tjs::app::logic

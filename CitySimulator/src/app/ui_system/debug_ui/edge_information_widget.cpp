@@ -51,6 +51,8 @@ namespace tjs::ui {
 	EdgeInformationWidget::EdgeInformationWidget(Application& app)
 		: QWidget(nullptr)
 		, _application(app) {
+		_ui_subs_handler = _application.uiSystem().visual_event_bus().subscribe(*this);
+
 		QVBoxLayout* layout = new QVBoxLayout(this);
 		_tree = new QTreeWidget(this);
 		_tree->setHeaderHidden(true);
@@ -63,12 +65,12 @@ namespace tjs::ui {
 		populateTree();
 		connect(_tree, &QTreeWidget::itemClicked, this, &EdgeInformationWidget::handleItemClicked);
 
-		_application.message_dispatcher().register_handler(*this, &EdgeInformationWidget::handle_lane_selected, "EdgeInformationWidget");
 		_application.message_dispatcher().register_handler(*this, &EdgeInformationWidget::handle_open_map, "EdgeInformationWidget");
 	}
 
 	EdgeInformationWidget::~EdgeInformationWidget() {
-		_application.message_dispatcher().unregister_handler<events::LaneIsSelected>("EdgeInformationWidget");
+		_application.uiSystem().visual_event_bus().unsubscribe(_ui_subs_handler);
+
 		_application.message_dispatcher().unregister_handler<events::OpenMapEvent>("EdgeInformationWidget");
 	}
 
@@ -191,8 +193,10 @@ namespace tjs::ui {
 		_info->setText(text);
 	}
 
-	void EdgeInformationWidget::handle_lane_selected(const events::LaneIsSelected& event) {
-		populateTree();
+	void EdgeInformationWidget::handle(const visualization::visual_sys_lossy_queue::message_t& msg) {
+		if (msg.type() == visualization::VisualSystemEvents::lane_selected) {
+			populateTree();
+		}
 	}
 
 	void EdgeInformationWidget::handle_open_map(const events::OpenMapEvent& event) {

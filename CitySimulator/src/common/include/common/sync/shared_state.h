@@ -428,6 +428,14 @@ namespace tjs::common::sync {
 			return _original_data;
 		}
 
+		shareable_type* get() {
+			return &_original_data;
+		}
+
+		const shareable_type* get() const {
+			return &_original_data;
+		}
+
 		void publish() {
 			if constexpr (change_trackable<shareable_type>) {
 				if (_original_data.is_changed()) {

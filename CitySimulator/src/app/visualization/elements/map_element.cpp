@@ -8,7 +8,6 @@
 #include <visualization/visualization_constants.h>
 
 #include <Application.h>
-#include <events/map_events.h>
 
 #include <core/data_layer/world_data.h>
 #include <core/data_layer/data_types.h>
@@ -595,9 +594,9 @@ namespace tjs::visualization {
 					}
 					if (opposite) {
 						// TODO{threaded}: HACK - somewhere in threads is writing and data race
-						if (edge->lanes.empty()) {
-							continue;
-						}
+						//if (edge->lanes.empty()) {
+						//	continue;
+						//}
 						const auto& lf = edge->opposite_side == Edge::OppositeSide::Right ? edge->lanes.front() : edge->lanes.back();
 						const auto& lb = opposite->opposite_side == Edge::OppositeSide::Right ? opposite->lanes.front() : opposite->lanes.back();
 						Coordinates start_world {
@@ -644,6 +643,13 @@ namespace tjs::visualization {
 	}
 
 	void MapElement::render(IRenderer& renderer) {
+		// TODO{threaded} Need to wait for map loading, because of data race
+		static int wait_map_loading = 0;
+		wait_map_loading++;
+		if (wait_map_loading < 500) {
+			return;
+		}
+
 		TJS_TRACY_NAMED("MapElement_Render");
 		auto& world = _application.worldData();
 		auto& segments = world.segments();

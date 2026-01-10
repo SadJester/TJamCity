@@ -28,6 +28,6 @@ namespace tjs::visualization {
 
 	private:
 		Application& _application;
-		core::model::MapRendererData& _mapRendererData;
+		core::model::MapRendererData* _mapRendererData;
 	};
 } // namespace tjs::visualization

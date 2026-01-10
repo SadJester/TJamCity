@@ -3,11 +3,10 @@
 #include <QtWidgets>
 
 #include <core/events/simulation_events.h>
-#include <events/vehicle_events.h>
 #include <events/project_events.h>
 #include <core/events/vehicle_population_events.h>
 
-#include <ui_system //ui_definitions.h>
+#include <ui_system/ui_definitions.h>
 
 namespace tjs::model {
 	struct VehicleAnalyzeData;

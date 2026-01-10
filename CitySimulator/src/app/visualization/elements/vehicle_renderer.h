@@ -31,7 +31,7 @@ namespace tjs::visualization {
 		void render(IRenderer& renderer, const core::VehicleState1& vehicle);
 
 	private:
-		core::model::MapRendererData& _mapRendererData;
+		core::model::MapRendererData* _mapRendererData;
 		Application& _application;
 		core::VehicleShared::connection _connection;
 	};

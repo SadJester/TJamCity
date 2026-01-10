@@ -21,7 +21,7 @@ namespace tjs::visualization {
 	VehicleRenderer::VehicleRenderer(Application& application)
 		: SceneNode("VehicleRenderer")
 		, _application(application)
-		, _mapRendererData(*application.stores().get_entry<core::model::MapRendererData>()) {
+		, _mapRendererData(application.stores().get_entry<core::model::MapRendererShared>()->get()) {
 		_connection = _application.simulationSystem().vehicle_system().vehicle_state().connect();
 	}
 
@@ -29,7 +29,7 @@ namespace tjs::visualization {
 	}
 
 	void VehicleRenderer::init() {
-		_mapRendererData = *_application.stores().get_entry<core::model::MapRendererData>();
+		_mapRendererData = _application.stores().get_entry<core::model::MapRendererShared>()->get();
 	}
 
 	void VehicleRenderer::update() {
@@ -67,7 +67,7 @@ namespace tjs::visualization {
 	};
 
 	void VehicleRenderer::render(IRenderer& renderer, const core::VehicleState1& vehicle) {
-		const float metersPerPixel = _mapRendererData.get_meters_ppx();
+		const float metersPerPixel = _mapRendererData->get_meters_ppx();
 
 		// Get the settings for the vehicle based on its type
 		const VehicleRenderSettings& settings = vehicleSettings.renderSettings[static_cast<int>(vehicle.type)];
@@ -78,8 +78,8 @@ namespace tjs::visualization {
 		// Convert coordinates to screen coordinates
 		auto screenPos = tjs::visualization::convert_to_screen(
 			vehicle.coordinates,
-			_mapRendererData.get_screen_center(),
-			_mapRendererData.get_meters_ppx());
+			_mapRendererData->get_screen_center(),
+			_mapRendererData->get_meters_ppx());
 		int screenX = screenPos.x;
 		int screenY = screenPos.y;
 

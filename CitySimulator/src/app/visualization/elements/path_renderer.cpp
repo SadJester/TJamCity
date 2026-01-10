@@ -25,11 +25,11 @@ namespace tjs::visualization {
 	PathRenderer::PathRenderer(Application& application)
 		: SceneNode("PathRenderer")
 		, _application(application)
-		, _mapRendererData(*application.stores().get_entry<core::model::MapRendererData>()) {
+		, _mapRendererData(application.stores().get_entry<core::model::MapRendererShared>()->get()) {
 	}
 
 	void PathRenderer::init() {
-		_mapRendererData = *_application.stores().get_entry<core::model::MapRendererData>();
+		_mapRendererData = _application.stores().get_entry<core::model::MapRendererShared>()->get();
 	}
 
 	void PathRenderer::update() {
@@ -53,7 +53,7 @@ namespace tjs::visualization {
 		const Coordinates& vehicle_pos = agent->vehicle->coordinates;
 
 		auto convert = [this](const Coordinates& coordinates) {
-			return convert_to_screen_f(coordinates, _mapRendererData.get_screen_center(), _mapRendererData.get_meters_ppx());
+			return convert_to_screen_f(coordinates, _mapRendererData->get_screen_center(), _mapRendererData->get_meters_ppx());
 		};
 
 		// Prepare screen coordinates
@@ -79,17 +79,17 @@ namespace tjs::visualization {
 
 		// Draw past path in Blue
 		static constexpr float thickness = 3.5f;
-		drawThickLine(renderer, past_points, _mapRendererData.get_meters_ppx(), thickness, FColor::Blue);
+		drawThickLine(renderer, past_points, _mapRendererData->get_meters_ppx(), thickness, FColor::Blue);
 
 		// Draw future path in Green
-		drawThickLine(renderer, future_points, _mapRendererData.get_meters_ppx(), thickness, FColor::Green);
+		drawThickLine(renderer, future_points, _mapRendererData->get_meters_ppx(), thickness, FColor::Green);
 
 		// Draw goal marker
 		renderer.set_draw_color(FColor::Yellow);
 		const auto current_goal_screen = convert_to_screen(
 			agent->currentGoal->coordinates,
-			_mapRendererData.get_screen_center(),
-			_mapRendererData.get_meters_ppx());
+			_mapRendererData->get_screen_center(),
+			_mapRendererData->get_meters_ppx());
 		renderer.draw_circle(current_goal_screen.x, current_goal_screen.y, 5.0f, true);
 	}
 

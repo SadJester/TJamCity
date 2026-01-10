@@ -11,7 +11,6 @@
 #include <core/simulation/agent/agent_data.h>
 #include <core/simulation/simulation_system.h>
 #include <core/simulation/transport_management/vehicle_system.h>
-#include <events/vehicle_events.h>
 
 namespace tjs::app::logic {
 	VehicleTargeting::VehicleTargeting(Application& app)
@@ -32,7 +31,7 @@ namespace tjs::app::logic {
 			return;
 		}
 
-		auto* render = _application.stores().get_entry<core::model::MapRendererData>();
+		auto* render = _application.stores().get_entry<core::model::MapRendererShared>()->get();
 		auto* model = _application.stores().get_entry<core::model::VehicleAnalyzeData>();
 		if (!model || !render) {
 			return;
@@ -73,8 +72,6 @@ namespace tjs::app::logic {
 		}
 
 		model->agent = agent;
-		_application.message_dispatcher().handle_message(
-			events::AgentSelected { agent }, "map");
 
 		auto& v_sys = *_application.systems().get<visualization::VisualSystem>();
 		v_sys.optional_qeueue().push<visualization::VisualSystemEvents::agent_selected, visualization::agent_payload>(agent);

@@ -10,7 +10,8 @@
 #include <QComboBox>
 #include <QScrollArea>
 
-#include <events/map_events.h>
+#include <ui_system/ui_definitions.h>
+
 #include <core/events/vehicle_population_events.h>
 
 namespace tjs {
@@ -37,7 +38,7 @@ namespace tjs {
 		private:
 			void UpdateButtonsState();
 			void UpdateLabels();
-			void handle_positioning_changed(const events::MapPositioningChanged& event);
+			void handle(const visualization::visual_sys_lossy_queue::message_t& msg);
 
 			void createVehicleInformation(QVBoxLayout* layout);
 			void createLayerSelection(QVBoxLayout* layout);
@@ -50,6 +51,7 @@ namespace tjs {
 
 		private:
 			Application& _application;
+			ui::ui_event_bus::handler_t _ui_subs_handler {};
 
 			// Temporary button, will erase it after refactoring
 			QPushButton* _updateButton = nullptr;
