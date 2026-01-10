@@ -40,7 +40,6 @@ namespace tjs {
 		_simulationSystem->initialize();
 
 		_models_store.init();
-		_logic_modules.init();
 	}
 
 	void Application::run(common::system::system_holder_delegate& delegate) {
@@ -131,7 +130,6 @@ namespace tjs {
 		// Save settings before quit
 		_settings.save();
 
-		_logic_modules.release();
 		_models_store.release();
 	}
 

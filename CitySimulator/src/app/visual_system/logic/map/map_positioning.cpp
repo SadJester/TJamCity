@@ -25,10 +25,12 @@ namespace tjs::app::logic {
 	}
 
 	void MapPositioning::init() {
+		_subs_handler = _application.systems().get<visualization::VisualSystem>()->event_bus().subscribe(*this);
 		_application.renderer().register_event_listener(this);
 	}
 
 	void MapPositioning::release() {
+		_application.systems().get<visualization::VisualSystem>()->event_bus().unsubscribe(_subs_handler);
 		_application.renderer().unregister_event_listener(this);
 	}
 
@@ -142,6 +144,10 @@ namespace tjs::app::logic {
 
 		auto& v_sys = *_application.systems().get<visualization::VisualSystem>();
 		v_sys.optional_qeueue().push<visualization::VisualSystemEvents::map_position_changed>();
+	}
+
+	void MapPositioning::handle(const events::OpenMapEvent&) {
+		update_map_positioning();
 	}
 
 } // namespace tjs::app::logic

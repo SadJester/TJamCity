@@ -27,17 +27,15 @@
 
 // TODO: Place somwhere to be more pretty
 #include "visualization/Scene.h"
-#include "visualization/scene_system.h"
 #include "visualization/elements/map_element.h"
-#include "data/persistent_render_data.h"
 
 namespace tjs {
 
 	void setup_store_models(Application& app) {
-		app.stores().create<core::model::VehicleAnalyzeData>();
-		app.stores().create<core::model::MapRendererShared>();
-		app.stores().create<core::model::PersistentRenderData>();
-		app.stores().create<core::model::RenderMetricsData>();
+		app.stores().create<core::model::VehicleAnalyzeData>();   // !!!!! Reogranize
+		app.stores().create<core::model::MapRendererShared>();    // OK
+		app.stores().create<core::model::PersistentRenderData>(); // Obsolete
+		app.stores().create<core::model::RenderMetricsData>();    // To VisualSystem::Stats
 	}
 
 	class ApplicationDelegate : public common::system::system_holder_delegate {

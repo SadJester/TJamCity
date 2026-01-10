@@ -1,5 +1,7 @@
 #pragma once
 
+#include <visual_system/visual_system_definitions.h>
+
 #include <render/render_events.h>
 #include <logic/logic_base.h>
 
@@ -32,11 +34,14 @@ namespace tjs::app::logic {
 
 		void update_map_positioning();
 
+		void handle(const events::OpenMapEvent&);
+
 	private:
 		float _maxDistance;
 		bool _dragging = false;
 
 		core::model::MapRendererShared& _render_data;
+		visualization::visual_event_bus::handler_t _subs_handler {};
 	};
 
 } // namespace tjs::app::logic

@@ -87,11 +87,6 @@ namespace tjs::visualization {
 			_render_data->set_screen_center(general_settings.screen_center);
 			_render_data->set_meters_ppx(general_settings.zoomLevel);
 		}
-
-		auto positioning = _application.logic_modules().get_entry<app::logic::MapPositioning>();
-		if (positioning) {
-			positioning->update_map_positioning();
-		}
 	}
 
 	void MapElement::init() {

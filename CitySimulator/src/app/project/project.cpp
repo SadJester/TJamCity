@@ -26,7 +26,6 @@ namespace tjs {
 			application.simulationSystem().initialize();
 
 			application.stores().reinit();
-			application.logic_modules().reinit();
 		}
 
 		application.uiSystem().event_bus().publish(events::OpenMapEvent {});

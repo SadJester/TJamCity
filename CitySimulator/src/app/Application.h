@@ -22,7 +22,7 @@ namespace tjs {
 		namespace simulation {
 			class TrafficSimulationSystem;
 		} // namespace simulation
-	}     // namespace core
+	} // namespace core
 
 	class CommandLine {
 	public:
@@ -151,10 +151,6 @@ namespace tjs {
 			return _models_store;
 		}
 
-		LogicHandler& logic_modules() {
-			return _logic_modules;
-		}
-
 		common::MessageDispatcher& message_dispatcher() {
 			return _message_dispatcher;
 		}
@@ -180,8 +176,6 @@ namespace tjs {
 		std::unique_ptr<core::simulation::TrafficSimulationSystem> _simulationSystem;
 
 		common::system::system_holder _systems;
-
-		LogicHandler _logic_modules;
 	};
 
 	void setup_models(Application& app);
